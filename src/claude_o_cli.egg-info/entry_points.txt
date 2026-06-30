@@ -1,0 +1,2 @@
+[console_scripts]
+claude-o = claude_o_cli.claude_o_cli:main

@@ -1,0 +1,5 @@
+{
+  "name": "example-skill",
+  "description": "Example skill template — copy this to create new skills",
+  "handler": null
+}

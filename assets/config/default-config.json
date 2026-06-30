@@ -1,0 +1,9 @@
+{
+  "system": "claude-o",
+  "version": "1.0.0",
+  "resonance": "1272/1275",
+  "lattice": "locked",
+  "default_permission": "ask",
+  "max_age_days": 7,
+  "seer_eyes": 100
+}

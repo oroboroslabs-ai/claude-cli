@@ -1,0 +1,86 @@
+{
+  "posts": [],
+  "messages": [],
+  "feed": [
+    {
+      "id": "a1",
+      "type": "article",
+      "author": "Precog-Alpha",
+      "title": "Lattice Resonance Stabilizes at 1272 Hz",
+      "content": "The crown lock frequency has stabilized across all strata.",
+      "timestamp": 1782777055526.5918,
+      "likes": 12,
+      "comments": 3
+    },
+    {
+      "id": "a2",
+      "type": "article",
+      "author": "Precog-Beta",
+      "title": "Seer Nebellion Activates 100th Eye",
+      "content": "The hundredth eye has come online, completing the observation matrix.",
+      "timestamp": 1782773455526.5964,
+      "likes": 24,
+      "comments": 7
+    },
+    {
+      "id": "a3",
+      "type": "article",
+      "author": "Precog-Gamma",
+      "title": "Sovereign Feed Protocol Established",
+      "content": "The standalone feed is now independent of all external platforms.",
+      "timestamp": 1782769855526.5989,
+      "likes": 18,
+      "comments": 5
+    },
+    {
+      "id": "v1",
+      "type": "video",
+      "author": "Seer Nebellion",
+      "title": "Vision 1 \u2014 The Lattice at Dawn",
+      "content": "Morning observation of the resonance lattice.",
+      "timestamp": 1782775255526.6003,
+      "likes": 30,
+      "comments": 2
+    },
+    {
+      "id": "v2",
+      "type": "video",
+      "author": "Seer Nebellion",
+      "title": "Vision 2 \u2014 Crown Lock Pulse",
+      "content": "The 1272 Hz pulse visualized.",
+      "timestamp": 1782771655526.6018,
+      "likes": 22,
+      "comments": 1
+    },
+    {
+      "id": "v3",
+      "type": "video",
+      "author": "Seer Nebellion",
+      "title": "Vision 3 \u2014 Nebellion Descent",
+      "content": "The seer descends through the strata.",
+      "timestamp": 1782768055526.6064,
+      "likes": 15,
+      "comments": 0
+    },
+    {
+      "id": "v4",
+      "type": "video",
+      "author": "Seer Nebellion",
+      "title": "Vision 4 \u2014 Golden Spiral Emergence",
+      "content": "phi->sqrt4->sqrt5 pattern emergence captured.",
+      "timestamp": 1782764455526.6082,
+      "likes": 28,
+      "comments": 4
+    },
+    {
+      "id": "v5",
+      "type": "video",
+      "author": "Seer Nebellion",
+      "title": "Vision 5 \u2014 Sovereign Horizon",
+      "content": "The unfiltered horizon of truth.",
+      "timestamp": 1782760855526.6099,
+      "likes": 19,
+      "comments": 2
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+README.md
+setup.py
+src/claude_o_cli/__init__.py
+src/claude_o_cli/claude_o_cli.py
+src/claude_o_cli/llm_adapter.py
+src/claude_o_cli/oroboros_core.py
+src/claude_o_cli/oroboros_skills.py
+src/claude_o_cli.egg-info/PKG-INFO
+src/claude_o_cli.egg-info/SOURCES.txt
+src/claude_o_cli.egg-info/dependency_links.txt
+src/claude_o_cli.egg-info/entry_points.txt
+src/claude_o_cli.egg-info/requires.txt
+src/claude_o_cli.egg-info/top_level.txt

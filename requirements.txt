@@ -1,0 +1,7 @@
+# Required libraries for full functionality
+requests>=2.31.0
+beautifulsoup4>=4.12.3
+lxml>=4.9.1
+PyYAML>=6.0.1
+pandas>=2.2.0
+rich>=13.0.0

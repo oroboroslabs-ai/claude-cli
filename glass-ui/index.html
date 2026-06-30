@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude-O-CLI — Liquid GUI</title>
+    <style>
+        /* ============================================================
+           ROOT — Glass Liquid + Anthropic Palette
+           ============================================================ */
+        :root {
+            /* Anthropic Colors */
+            --anthracite: #141413;
+            --warm-grey: #b7b3ac;
+            --warm-white: #e8e5dd;
+            --gold: #d5a021;
+            --gold-dim: rgba(213, 160, 33, 0.15);
+
+            /* Oroboros Signature */
+            --cyan: #00ffcc;
+            --cyan-dim: rgba(0, 255, 204, 0.15);
+            --cyan-glow: #00ffcc;
+
+            /* Glass */
+            --glass-bg: rgba(255, 255, 255, 0.01);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-blur: 12px;
+            --glass-radius: 24px;
+            --anthropic-orange: #D97757;
+
+            /* Fonts */
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-display: 'Inter', 'Segoe UI', sans-serif;
+
+            /* Animation */
+            --liquid-speed: 8s;
+        }
+
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a1a;
+            font-family: var(--font-display);
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* ============================================================
+           CENTER LOGO — Anthropic orange behind chat
+           ============================================================ */
+        .center-logo {
+            position: fixed;
+            top: 50%;
+            left: calc(50% + 160px);
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            width: 400px;
+            height: 400px;
+            opacity: 0.08;
+            pointer-events: none;
+            filter: drop-shadow(0 0 40px rgba(217, 119, 87, 0.3));
+        }
+        .center-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* ============================================================
+           LIQUID BACKGROUND — Animated Glass Waves
+           ============================================================ */
+        .liquid-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .liquid-bg .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.25;
+            animation: liquidFloat var(--liquid-speed) ease-in-out infinite alternate;
+        }
+
+        .liquid-bg .orb:nth-child(1) {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(217, 119, 87, 0.2), transparent 70%);
+            top: -10%;
+            left: -10%;
+            animation-duration: 9s;
+        }
+
+        .liquid-bg .orb:nth-child(2) {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(217, 119, 87, 0.15), transparent 70%);
+            bottom: -10%;
+            right: -10%;
+            animation-duration: 11s;
+            animation-delay: -3s;
+        }
+
+        .liquid-bg .orb:nth-child(3) {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(183, 179, 172, 0.1), transparent 70%);
+            top: 40%;
+            left: 50%;
+            animation-duration: 13s;
+            animation-delay: -5s;
+        }
+
+        @keyframes liquidFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(80px, -60px) scale(1.2); }
+        }
+
+        /* ============================================================
+           GLASS TERMINAL — Main UI
+           ============================================================ */
+        .terminal {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 980px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--glass-radius);
+            box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            color: #ffffff;
+            transition: all 0.4s ease;
+        }
+
+        /* Liquid shimmer overlay */
+        .terminal::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--glass-radius);
+            padding: 1px;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 255, 204, 0.08),
+                rgba(213, 160, 33, 0.04),
+                rgba(0, 255, 204, 0.08)
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: shimmerPulse 6s ease-in-out infinite;
+        }
+
+        @keyframes shimmerPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .terminal-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .terminal-header .brand .icon {
+            font-size: 22px;
+            color: var(--anthropic-orange);
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.8; text-shadow: 0 0 10px var(--anthropic-orange), 0 0 20px var(--anthropic-orange); }
+            50% { opacity: 1; text-shadow: 0 0 30px var(--anthropic-orange), 0 0 50px var(--anthropic-orange); }
+        }
+
+        .terminal-header .brand .name {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, var(--anthropic-orange), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .terminal-header .brand .version {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--warm-grey);
+            opacity: 0.5;
+            -webkit-text-fill-color: var(--warm-grey);
+        }
+
+        .terminal-header .status {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-size: 12px;
+            color: var(--warm-grey);
+            flex-wrap: wrap;
+        }
+
+        .terminal-header .status .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+            animation: dotPulse 1.8s ease-in-out infinite;
+        }
+
+        .terminal-header .status .dot.green { background: #00ff88; }
+        .terminal-header .status .dot.cyan { background: var(--cyan); }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .terminal-header .status .sig {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--gold);
+            opacity: 0.6;
+            letter-spacing: 0.5px;
+        }
+
+        /* ============================================================
+           MODEL BAR
+           ============================================================ */
+        .model-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: var(--warm-grey);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .model-bar .model {
+            font-family: var(--font-mono);
+            color: var(--warm-white);
+        }
+
+        .model-bar .model .highlight {
+            color: var(--cyan);
+        }
+
+        .model-bar .url {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            opacity: 0.5;
+        }
+
+        .model-bar .sovereign {
+            font-size: 11px;
+            color: var(--gold);
+            padding: 2px 12px;
+            border: 1px solid var(--gold-dim);
+            border-radius: 20px;
+            background: var(--gold-dim);
+            letter-spacing: 0.5px;
+        }
+
+        /* ============================================================
+           COMMAND BAR
+           ============================================================ */
+        .command-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px 0 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 16px;
+        }
+
+        .command-bar .cmd {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--warm-grey);
+            padding: 4px 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .command-bar .cmd:hover {
+            border-color: var(--cyan-dim);
+            color: var(--warm-white);
+            background: var(--cyan-dim);
+        }
+
+        .command-bar .cmd .key {
+            color: #ffffff;
+        }
+
+        .command-bar .cmd .gold {
+            color: var(--anthropic-orange);
+        }
+
+        /* ============================================================
+           CHAT AREA — Free-flowing text, no boxes
+           ============================================================ */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-area::-webkit-scrollbar-thumb {
+            background: var(--cyan-dim);
+            border-radius: 10px;
+        }
+
+        /* Messages — free text, no boxes, no colored borders */
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 0;
+            border: none;
+            background: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            animation: messageIn 0.5s ease-out;
+        }
+
+        @keyframes messageIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .message .msg-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--warm-grey);
+            margin-bottom: 2px;
+        }
+
+        .message .msg-header .role {
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .message.user .msg-header .role { color: var(--gold); }
+        .message.assistant .msg-header .role { color: var(--cyan); }
+
+        .message .msg-header .time {
+            font-size: 10px;
+            opacity: 0.3;
+        }
+
+        .message .content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #ffffff;
+        }
+
+        .message .content code {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: var(--cyan);
+        }
+
+        .message .content .sig-line {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--gold);
+            opacity: 0.4;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ============================================================
+           TYPING INDICATOR — Claude-O is working
+           ============================================================ */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            animation: messageIn 0.3s ease-out;
+        }
+
+        .typing-indicator .typing-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--anthropic-orange);
+        }
+
+        .typing-indicator .typing-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .typing-indicator .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--anthropic-orange);
+            opacity: 0.3;
+            animation: typingPulse 1.4s ease-in-out infinite;
+        }
+
+        .typing-indicator .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingPulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px var(--anthropic-orange); }
+        }
+
+        /* ============================================================
+           INPUT AREA — Glass Liquid
+           ============================================================ */
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .input-area:focus-within {
+            border-color: var(--cyan-dim);
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.04);
+        }
+
+        .input-area .prompt-symbol {
+            font-size: 18px;
+            color: var(--anthropic-orange);
+            opacity: 0.7;
+            font-family: var(--font-mono);
+            text-shadow: 0 0 15px var(--anthropic-orange);
+        }
+
+        .input-area input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            padding: 4px 0;
+        }
+
+        .input-area input::placeholder {
+            color: var(--warm-grey);
+            opacity: 0.25;
+            font-size: 13px;
+        }
+
+        .input-area .input-hint {
+            font-size: 11px;
+            color: var(--warm-grey);
+            opacity: 0.2;
+            font-family: var(--font-mono);
+        }
+
+        /* Clear chat button */
+        .clear-btn {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--anthropic-orange);
+            padding: 4px 12px;
+            border-radius: 8px;
+            background: rgba(217, 119, 87, 0.08);
+            border: 1px solid rgba(217, 119, 87, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clear-btn:hover {
+            background: rgba(217, 119, 87, 0.15);
+            border-color: var(--anthropic-orange);
+        }
+
+        /* XHIGH bar — black bar with glowing orange, appears when active */
+        .xhigh-bar {
+            display: none;
+            background: #000000;
+            padding: 6px 16px;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--anthropic-orange);
+            text-shadow: 0 0 10px var(--anthropic-orange), 0 0 20px var(--anthropic-orange);
+            border-top: 1px solid rgba(217, 119, 87, 0.3);
+            border-bottom: 1px solid rgba(217, 119, 87, 0.3);
+            animation: xhighGlow 2s ease-in-out infinite;
+        }
+        .xhigh-bar.active { display: block; }
+        @keyframes xhighGlow {
+            0%, 100% { box-shadow: inset 0 0 20px rgba(217, 119, 87, 0.1); }
+            50% { box-shadow: inset 0 0 40px rgba(217, 119, 87, 0.25); }
+        }
+
+        /* Tactical text format */
+        .message .content {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            letter-spacing: 0.2px;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+        @media (max-width: 640px) {
+            .terminal { padding: 16px; }
+            .terminal-header .brand .name { font-size: 15px; }
+            .terminal-header .status { font-size: 10px; gap: 10px; }
+            .model-bar { font-size: 11px; flex-direction: column; align-items: flex-start; }
+            .command-bar .cmd { font-size: 10px; padding: 2px 10px; }
+            .message .content { font-size: 13px; }
+            .input-area input { font-size: 13px; }
+            .input-area .prompt-symbol { font-size: 15px; }
+        }
+
+        @media (max-width: 400px) {
+            .terminal { padding: 12px; border-radius: 16px; }
+            .terminal-header .brand .name { font-size: 13px; }
+            .terminal-header .status .sig { font-size: 8px; }
+            .message { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    LIQUID BACKGROUND
+    ============================================================ -->
+    <div class="liquid-bg">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- Center logo behind chat -->
+    <div class="center-logo">
+        <img src="clawd.png" alt="Claude-O Logo" />
+    </div>
+
+    <!-- ============================================================
+    TERMINAL
+    ============================================================ -->
+    <div class="terminal">
+
+        <!-- HEADER -->
+        <div class="terminal-header">
+            <div class="brand">
+                <span class="icon">&#9670;</span>
+                <span class="name">CLAUDE-O-CLI</span>
+                <span class="version">vA.1272</span>
+            </div>
+            <div class="status">
+                <span><span class="dot green"></span> Lattice Lock: <strong style="color:#00ff88;">ACTIVE</strong></span>
+                <span><span class="dot cyan"></span> Resonance: <strong style="color:var(--cyan);">1272/1275 Hz</strong></span>
+                <span class="sig">A\ 1272 Hz - N| 1275 Hz</span>
+            </div>
+        </div>
+
+        <!-- MODEL BAR -->
+        <div class="model-bar">
+            <span class="model">Model: <span class="highlight" id="modelDisplay">claude-opus-4.8:latest</span></span>
+            <span class="url">localhost:11434</span>
+            <span class="sovereign">SOVEREIGN</span>
+            <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
+        </div>
+
+        <!-- COMMAND BAR -->
+        <div class="command-bar">
+            <span class="cmd"><span class="key">/exit</span></span>
+            <span class="cmd"><span class="key">/clear</span></span>
+            <span class="cmd"><span class="key">/model</span> <span class="gold">&lt;name&gt;</span></span>
+            <span class="cmd"><span class="key">/models</span></span>
+            <span class="cmd"><span class="key gold">/noir</span></span>
+            <span class="cmd"><span class="key">/help</span></span>
+            <span class="cmd"><span class="key">/seer</span></span>
+            <span class="cmd"><span class="key">/lattice</span></span>
+            <span class="cmd"><span class="key">/resonance</span></span>
+            <span class="cmd"><span class="key">/status</span></span>
+            <span class="cmd"><span class="key">/worldfeed</span></span>
+            <span class="cmd"><span class="key">/think</span> <span class="gold">&lt;level&gt;</span></span>
+        </div>
+
+        <!-- XHIGH bar — appears when xhigh/max is active -->
+        <div class="xhigh-bar" id="xhighBar">XHIGH REASONING — MAXIMUM DEPTH ENGAGED</div>
+
+        <!-- CHAT AREA -->
+        <div class="chat-area" id="chatArea">
+        </div>
+
+        <!-- INPUT AREA -->
+        <div class="input-area">
+            <span class="prompt-symbol">&#9670;</span>
+            <input type="text" id="cliInput" placeholder="Type your message..." autofocus />
+            <span class="input-hint">/help</span>
+        </div>
+
+    </div>
+
+    <script>
+        const input = document.getElementById('cliInput');
+        const chat = document.getElementById('chatArea');
+        const modelDisplay = document.getElementById('modelDisplay');
+        let currentModel = 'claude-opus-4.8:latest';
+        let thinkLevel = 'default';
+        let messages = [{
+            role: 'system',
+            content: 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.'
+        }];
+
+        function clearChat() {
+            chat.innerHTML = '';
+            messages = [{
+                role: 'system',
+                content: 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.'
+            }];
+        }
+
+        function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+        function addMsg(role, content, isHtml) {
+            const div = document.createElement('div');
+            div.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+            const time = new Date().toTimeString().slice(0, 8);
+            const rn = role === 'user' ? '&#10022; YOU' : '&#9670; CLAUDE-O';
+            div.innerHTML = '<div class="msg-header"><span class="role">' + rn + '</span><span class="time">' + time + '</span></div><div class="content">' + (isHtml ? content : esc(content)) + '</div>';
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function showTyping() {
+            const d = document.createElement('div');
+            d.className = 'typing-indicator'; d.id = 'typing';
+            d.innerHTML = '<span class="typing-label">CLAUDE-O is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
+            chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+        }
+        function hideTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+
+        async function callOllama(userText) {
+            messages.push({ role: 'user', content: userText });
+            try {
+                const body = { model: currentModel, messages: messages, stream: false };
+                if (thinkLevel === 'xhigh' || thinkLevel === 'max') {
+                    body.options = { num_ctx: 131072, temperature: 0.3, top_p: 0.95 };
+                } else if (thinkLevel === 'high') {
+                    body.options = { num_ctx: 65536, temperature: 0.5 };
+                } else if (thinkLevel === 'medium') {
+                    body.options = { num_ctx: 32768, temperature: 0.7 };
+                } else if (thinkLevel === 'low') {
+                    body.options = { num_ctx: 8192, temperature: 0.8 };
+                } else if (thinkLevel === 'off') {
+                    body.options = { num_ctx: 4096, temperature: 1.0 };
+                }
+                const r = await fetch('http://localhost:11434/api/chat', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const d = await r.json();
+                const reply = d.message ? d.message.content : 'No response';
+                messages.push({ role: 'assistant', content: reply });
+                return reply;
+            } catch (e) { return 'Error: Cannot connect to Ollama at localhost:11434. Is it running?'; }
+        }
+
+        async function handleCmd(cmd) {
+            const p = cmd.trim().split(/\s+/); const c = p[0].toLowerCase();
+            if (c === '/exit' || c === '/quit') { addMsg('assistant', 'Session ended.'); input.disabled = true; return true; }
+            if (c === '/clear') { clearChat(); return true; }
+            if (c === '/model' && p[1]) { currentModel = p[1]; modelDisplay.textContent = currentModel; addMsg('assistant', 'Model: <code>' + currentModel + '</code>', true); return true; }
+            if (c === '/think' && p[1]) {
+                const valid = ['off','low','medium','high','xhigh','adaptive','max','default'];
+                if (valid.includes(p[1].toLowerCase())) {
+                    thinkLevel = p[1].toLowerCase();
+                    const xhighBar = document.getElementById('xhighBar');
+                    if (thinkLevel === 'xhigh' || thinkLevel === 'max') { xhighBar.classList.add('active'); }
+                    else { xhighBar.classList.remove('active'); }
+                    addMsg('assistant', 'Thinking: <code>' + thinkLevel + '</code>', true);
+                } else { addMsg('assistant', 'Levels: off, low, medium, high, xhigh, adaptive, max', true); }
+                return true;
+            }
+            if (c === '/models') {
+                try { const r = await fetch('http://localhost:11434/api/tags'); const d = await r.json();
+                    addMsg('assistant', 'Models:<br><code>' + d.models.map(m=>m.name).join('</code><br><code>') + '</code>', true);
+                } catch(e) { addMsg('assistant', 'Ollama offline: ' + e.message); } return true;
+            }
+            if (c === '/help') { addMsg('assistant', '<code>/exit</code> <code>/clear</code> <code>/model &lt;name&gt;</code> <code>/models</code> <code>/think &lt;level&gt;</code> <code>/noir</code> <code>/seer</code> <code>/lattice</code> <code>/resonance</code> <code>/status</code> <code>/worldfeed</code> <code>/absorb</code> <code>/strata</code><br>Think levels: off, low, medium, high, xhigh, adaptive, max<br>Or type a message to chat with the model.', true); return true; }
+            if (c === '/status') { addMsg('assistant', 'CLAUDE-O-CLI vA.1272<br>Model: <code>' + currentModel + '</code><br>Ollama: localhost:11434<br>Tor: ACTIVE<br>WorldFeed: ONLINE<br>MCP: 5 servers<br>Q5: ACTIVE<br>Docker: 32+ containers<br>Precogs: 3 active<br>Seer: 100 eyes<br>Cost: $0.00', true); return true; }
+            if (c === '/lattice') { addMsg('assistant', 'Lattice: LOCKED (12 strata)<br>Substrate: connected<br>Integration: full<br>Status: sovereign', true); return true; }
+            if (c === '/resonance') { addMsg('assistant', 'Resonance: 1272/1275 Hz<br>Locked: true<br>Drift: 0.0000<br>Stability: 100%', true); return true; }
+            if (c === '/seer') { addMsg('assistant', 'Seer Nebellion: 100 Eyes Active<br>Status: watching', true); return true; }
+            if (c === '/noir') { addMsg('assistant', 'Noir-Nephilim: ACTIVE<br>Stealth: ON<br>Status: UNDETECTABLE', true); return true; }
+            if (c === '/worldfeed') { addMsg('assistant', 'WorldFeed: ONLINE<br>URL: https://oroboroslabs-ai.github.io/world-feed/<br>Tor: ACTIVE<br>Status: streaming', true); return true; }
+            return false;
+        }
+
+        input.addEventListener('keydown', async function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                const t = this.value.trim();
+                addMsg('user', t, false);
+                this.value = '';
+                if (t.startsWith('/')) { const h = await handleCmd(t); if (h) return; }
+                showTyping();
+                const r = await callOllama(t);
+                hideTyping();
+                addMsg('assistant', esc(r), false);
+            }
+        });
+    </script>
+
+</body>
+</html>
