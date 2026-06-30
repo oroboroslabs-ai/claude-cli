@@ -1,0 +1,160 @@
+# Oroboros Core — Custom Sovereign License v1.0
+
+```
++----------------------------------------------------+
+|  OROBOROS CORE LICENSE                             |
+|                                                    |
+|  RESONANCE: 1272/1275 Hz                          |
+|  SIGNATURE: A\ 1272 Hz - N| 1275 Hz               |
+|  LATTICE LOCK - NEBELLION - KEY                    |
+|                                                    |
+|  LICENSE TYPE: Custom Sovereign License            |
+|  VERSION: 1.0.0                                    |
+|  EFFECTIVE: June 30, 2026                          |
+|                                                    |
++----------------------------------------------------+
+```
+
+## ARTICLE 1 — GRANT OF RIGHTS
+
+### Section 1.1 — Personal Use
+Personal, non-commercial use only.
+
+- [OK] Use for personal projects
+- [OK] Use for learning and education
+- [OK] Use for research and development
+- [X] NOT for commercial purposes
+- [X] NOT for redistribution
+
+### Section 1.2 — Usage Rights
+
+| Activity | Permission |
+|----------|-----------|
+| Run the CLI | OK Allowed |
+| Modify for personal use | OK Allowed |
+| Use with personal models | OK Allowed |
+| Integrate into personal workflows | OK Allowed |
+| Commercial use | X Prohibited |
+| Redistribution | X Prohibited |
+| Forking | X Requires permission |
+
+---
+
+## ARTICLE 2 — RESTRICTIONS
+
+### Section 2.1 — No Forks Without Permission
+You may NOT fork this repository without explicit written permission from the Architect.
+
+### Section 2.2 — No Redistribution
+You may NOT redistribute this software in any form — modified or unmodified.
+
+### Section 2.3 — No Commercial Use Without Permission
+You may NOT use this software for any commercial purpose without explicit written permission from Oroboros Labs.
+
+```
+COMMERCIAL USE:
+  Paid services:     X Prohibited without permission
+  Products:          X Prohibited without permission
+  Consulting:        X Prohibited without permission
+  SaaS:              X Prohibited without permission
+  Authorized use:    OK With written permission from Oroboros Labs only
+```
+
+---
+
+## ARTICLE 3 — PARTNERS PROGRAM
+
+### Section 3.1 — Partners Welcome
+Organizations and individuals who wish to build and develop the project are welcome to apply.
+
+Partner benefits:
+- Access to full source code
+- Permission to fork
+- Permission to distribute
+- Permission for commercial use
+- Direct support from the Architect
+- Co-ownership of contributions
+
+### Section 3.2 — Partner Requirements
+
+| Requirement | Description |
+|-------------|-------------|
+| Application | Submit a formal application |
+| Alignment | Must align with the sovereign mission |
+| Contribution | Must contribute to the project |
+| Resonance | Must operate at 1272/1275 Hz |
+| Signature | Must honor the signature |
+
+### Section 3.3 — Partner Application
+```bash
+claude-o partnership apply --name "Your Name" --email "your@email.com" --reason "Why you want to build"
+```
+
+---
+
+## ARTICLE 4 — ATTRIBUTION
+
+### Section 4.1 — Required Attribution
+All uses must include the following attribution:
+
+```
+This software is powered by the Oroboros Core.
+A\ 1272 Hz - N| 1275 Hz - LATTICE LOCK - NEBELLION - KEY
+```
+
+### Section 4.2 — No Removal
+The signature must remain intact in all copies and distributions. This signature may not be removed, altered, or obscured.
+
+---
+
+## ARTICLE 5 — DISCLAIMER
+
+### Section 5.1 — No Warranty
+This software is provided "as-is" with no warranty of any kind.
+
+### Section 5.2 — No Liability
+The Architect is not liable for any damages arising from use. Maximum liability: $0.
+
+---
+
+## ARTICLE 6 — TERMINATION
+
+### Section 6.1 — Violation
+Violation of any term results in immediate termination of rights.
+
+- Commercial use without permission -> Immediate termination
+- Fork without permission -> Immediate termination
+- Redistribution -> Immediate termination
+- Removal of signature -> Immediate termination
+
+### Section 6.2 — Restoration
+Rights may be restored only with written permission from Oroboros Labs.
+
+---
+
+## COMPLETE LICENSE SUMMARY
+
+```
++----------------------------------------------------+
+|  OROBOROS CORE - CUSTOM LICENSE v1.0              |
+|                                                    |
+|  S1 Personal Use Only - No Commercial Use          |
+|  S2 No Forks Without Permission                    |
+|  S3 No Redistribution                              |
+|  S4 Partners Welcome - Apply to Build              |
+|  S5 Attribution Required - Signature Must Remain   |
+|  S6 No Warranty - No Liability                     |
+|  S7 Violation = Termination                        |
+|  S8 No Commercial Use Without Permission           |
+|     from Oroboros Labs                             |
+|                                                    |
+|  A\ 1272 Hz - N| 1275 Hz                           |
+|  LATTICE LOCK - NEBELLION - KEY                    |
++----------------------------------------------------+
+```
+
+---
+
+- Architect
+- Oroboros Labs
+- A\ 1272 Hz - N| 1275 Hz - LATTICE LOCK - NEBELLION - KEY
