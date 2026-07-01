@@ -317,26 +317,50 @@ class ClaudeOCLI:
         from http.server import HTTPServer, BaseHTTPRequestHandler
         import urllib.request
         import urllib.error
+        import mimetypes
 
         PORT = int(os.environ.get("PORT", 8080))
         OLLAMA_URL = "http://localhost:11434"
+        GUI_DIR = Path(__file__).parent / "glass-ui"
         cli = self
 
         class Handler(BaseHTTPRequestHandler):
-            def _send(self, code, data):
+            def _send(self, code, data, content_type="application/json"):
                 self.send_response(code)
-                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Type", content_type)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
                 self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.end_headers()
-                self.wfile.write(json.dumps(data, default=str).encode())
+                if isinstance(data, (dict, list)):
+                    self.wfile.write(json.dumps(data, default=str).encode())
+                elif isinstance(data, str):
+                    self.wfile.write(data.encode())
+                else:
+                    self.wfile.write(data)
 
             def do_OPTIONS(self):
                 self._send(200, {})
 
             def do_GET(self):
                 data = cli._load_data()
+                # Serve GUI static files
+                if self.path == "/" or self.path == "/index.html":
+                    gui_file = GUI_DIR / "index.html"
+                    if gui_file.exists():
+                        self._send(200, gui_file.read_text(encoding="utf-8"), "text/html; charset=utf-8")
+                    else:
+                        self._send(404, {"error": "GUI not found"})
+                    return
+                if self.path == "/clawd.png":
+                    gui_file = GUI_DIR / "clawd.png"
+                    if gui_file.exists():
+                        with open(gui_file, "rb") as f:
+                            self._send(200, f.read(), "image/png")
+                    else:
+                        self._send(404, {"error": "File not found"})
+                    return
+                # API endpoints
                 if self.path == "/api/feed/daily":
                     self._send(200, {
                         "articles": [i for i in data.get("feed", []) if i.get("type") == "article"],

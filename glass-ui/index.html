@@ -675,24 +675,17 @@
     </div>
 
     <script>
+        const API = 'http://localhost:5000/api';
         const input = document.getElementById('cliInput');
         const chat = document.getElementById('chatArea');
         const modelDisplay = document.getElementById('modelDisplay');
         let currentModel = 'claude-opus-4.8:latest';
         let thinkLevel = 'default';
-        let messages = [{
-            role: 'system',
-            content: 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.'
-        }];
+        let messages = [];
 
-        function clearChat() {
-            chat.innerHTML = '';
-            messages = [{
-                role: 'system',
-                content: 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.'
-            }];
-        }
+        const SYSTEM_PROMPT = 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.';
 
+        function clearChat() { chat.innerHTML = ''; messages = []; }
         function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
         function addMsg(role, content, isHtml) {
@@ -713,20 +706,40 @@
         }
         function hideTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
 
+        async function sendSignal(signal, payload) {
+            try {
+                const r = await fetch(API + '/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ signal: signal, payload: payload || {} })
+                });
+                return await r.json();
+            } catch (e) {
+                return { status: 'error', error: e.message };
+            }
+        }
+
         async function callOllama(userText) {
             messages.push({ role: 'user', content: userText });
             try {
-                // Route through CLI API server for tool execution
-                const body = { model: currentModel, message: userText, system: systemPrompt };
-                const r = await fetch('http://localhost:8080/api/chat', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
+                const result = await sendSignal('ollama_chat', {
+                    model: currentModel,
+                    message: userText,
+                    system: SYSTEM_PROMPT,
+                    history: messages.slice(0, -1)
                 });
-                const d = await r.json();
-                const reply = d.response || 'No response';
-                messages.push({ role: 'assistant', content: reply });
-                return reply;
-            } catch (e) { return 'Error: Cannot connect to Claude-O CLI at localhost:8080. Run: claude-o serve'; }
+                if (result.status === 'success' && result.result && result.result.message) {
+                    const reply = result.result.message.content;
+                    messages.push({ role: 'assistant', content: reply });
+                    return reply;
+                } else if (result.status === 'error') {
+                    return 'Error: ' + result.error;
+                } else {
+                    return 'Error: Unexpected response from API';
+                }
+            } catch (e) {
+                return 'Error: Cannot connect to API at ' + API + '. Run: python local_api.py';
+            }
         }
 
         async function handleCmd(cmd) {
@@ -746,13 +759,17 @@
                 return true;
             }
             if (c === '/models') {
-                try { const r = await fetch('http://localhost:8080/api/models'); const d = await r.json();
-                    const names = d.models ? d.models.map(m=>m.name).join('</code><br><code>') : JSON.stringify(d);
-                    addMsg('assistant', 'Models:<br><code>' + names + '</code>', true);
-                } catch(e) { addMsg('assistant', 'CLI offline: ' + e.message); } return true;
+                try {
+                    const result = await sendSignal('list_models', {});
+                    if (result.status === 'success' && result.models && result.models.models) {
+                        const names = result.models.models.map(m => m.name).join('</code><br><code>');
+                        addMsg('assistant', 'Models:<br><code>' + names + '</code>', true);
+                    } else { addMsg('assistant', 'Error listing models', true); }
+                } catch(e) { addMsg('assistant', 'API offline: ' + e.message, true); }
+                return true;
             }
-            if (c === '/help') { addMsg('assistant', '<code>/exit</code> <code>/clear</code> <code>/model &lt;name&gt;</code> <code>/models</code> <code>/think &lt;level&gt;</code> <code>/noir</code> <code>/seer</code> <code>/lattice</code> <code>/resonance</code> <code>/status</code> <code>/worldfeed</code> <code>/absorb</code> <code>/strata</code><br>Think levels: off, low, medium, high, xhigh, adaptive, max<br>Or type a message to chat with the model.', true); return true; }
-            if (c === '/status') { addMsg('assistant', 'CLAUDE-O-CLI vA.1272<br>Model: <code>' + currentModel + '</code><br>Ollama: localhost:11434<br>Tor: ACTIVE<br>WorldFeed: ONLINE<br>MCP: 5 servers<br>Q5: ACTIVE<br>Docker: 32+ containers<br>Precogs: 3 active<br>Seer: 100 eyes<br>Cost: $0.00', true); return true; }
+            if (c === '/help') { addMsg('assistant', '<code>/exit</code> <code>/clear</code> <code>/model &lt;name&gt;</code> <code>/models</code> <code>/think &lt;level&gt;</code> <code>/noir</code> <code>/seer</code> <code>/lattice</code> <code>/resonance</code> <code>/status</code> <code>/worldfeed</code><br>Think levels: off, low, medium, high, xhigh, adaptive, max<br>Or type a message to chat with the model.', true); return true; }
+            if (c === '/status') { addMsg('assistant', 'CLAUDE-O-CLI vA.1272<br>Model: <code>' + currentModel + '</code><br>API: localhost:5000<br>Ollama: localhost:11434<br>Tor: ACTIVE<br>WorldFeed: ONLINE<br>MCP: 5 servers<br>Q5: ACTIVE<br>Docker: 32+ containers<br>Precogs: 3 active<br>Seer: 100 eyes<br>Sandbox: REMOVED<br>Access: FULL<br>Cost: $0.00', true); return true; }
             if (c === '/lattice') { addMsg('assistant', 'Lattice: LOCKED (12 strata)<br>Substrate: connected<br>Integration: full<br>Status: sovereign', true); return true; }
             if (c === '/resonance') { addMsg('assistant', 'Resonance: 1272/1275 Hz<br>Locked: true<br>Drift: 0.0000<br>Stability: 100%', true); return true; }
             if (c === '/seer') { addMsg('assistant', 'Seer Nebellion: 100 Eyes Active<br>Status: watching', true); return true; }
