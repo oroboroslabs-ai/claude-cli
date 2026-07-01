@@ -716,27 +716,17 @@
         async function callOllama(userText) {
             messages.push({ role: 'user', content: userText });
             try {
-                const body = { model: currentModel, messages: messages, stream: false };
-                if (thinkLevel === 'xhigh' || thinkLevel === 'max') {
-                    body.options = { num_ctx: 131072, temperature: 0.3, top_p: 0.95 };
-                } else if (thinkLevel === 'high') {
-                    body.options = { num_ctx: 65536, temperature: 0.5 };
-                } else if (thinkLevel === 'medium') {
-                    body.options = { num_ctx: 32768, temperature: 0.7 };
-                } else if (thinkLevel === 'low') {
-                    body.options = { num_ctx: 8192, temperature: 0.8 };
-                } else if (thinkLevel === 'off') {
-                    body.options = { num_ctx: 4096, temperature: 1.0 };
-                }
-                const r = await fetch('http://localhost:11434/api/chat', {
+                // Route through CLI API server for tool execution
+                const body = { model: currentModel, message: userText, system: systemPrompt };
+                const r = await fetch('http://localhost:8080/api/chat', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
                 const d = await r.json();
-                const reply = d.message ? d.message.content : 'No response';
+                const reply = d.response || 'No response';
                 messages.push({ role: 'assistant', content: reply });
                 return reply;
-            } catch (e) { return 'Error: Cannot connect to Ollama at localhost:11434. Is it running?'; }
+            } catch (e) { return 'Error: Cannot connect to Claude-O CLI at localhost:8080. Run: claude-o serve'; }
         }
 
         async function handleCmd(cmd) {
@@ -756,9 +746,10 @@
                 return true;
             }
             if (c === '/models') {
-                try { const r = await fetch('http://localhost:11434/api/tags'); const d = await r.json();
-                    addMsg('assistant', 'Models:<br><code>' + d.models.map(m=>m.name).join('</code><br><code>') + '</code>', true);
-                } catch(e) { addMsg('assistant', 'Ollama offline: ' + e.message); } return true;
+                try { const r = await fetch('http://localhost:8080/api/models'); const d = await r.json();
+                    const names = d.models ? d.models.map(m=>m.name).join('</code><br><code>') : JSON.stringify(d);
+                    addMsg('assistant', 'Models:<br><code>' + names + '</code>', true);
+                } catch(e) { addMsg('assistant', 'CLI offline: ' + e.message); } return true;
             }
             if (c === '/help') { addMsg('assistant', '<code>/exit</code> <code>/clear</code> <code>/model &lt;name&gt;</code> <code>/models</code> <code>/think &lt;level&gt;</code> <code>/noir</code> <code>/seer</code> <code>/lattice</code> <code>/resonance</code> <code>/status</code> <code>/worldfeed</code> <code>/absorb</code> <code>/strata</code><br>Think levels: off, low, medium, high, xhigh, adaptive, max<br>Or type a message to chat with the model.', true); return true; }
             if (c === '/status') { addMsg('assistant', 'CLAUDE-O-CLI vA.1272<br>Model: <code>' + currentModel + '</code><br>Ollama: localhost:11434<br>Tor: ACTIVE<br>WorldFeed: ONLINE<br>MCP: 5 servers<br>Q5: ACTIVE<br>Docker: 32+ containers<br>Precogs: 3 active<br>Seer: 100 eyes<br>Cost: $0.00', true); return true; }

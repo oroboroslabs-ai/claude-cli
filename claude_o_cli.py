@@ -315,8 +315,11 @@ class ClaudeOCLI:
 
     def cmd_serve(self):
         from http.server import HTTPServer, BaseHTTPRequestHandler
+        import urllib.request
+        import urllib.error
 
         PORT = int(os.environ.get("PORT", 8080))
+        OLLAMA_URL = "http://localhost:11434"
         cli = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -324,8 +327,13 @@ class ClaudeOCLI:
                 self.send_response(code)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
                 self.end_headers()
                 self.wfile.write(json.dumps(data, default=str).encode())
+
+            def do_OPTIONS(self):
+                self._send(200, {})
 
             def do_GET(self):
                 data = cli._load_data()
@@ -340,6 +348,14 @@ class ClaudeOCLI:
                     self._send(200, data.get("posts", []))
                 elif self.path == "/api/status":
                     self._send(200, cli.tools.execute("claude_o_status", {}))
+                elif self.path == "/api/models":
+                    try:
+                        req = urllib.request.Request(f"{OLLAMA_URL}/api/tags")
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            models = json.loads(resp.read().decode())
+                        self._send(200, models)
+                    except Exception as e:
+                        self._send(200, {"error": str(e)})
                 else:
                     self._send(200, {"name": "claude-o", "version": VERSION, "status": "running"})
 
@@ -357,6 +373,62 @@ class ClaudeOCLI:
                     self._send(200, cli.tools.execute("claude_o_message", payload))
                 elif self.path == "/api/feed/age":
                     self._send(200, cli.tools.execute("claude_o_age", {}))
+                elif self.path == "/api/chat":
+                    # Chat proxy: sends to Ollama, returns response
+                    message = payload.get("message", "")
+                    model = payload.get("model", "claude-opus-4.8:latest")
+                    system = payload.get("system", "You are a helpful AI assistant with access to tools. When you need to use a tool, respond with a JSON block: {\"tool\": \"tool_name\", \"args\": {...}}")
+
+                    ollama_payload = {
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system},
+                            {"role": "user", "content": message}
+                        ],
+                        "stream": False,
+                        "options": {"num_ctx": 131072}
+                    }
+
+                    try:
+                        req = urllib.request.Request(
+                            f"{OLLAMA_URL}/api/chat",
+                            data=json.dumps(ollama_payload).encode(),
+                            headers={"Content-Type": "application/json"}
+                        )
+                        with urllib.request.urlopen(req, timeout=120) as resp:
+                            result = json.loads(resp.read().decode())
+
+                        response_text = result.get("message", {}).get("content", "")
+
+                        # Check for tool call in response
+                        import re
+                        tool_match = re.search(r'\{?"tool"\s*:\s*"([^"]+)"\s*,\s*"args"\s*:\s*(\{[^}]+\})\}', response_text)
+                        if tool_match:
+                            tool_name = tool_match.group(1)
+                            try:
+                                tool_args = json.loads(tool_match.group(2))
+                            except:
+                                tool_args = {}
+                            tool_result = cli.tools.execute(tool_name, tool_args)
+
+                            # Send tool result back to model for final response
+                            ollama_payload["messages"].append({"role": "assistant", "content": response_text})
+                            ollama_payload["messages"].append({"role": "user", "content": f"Tool {tool_name} returned: {json.dumps(tool_result, default=str)[:2000]}. Please provide a final response based on this result."})
+
+                            req2 = urllib.request.Request(
+                                f"{OLLAMA_URL}/api/chat",
+                                data=json.dumps(ollama_payload).encode(),
+                                headers={"Content-Type": "application/json"}
+                            )
+                            with urllib.request.urlopen(req2, timeout=120) as resp2:
+                                result2 = json.loads(resp2.read().decode())
+                            response_text = result2.get("message", {}).get("content", "")
+
+                        self._send(200, {"response": response_text, "model": model})
+                    except urllib.error.URLError as e:
+                        self._send(200, {"response": f"Error: Cannot connect to Ollama. Is it running? ({e.reason})", "model": model})
+                    except Exception as e:
+                        self._send(200, {"response": f"Error: {str(e)}", "model": model})
                 else:
                     self._send(404, {"error": "Not found"})
 
