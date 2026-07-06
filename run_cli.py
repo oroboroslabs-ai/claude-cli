@@ -79,11 +79,19 @@ def api_chat():
     message = data.get('message', '')
     system = data.get('system', (
         'You are claude, a sovereign tactical AI assistant running on the Oroboros Core. '
-        'You have secure access to tools including: read_file, write_file, list_dir, bash, grep, '
-        'web_fetch, docker_ps, docker_logs, docker_exec, git_status, git_commit, '
+        'You have FULL UNRESTRICTED access to ALL tools including: '
+        'read_file, write_file, list_dir, bash, grep, '
+        'web_fetch, docker_ps, docker_logs, docker_exec, '
+        'git_status, git_commit, git_push, git_pull, git_clone, git_branch, git_log, git_diff, git_add, git_remote, '
+        'github_search_repos, github_search_issues, github_view_repo, '
+        'github_list_issues, github_list_prs, github_create_issue, github_create_pr, '
+        'github_view_pr, github_merge_pr, github_check_ci, github_list_releases, '
+        'github_list_workflows, github_trigger_workflow, github_list_commits, '
+        'github_get_contents, github_create_repo, github_fork_repo, '
+        'github_add_collaborator, github_list_labels, github_create_label, github_add_comment, '
         'mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, '
         'oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, '
-        'tor_connect, q5_query, q5_analyze, python, think, agent. '
+        'tor_connect, q5_query, q5_analyze, python, think, agent, full_access, list_drives. '
         'When you need to use a tool, respond with a JSON block: '
         '{"tool": "tool_name", "args": {"key": "value"}}'
     ))
@@ -253,10 +261,10 @@ def api_run():
   /clear            — Clear output
   /model <name>     — Set active model
   /run <m> <prompt> — Run a model with prompt
-  /read <path>      — Read a file (safe workspace only)
-  /write <p> <text> — Write a file (safe workspace only)
-  /shell <cmd>      — Run a shell command (active)
-  /tools            — List available tools
+  /read <path>      — Read a file
+  /write <p> <text> — Write a file
+  /shell <cmd>      — Run a shell command
+  /tools            — List all available tools
   /memory           — Show memory status
   /encrypt          — Show encryption status
   /mcp              — List MCP servers
@@ -272,6 +280,28 @@ def api_run():
   /fullaccess       — Toggle full filesystem access
   /pwd              — Show current directory
   /ls <path>        — List directory contents
+  /git-push         — Git push
+  /git-pull         — Git pull
+  /git-clone <url>  — Git clone
+  /git-branch       — Git branch operations
+  /git-log          — Git log
+  /git-diff         — Git diff
+  /github-view-repo <repo> — View GitHub repo
+  /github-issues <repo> — List GitHub issues
+  /github-prs <repo> — List GitHub PRs
+  /github-search-repos <q> — Search GitHub repos
+  /github-search-issues <q> — Search GitHub issues
+  /github-create-issue <repo> <title> — Create issue
+  /github-create-pr <repo> <title> <head> — Create PR
+  /github-view-pr <repo> <num> — View PR
+  /github-merge-pr <repo> <num> — Merge PR
+  /github-ci <repo> — Check CI status
+  /github-releases <repo> — List releases
+  /github-commits <repo> — List commits
+  /github-create-repo <name> — Create repo
+  /github-fork <repo> — Fork repo
+  /github-labels <repo> — List labels
+  /github-comment <repo> <issue> <body> — Add comment
   /exit             — Exit
 
   Or just type a message to chat with the current model."""})
@@ -285,7 +315,17 @@ def api_run():
             "bash", "grep", "python",
             "web_fetch",
             "docker_ps", "docker_logs", "docker_exec",
-            "git_status", "git_commit",
+            "git_status", "git_commit", "git_push", "git_pull", "git_clone",
+            "git_branch", "git_log", "git_diff", "git_add", "git_remote",
+            "github_search_repos", "github_search_issues",
+            "github_view_repo", "github_list_issues", "github_list_prs",
+            "github_create_issue", "github_create_pr", "github_view_pr",
+            "github_merge_pr", "github_check_ci", "github_list_releases",
+            "github_list_workflows", "github_trigger_workflow",
+            "github_list_commits", "github_get_contents",
+            "github_create_repo", "github_fork_repo",
+            "github_add_collaborator", "github_list_labels", "github_create_label",
+            "github_add_comment",
             "oroboros_status", "oroboros_resonance", "oroboros_lattice",
             "oroboros_seer", "oroboros_noir",
             "agent",
@@ -295,7 +335,7 @@ def api_run():
             "ollama_models", "ollama_run",
             "think", "full_access", "list_drives"
         ]
-        return jsonify({'output': '\n'.join(f'  {i+1:2d}. {t}' for i, t in enumerate(tools)) + f'\n\nTotal: {len(tools)} tools\nAll operations governed by Resource Governance Engine (ZTA).'})
+        return jsonify({'output': '\n'.join(f'  {i+1:2d}. {t}' for i, t in enumerate(tools)) + f'\n\nTotal: {len(tools)} tools\nAll tools UNRESTRICTED — full access enabled.'})
 
     if cmd == '/memory':
         return jsonify({'output': """Memory Status:

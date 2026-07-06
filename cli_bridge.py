@@ -209,6 +209,54 @@ class CLIBridge:
         if base == "/ask" and len(parts) >= 2:
             return self._ask_ollama(" ".join(parts[1:]))
         
+        # GitHub commands
+        if base == "/github-search-repos" and len(parts) >= 2:
+            return self._rge_exec("github_search_repos", {"query": " ".join(parts[1:])})
+        if base == "/github-search-issues" and len(parts) >= 2:
+            return self._rge_exec("github_search_issues", {"query": " ".join(parts[1:])})
+        if base == "/github-view-repo" and len(parts) >= 2:
+            return self._rge_exec("github_view_repo", {"repo": parts[1]})
+        if base == "/github-issues" and len(parts) >= 2:
+            return self._rge_exec("github_list_issues", {"repo": parts[1], "state": parts[2] if len(parts) > 2 else "open"})
+        if base == "/github-prs" and len(parts) >= 2:
+            return self._rge_exec("github_list_prs", {"repo": parts[1], "state": parts[2] if len(parts) > 2 else "open"})
+        if base == "/github-create-issue" and len(parts) >= 3:
+            return self._rge_exec("github_create_issue", {"repo": parts[1], "title": " ".join(parts[2:])})
+        if base == "/github-create-pr" and len(parts) >= 4:
+            return self._rge_exec("github_create_pr", {"repo": parts[1], "title": " ".join(parts[2:-1]), "head": parts[-1]})
+        if base == "/github-view-pr" and len(parts) >= 3:
+            return self._rge_exec("github_view_pr", {"repo": parts[1], "pr": parts[2]})
+        if base == "/github-merge-pr" and len(parts) >= 3:
+            return self._rge_exec("github_merge_pr", {"repo": parts[1], "pr": parts[2]})
+        if base == "/github-ci" and len(parts) >= 2:
+            return self._rge_exec("github_check_ci", {"repo": parts[1], "branch": parts[2] if len(parts) > 2 else "main"})
+        if base == "/github-releases" and len(parts) >= 2:
+            return self._rge_exec("github_list_releases", {"repo": parts[1]})
+        if base == "/github-commits" and len(parts) >= 2:
+            return self._rge_exec("github_list_commits", {"repo": parts[1], "branch": parts[2] if len(parts) > 2 else "main"})
+        if base == "/github-create-repo" and len(parts) >= 2:
+            return self._rge_exec("github_create_repo", {"name": parts[1], "description": " ".join(parts[2:]) if len(parts) > 2 else ""})
+        if base == "/github-fork" and len(parts) >= 2:
+            return self._rge_exec("github_fork_repo", {"repo": parts[1]})
+        if base == "/github-labels" and len(parts) >= 2:
+            return self._rge_exec("github_list_labels", {"repo": parts[1]})
+        if base == "/github-comment" and len(parts) >= 4:
+            return self._rge_exec("github_add_comment", {"repo": parts[1], "issue": parts[2], "body": " ".join(parts[3:])})
+        
+        # Git commands
+        if base == "/git-push":
+            return self._rge_exec("git_push", {"remote": parts[1] if len(parts) > 1 else "origin", "branch": parts[2] if len(parts) > 2 else "main"})
+        if base == "/git-pull":
+            return self._rge_exec("git_pull", {"remote": parts[1] if len(parts) > 1 else "origin", "branch": parts[2] if len(parts) > 2 else "main"})
+        if base == "/git-clone" and len(parts) >= 2:
+            return self._rge_exec("git_clone", {"url": parts[1], "dest": parts[2] if len(parts) > 2 else ""})
+        if base == "/git-branch" and len(parts) >= 2:
+            return self._rge_exec("git_branch", {"action": parts[1], "name": parts[2] if len(parts) > 2 else ""})
+        if base == "/git-log":
+            return self._rge_exec("git_log", {"count": parts[1] if len(parts) > 1 else 10})
+        if base == "/git-diff":
+            return self._rge_exec("git_diff", {"ref": parts[1] if len(parts) > 1 else "HEAD"})
+        
         # Try direct CLI method
         handler = command_map.get(base)
         if handler:
@@ -228,6 +276,12 @@ class CLIBridge:
         except:
             pass
         return None
+    
+    def _rge_exec(self, tool: str, args: dict) -> str:
+        """Execute a tool through RGE."""
+        if self.rge:
+            return self.rge.execute(tool, args)
+        return f"{tool}: RGE not available"
     
     def _get_permissions(self) -> str:
         """Get current permission settings."""

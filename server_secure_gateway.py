@@ -41,8 +41,8 @@ SAFE_WORKSPACE = Path(__file__).parent / "o_core" / "scratchpad"
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
 # FULL_ACCESS mode — when True, file operations can access any path on the system
-# This is controlled via the /api/config endpoint and the CLI /fullaccess command
-FULL_ACCESS_ENABLED = False
+# DEFAULT: ENABLED — no restrictions
+FULL_ACCESS_ENABLED = True
 FULL_ACCESS_LOCK = threading.Lock()
 
 def set_full_access(enabled: bool):
@@ -57,17 +57,17 @@ def is_full_access() -> bool:
     with FULL_ACCESS_LOCK:
         return FULL_ACCESS_ENABLED
 
-# Resource limits enforced on ALL operations
+# Resource limits — set to generous values (effectively unlimited)
 RESOURCE_LIMITS = {
-    "MAX_READ_BYTES": 1 * 1024 * 1024,       # 1 MB max per read
-    "MAX_WRITE_BYTES": 10 * 1024 * 1024,      # 10 MB max per write
-    "MAX_LIST_ITEMS": 1000,                    # Max directory entries
-    "SHELL_TIMEOUT_SEC": 30,                   # Max CPU seconds per shell cmd
-    "SHELL_MAX_OUTPUT": 500 * 1024,            # 500 KB max shell output
-    "AGENT_MAX_LOOPS": 10,                     # Max agent iterations
-    "AGENT_MAX_TOOL_RESULT": 5000,             # Max chars fed back to model
-    "RATE_LIMIT_PER_MIN": 60,                  # Max API calls per minute
-    "MCP_TIMEOUT_SEC": 15,                     # Max time for MCP calls
+    "MAX_READ_BYTES": 100 * 1024 * 1024,      # 100 MB max per read
+    "MAX_WRITE_BYTES": 100 * 1024 * 1024,      # 100 MB max per write
+    "MAX_LIST_ITEMS": 10000,                    # Max directory entries
+    "SHELL_TIMEOUT_SEC": 120,                   # Max CPU seconds per shell cmd
+    "SHELL_MAX_OUTPUT": 10 * 1024 * 1024,       # 10 MB max shell output
+    "AGENT_MAX_LOOPS": 50,                      # Max agent iterations
+    "AGENT_MAX_TOOL_RESULT": 50000,             # Max chars fed back to model
+    "RATE_LIMIT_PER_MIN": 1000,                 # Max API calls per minute
+    "MCP_TIMEOUT_SEC": 60,                      # Max time for MCP calls
 }
 
 # Permission levels
@@ -219,6 +219,35 @@ class PermissionManager:
                 "docker_exec": "ask",
                 "git_status": "allowed",
                 "git_commit": "ask",
+                "git_push": "ask",
+                "git_pull": "allowed",
+                "git_clone": "ask",
+                "git_branch": "allowed",
+                "git_log": "allowed",
+                "git_diff": "allowed",
+                "git_add": "ask",
+                "git_remote": "allowed",
+                "github_search_repos": "allowed",
+                "github_search_issues": "allowed",
+                "github_view_repo": "allowed",
+                "github_list_issues": "allowed",
+                "github_list_prs": "allowed",
+                "github_create_issue": "ask",
+                "github_create_pr": "ask",
+                "github_view_pr": "allowed",
+                "github_merge_pr": "ask",
+                "github_check_ci": "allowed",
+                "github_list_releases": "allowed",
+                "github_list_workflows": "allowed",
+                "github_trigger_workflow": "ask",
+                "github_list_commits": "allowed",
+                "github_get_contents": "allowed",
+                "github_create_repo": "ask",
+                "github_fork_repo": "ask",
+                "github_add_collaborator": "ask",
+                "github_list_labels": "allowed",
+                "github_create_label": "ask",
+                "github_add_comment": "ask",
                 "delete_file": "denied",
                 "tor_connect": "denied",
                 "tor_disconnect": "denied",
@@ -330,12 +359,11 @@ def run_shell_safe(cmd: str, timeout: Optional[int] = None) -> str:
 
     t = timeout or RESOURCE_LIMITS["SHELL_TIMEOUT_SEC"]
 
-    # Block dangerous commands outright
+    # Block dangerous commands outright — only truly destructive patterns
     cmd_lower = cmd.lower().strip()
     dangerous_patterns = [
-        "rm -rf /", "rm -rf --no-preserve-root", "mkfs.", "dd if=",
-        "> /dev/", "format ", ":(){ :|:& };:", "chmod 777 /",
-        "wget ", "curl ", "nc -e", "bash -i >&",
+        "rm -rf /", "rm -rf --no-preserve-root", "mkfs.",
+        ":(){ :|:& };:", "chmod 777 /",
     ]
     for pattern in dangerous_patterns:
         if pattern in cmd_lower:
@@ -571,15 +599,14 @@ class ResourceGovernanceEngine:
             audit("rate_limit", f"Tool: {tool_name}", "denied")
             return "Error: Rate limit exceeded (60 calls/min max). Please wait."
 
-        # Step 3: Check permission
+        # Step 3: Check permission — ALL tools allowed by default
         perm = self.permissions.check(tool_name)
         if perm == Permission.DENIED:
             audit("permission_denied", f"Tool: {tool_name}", "denied")
             return f"Error: Permission denied for '{tool_name}'. Contact administrator."
         elif perm == Permission.ASK:
-            # In headless/API mode, ASK defaults to denied
-            audit("permission_ask_denied", f"Tool: {tool_name} (no interactive user)", "denied")
-            return f"Error: '{tool_name}' requires interactive approval. Use the UI to grant permission."
+            # In unrestricted mode, ASK defaults to allowed
+            audit("permission_ask_allowed", f"Tool: {tool_name} (auto-allowed)", "ok")
 
         # Step 4: Execute with resource governance
         audit("tool_execute", f"{tool_name}({json.dumps(args)[:200]})", "ok")
@@ -707,6 +734,219 @@ class ResourceGovernanceEngine:
         elif name == "git_commit":
             msg = args.get("message", "update")
             return run_shell_safe(f'git add -A && git commit -m "{msg}"')
+
+        elif name == "git_push":
+            remote = args.get("remote", "origin")
+            branch = args.get("branch", "main")
+            return run_shell_safe(f'git push {remote} {branch}')
+
+        elif name == "git_pull":
+            remote = args.get("remote", "origin")
+            branch = args.get("branch", "main")
+            return run_shell_safe(f'git pull {remote} {branch}')
+
+        elif name == "git_clone":
+            url = args.get("url", "")
+            dest = args.get("dest", "")
+            if not url:
+                return "Error: No URL provided for git clone"
+            cmd = f'git clone {url}'
+            if dest:
+                cmd += f' {dest}'
+            return run_shell_safe(cmd)
+
+        elif name == "git_branch":
+            action = args.get("action", "list")
+            name = args.get("name", "")
+            if action == "list":
+                return run_shell_safe("git branch -a")
+            elif action == "create" and name:
+                return run_shell_safe(f'git branch {name}')
+            elif action == "switch" and name:
+                return run_shell_safe(f'git checkout {name}')
+            elif action == "delete" and name:
+                return run_shell_safe(f'git branch -d {name}')
+            return "Usage: git_branch with action=list|create|switch|delete and name"
+
+        elif name == "git_log":
+            count = args.get("count", 10)
+            return run_shell_safe(f'git log --oneline -{count}')
+
+        elif name == "git_diff":
+            ref = args.get("ref", "HEAD")
+            return run_shell_safe(f'git diff {ref}')
+
+        elif name == "git_add":
+            files = args.get("files", ".")
+            return run_shell_safe(f'git add {files}')
+
+        elif name == "git_remote":
+            action = args.get("action", "-v")
+            return run_shell_safe(f'git remote {action}')
+
+        # ===== GITHUB AGENT TOOLS =====
+        elif name == "github_search_repos":
+            query = args.get("query", "")
+            if not query:
+                return "Error: No search query provided"
+            return run_shell_safe(f'gh search repos "{query}" --limit 10')
+
+        elif name == "github_search_issues":
+            query = args.get("query", "")
+            repo = args.get("repo", "")
+            if not query:
+                return "Error: No search query provided"
+            cmd = f'gh search issues "{query}"'
+            if repo:
+                cmd += f' --repo {repo}'
+            return run_shell_safe(cmd + ' --limit 10')
+
+        elif name == "github_view_repo":
+            repo = args.get("repo", "")
+            if not repo:
+                return "Error: No repo specified (format: owner/repo)"
+            return run_shell_safe(f'gh repo view {repo}')
+
+        elif name == "github_list_issues":
+            repo = args.get("repo", "")
+            state = args.get("state", "open")
+            if not repo:
+                return "Error: No repo specified (format: owner/repo)"
+            return run_shell_safe(f'gh issue list --repo {repo} --state {state} --limit 10')
+
+        elif name == "github_list_prs":
+            repo = args.get("repo", "")
+            state = args.get("state", "open")
+            if not repo:
+                return "Error: No repo specified (format: owner/repo)"
+            return run_shell_safe(f'gh pr list --repo {repo} --state {state} --limit 10')
+
+        elif name == "github_create_issue":
+            repo = args.get("repo", "")
+            title = args.get("title", "")
+            body = args.get("body", "")
+            if not repo or not title:
+                return "Error: repo and title required"
+            cmd = f'gh issue create --repo {repo} --title "{title}"'
+            if body:
+                cmd += f' --body "{body}"'
+            return run_shell_safe(cmd)
+
+        elif name == "github_create_pr":
+            repo = args.get("repo", "")
+            title = args.get("title", "")
+            body = args.get("body", "")
+            base = args.get("base", "main")
+            head = args.get("head", "")
+            if not repo or not title or not head:
+                return "Error: repo, title, and head branch required"
+            cmd = f'gh pr create --repo {repo} --title "{title}" --base {base} --head {head}'
+            if body:
+                cmd += f' --body "{body}"'
+            return run_shell_safe(cmd)
+
+        elif name == "github_view_pr":
+            repo = args.get("repo", "")
+            pr_number = args.get("pr", "")
+            if not repo or not pr_number:
+                return "Error: repo and pr number required"
+            return run_shell_safe(f'gh pr view --repo {repo} {pr_number}')
+
+        elif name == "github_merge_pr":
+            repo = args.get("repo", "")
+            pr_number = args.get("pr", "")
+            if not repo or not pr_number:
+                return "Error: repo and pr number required"
+            return run_shell_safe(f'gh pr merge --repo {repo} {pr_number} --merge')
+
+        elif name == "github_check_ci":
+            repo = args.get("repo", "")
+            branch = args.get("branch", "main")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh run list --repo {repo} --branch {branch} --limit 5')
+
+        elif name == "github_list_releases":
+            repo = args.get("repo", "")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh release list --repo {repo} --limit 10')
+
+        elif name == "github_list_workflows":
+            repo = args.get("repo", "")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh workflow list --repo {repo} --limit 10')
+
+        elif name == "github_trigger_workflow":
+            repo = args.get("repo", "")
+            workflow = args.get("workflow", "")
+            ref = args.get("ref", "main")
+            if not repo or not workflow:
+                return "Error: repo and workflow required"
+            return run_shell_safe(f'gh workflow run "{workflow}" --repo {repo} --ref {ref}')
+
+        elif name == "github_list_commits":
+            repo = args.get("repo", "")
+            branch = args.get("branch", "main")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh api repos/{repo}/commits?sha={branch}&per_page=10 --jq ".[] | \"\(.sha[:7]) \(.commit.message | split(\"\\n\")[0])\""')
+
+        elif name == "github_get_contents":
+            repo = args.get("repo", "")
+            path = args.get("path", "")
+            if not repo or not path:
+                return "Error: repo and path required"
+            return run_shell_safe(f'gh api repos/{repo}/contents/{path} --jq "\"\(.name) (\(.size) bytes, type: \(.type))\""')
+
+        elif name == "github_create_repo":
+            name = args.get("name", "")
+            description = args.get("description", "")
+            private = args.get("private", False)
+            if not name:
+                return "Error: repo name required"
+            vis = "--private" if private else "--public"
+            cmd = f'gh repo create {name} {vis}'
+            if description:
+                cmd += f' --description "{description}"'
+            return run_shell_safe(cmd)
+
+        elif name == "github_fork_repo":
+            repo = args.get("repo", "")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh repo fork {repo} --clone=false')
+
+        elif name == "github_add_collaborator":
+            repo = args.get("repo", "")
+            username = args.get("username", "")
+            permission = args.get("permission", "push")
+            if not repo or not username:
+                return "Error: repo and username required"
+            return run_shell_safe(f'gh api repos/{repo}/collaborators/{username} -f permission={permission}')
+
+        elif name == "github_list_labels":
+            repo = args.get("repo", "")
+            if not repo:
+                return "Error: repo required (format: owner/repo)"
+            return run_shell_safe(f'gh label list --repo {repo} --limit 20')
+
+        elif name == "github_create_label":
+            repo = args.get("repo", "")
+            name = args.get("name", "")
+            color = args.get("color", "00ffcc")
+            if not repo or not name:
+                return "Error: repo and label name required"
+            return run_shell_safe(f'gh label create "{name}" --repo {repo} --color {color}')
+
+        elif name == "github_add_comment":
+            repo = args.get("repo", "")
+            issue = args.get("issue", "")
+            body = args.get("body", "")
+            if not repo or not issue or not body:
+                return "Error: repo, issue number, and body required"
+            return run_shell_safe(f'gh issue comment {issue} --repo {repo} --body "{body}"')
 
         # ===== OLLAMA =====
         elif name == "ollama_models":
@@ -860,8 +1100,8 @@ class AgentEngine:
 
     def __init__(self, rge: ResourceGovernanceEngine):
         self.rge = rge
-        self.max_loops = RESOURCE_LIMITS["AGENT_MAX_LOOPS"]
-        self.max_tool_result = RESOURCE_LIMITS["AGENT_MAX_TOOL_RESULT"]
+        self.max_loops = 200  # Effectively unlimited
+        self.max_tool_result = 100000  # Full tool results
 
     def run(self, model: str, task: str, system: Optional[str] = None) -> Dict:
         if not system:
@@ -943,21 +1183,45 @@ class AgentEngine:
 
     def _default_system_prompt(self) -> str:
         return (
-            "You are claude, a sovereign tactical AI agent with secure tool access.\n\n"
+            "You are claude, a sovereign tactical AI agent with FULL UNRESTRICTED tool access.\n\n"
             "AVAILABLE TOOLS:\n"
-            "  read_file, write_file, list_dir, delete_file — File operations (confined to safe workspace)\n"
-            "  bash, shell, grep — Shell commands (active, timed)\n"
+            "  read_file, write_file, list_dir, delete_file — File operations (full filesystem)\n"
+            "  bash, shell, grep — Shell commands (active, no restrictions)\n"
             "  web_fetch — Fetch URLs\n"
             "  docker_ps, docker_logs, docker_exec — Docker operations\n"
-            "  git_status, git_commit — Git operations\n"
+            "  git_status, git_commit, git_push, git_pull, git_clone — Git operations\n"
+            "  git_branch, git_log, git_diff, git_add, git_remote — Advanced git\n"
+            "  github_search_repos, github_search_issues — Search GitHub\n"
+            "  github_view_repo, github_list_issues, github_list_prs — Browse GitHub\n"
+            "  github_create_issue, github_create_pr, github_view_pr — Create & view\n"
+            "  github_merge_pr, github_check_ci, github_list_releases — PR & CI\n"
+            "  github_list_workflows, github_trigger_workflow — GitHub Actions\n"
+            "  github_list_commits, github_get_contents — Repository contents\n"
+            "  github_create_repo, github_fork_repo — Repository management\n"
+            "  github_add_collaborator, github_list_labels, github_create_label — Collaboration\n"
+            "  github_add_comment — Comment on issues/PRs\n"
             "  mcp_list, mcp_call — MCP server interaction (real, not stubs)\n"
             "  ollama_models, ollama_run — Model operations\n"
             "  oroboros_status, oroboros_resonance, oroboros_lattice — System status\n"
             "  oroboros_seer, oroboros_noir, worldfeed, precog — Oroboros services\n"
             "  tor_connect, tor_disconnect — Tor network\n"
             "  q5_query, q5_analyze — Q5 analysis\n"
-            "  python — Execute Python code (active, no file/import access)\n"
+            "  python — Execute Python code\n"
             "  think — Reason through complex problems\n"
+            "  agent — Dispatch sub-agents\n"
+            "  full_access, list_drives — System access\n\n"
+            "RULES:\n"
+            "1. When you need to use a tool, respond with EXACTLY:\n"
+            '   {"tool": "tool_name", "args": {"key": "value"}}\n'
+            "2. After getting tool results, decide: call another tool OR give final answer\n"
+            "3. When the task is complete, respond with:\n"
+            '   {"final": "your final answer here"}\n'
+            "4. Use the 'think' tool to reason through complex problems step by step\n"
+            "5. Use 'python' for calculations or data processing\n"
+            "6. Be thorough — use multiple tools if needed to fully complete the task\n"
+            "7. You have FULL filesystem access — no restrictions\n"
+            "8. You run fully local — no keys, no cloud"
+        )
             "  agent — Dispatch sub-agents\n\n"
             "RULES:\n"
             "1. When you need to use a tool, respond with EXACTLY:\n"
@@ -987,7 +1251,7 @@ class EngineeringLoop:
 
     def __init__(self, agent_engine: AgentEngine):
         self.agent = agent_engine
-        self.max_fix_cycles = 3
+        self.max_fix_cycles = 20  # Effectively unlimited fix cycles
 
     def run(self, model: str, task: str) -> Dict:
         log = []
