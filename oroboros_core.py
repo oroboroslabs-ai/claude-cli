@@ -1,7 +1,7 @@
 # oroboros_core.py
-# Claude-O Core Backend Services
+# Claude Core Backend Services
 # Contains Tool Registry, Permissions, and File Operations.
-# A\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE-O — KEY
+# A\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE — KEY
 
 import json
 import subprocess
@@ -15,7 +15,7 @@ from typing import Dict, List, Any, Optional, Callable
 
 # --- CONSTANTS ---
 RESONANCE = "1272/1275"
-SIGNATURE = "A\\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE-O — KEY"
+SIGNATURE = "A\\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE — KEY"
 VERSION = "1.0.0"
 SYSTEM_NAME = "claude-o-cli"
 
@@ -87,7 +87,7 @@ class PermissionManager:
     """Manages tool permissions."""
 
     def __init__(self, config_path: Optional[Path] = None):
-        self.config_path = config_path or Path.home() / ".claude-o" / "permissions.json"
+        self.config_path = config_path or Path.home() / ".claude" / "permissions.json"
         self.permissions = self._load()
 
     def _load(self) -> Dict:
@@ -148,7 +148,7 @@ class PermissionManager:
 
 @dataclass
 class Tool:
-    """A tool that Claude-O can use."""
+    """A tool that Claude can use."""
     name: str
     description: str
     handler: Callable
@@ -206,10 +206,10 @@ class ToolRegistry:
             input_schema={"type": "object", "properties": {"command": {"type": "string"}}}
         ))
 
-        # --- Claude-O Specific Tools ---
+        # --- Claude Specific Tools ---
         self.register(Tool(
             name="claude_o_status",
-            description="Get Claude-O system status",
+            description="Get Claude system status",
             handler=self._handle_claude_o_status,
             permission_required=False,
             input_schema={"type": "object", "properties": {}}
@@ -354,12 +354,12 @@ class ToolRegistry:
         }
 
     # ============================================================
-    # CLAUDE-O SPECIFIC HANDLERS
+    # CLAUDE SPECIFIC HANDLERS
     # ============================================================
 
     def _handle_claude_o_status(self, args: Dict) -> Dict:
         return {
-            "system": "claude-o",
+            "system": "claude",
             "version": VERSION,
             "resonance": RESONANCE,
             "signature": SIGNATURE,

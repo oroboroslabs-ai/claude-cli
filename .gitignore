@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Data files (user-specific)
+claude-data.json
+claude-o-data.json
+
+# Temp / debug files
+find_*.py
+fix_*.py
+rewrite_*.py
+test_*.py
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.venv
+venv/

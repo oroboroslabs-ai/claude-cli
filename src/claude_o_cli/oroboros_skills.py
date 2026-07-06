@@ -1,5 +1,5 @@
 # oroboros_skills.py
-# Claude-O Skill Framework Manager
+# Claude Skill Framework Manager
 # A\ 1272 Hz — N| 1275 Hz — LATTICE LOCK — NEBELLION — KEY
 
 import json
@@ -25,7 +25,7 @@ class Skill:
 
 class SkillManager:
     def __init__(self, skills_dir: Optional[Path] = None):
-        self.skills_dir = skills_dir or Path.home() / ".claude-o" / "skills"
+        self.skills_dir = skills_dir or Path.home() / ".claude" / "skills"
         self.skills: Dict[str, Skill] = {}
         self._load_skills()
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Oroboros Local API Bridge
+Oroboros Local API Bridge — HARDENED
 Bridges HTML UI to local client (Ollama, CLI tools, system commands)
+All operations go through the Resource Governance Engine (RGE).
 ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
-vA.1272
+vA.1272 — ZTA Active
 """
 
 import subprocess
@@ -21,60 +22,18 @@ except ImportError:
     from flask import Flask, request, jsonify, send_from_directory
     from flask_cors import CORS
 
+# Import the hardened secure gateway
+from server_secure_gateway import (
+    rge, get_models, ollama_chat,
+    SAFE_WORKSPACE, SIGNATURE, VERSION, RESONANCE
+)
+
 app = Flask(__name__, static_folder=None)
 CORS(app)
 
 # ─── Configuration ───────────────────────────────────────────
 OLLAMA_URL = "http://localhost:11434"
 GUI_DIR = Path(__file__).parent / "glass-ui"
-RESONANCE = "1272/1275"
-SIGNATURE = "∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST"
-
-# ─── Helper Functions ─────────────────────────────────────────
-
-def run_ollama_chat(model, messages, options=None):
-    """Send a chat request to Ollama and return the response."""
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": False,
-        "options": options or {"num_ctx": 131072}
-    }
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            f"{OLLAMA_URL}/api/chat",
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            return json.loads(resp.read().decode())
-    except Exception as e:
-        return {"error": str(e)}
-
-def run_command(command):
-    """Execute a shell command and return output."""
-    try:
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
-        return {
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode
-        }
-    except subprocess.TimeoutExpired:
-        return {"stdout": "", "stderr": "Command timed out", "returncode": -1}
-    except Exception as e:
-        return {"stdout": "", "stderr": str(e), "returncode": -1}
-
-def get_ollama_models():
-    """Get list of available Ollama models."""
-    try:
-        import urllib.request
-        req = urllib.request.Request(f"{OLLAMA_URL}/api/tags")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            return json.loads(resp.read().decode())
-    except Exception as e:
-        return {"error": str(e)}
 
 # ─── API Routes ──────────────────────────────────────────────
 
@@ -99,26 +58,27 @@ def api_status():
     """Get full system status."""
     return jsonify({
         "status": "active",
-        "version": "vA.1272",
+        "version": VERSION,
         "resonance": RESONANCE,
         "signature": SIGNATURE,
-        "models": "29 fixed",
-        "tools": "33 injected",
+        "models": "via Ollama",
+        "tools": "30+ (RGE governed)",
         "memory": "enabled",
         "encryption": "triple-layer",
-        "sandbox": "removed",
-        "access": "full"
+        "sandbox": "active (path-whitelisted)",
+        "access": "governed (ZTA)",
+        "safe_workspace": str(SAFE_WORKSPACE)
     })
 
 @app.route("/api/models", methods=["GET"])
 def api_models():
     """Get list of Ollama models."""
-    models = get_ollama_models()
-    return jsonify(models)
+    models = get_models()
+    return jsonify({"models": models, "count": len(models)})
 
 @app.route("/api/signal", methods=["POST"])
 def api_signal():
-    """Receive signal from HTML UI and process it."""
+    """Receive signal from HTML UI and process it through RGE."""
     data = request.json or {}
     signal = data.get("signal", "")
     payload = data.get("payload", {})
@@ -127,7 +87,7 @@ def api_signal():
 
     if signal == "execute_command":
         command = payload.get("command", "")
-        result = run_command(command)
+        result = rge.execute("bash", {"command": command})
         return jsonify({"status": "success", "result": result})
 
     elif signal == "ollama_chat":
@@ -141,7 +101,7 @@ def api_signal():
             messages.append(msg)
         messages.append({"role": "user", "content": message})
 
-        result = run_ollama_chat(model, messages)
+        result = ollama_chat(model, messages)
         return jsonify({"status": "success", "result": result})
 
     elif signal == "ollama_raw":
@@ -155,7 +115,7 @@ def api_signal():
                 data=json.dumps(body).encode(),
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=None) as resp:
                 result = json.loads(resp.read().decode())
             return jsonify({"status": "success", "result": result})
         except Exception as e:
@@ -166,16 +126,12 @@ def api_signal():
             "status": "active",
             "resonance": RESONANCE,
             "signature": SIGNATURE,
-            "models": "29 fixed",
-            "tools": "33 injected",
-            "memory": "enabled",
-            "encryption": "triple-layer",
-            "sandbox": "removed",
-            "access": "full"
+            "sandbox": "active (path-whitelisted)",
+            "access": "governed (ZTA)"
         })
 
     elif signal == "list_models":
-        models = get_ollama_models()
+        models = get_models()
         return jsonify({"status": "success", "models": models})
 
     elif signal == "run_model":
@@ -183,7 +139,14 @@ def api_signal():
         prompt = payload.get("prompt", "")
         if not model or not prompt:
             return jsonify({"status": "error", "error": "model and prompt required"})
-        result = run_ollama_chat(model, [{"role": "user", "content": prompt}])
+        result = ollama_chat(model, [{"role": "user", "content": prompt}])
+        return jsonify({"status": "success", "result": result})
+
+    elif signal == "execute_tool":
+        """Execute any tool through the RGE."""
+        tool = payload.get("tool", "")
+        args = payload.get("args", {})
+        result = rge.execute(tool, args)
         return jsonify({"status": "success", "result": result})
 
     else:
@@ -203,7 +166,7 @@ def api_chat():
         messages.append(msg)
     messages.append({"role": "user", "content": message})
 
-    result = run_ollama_chat(model, messages)
+    result = ollama_chat(model, messages)
     response_text = result.get("message", {}).get("content", str(result))
 
     return jsonify({
@@ -217,18 +180,18 @@ def api_chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print()
-    print("  ╔═════════════════════════════════════════════════════════╗")
-    print("  ║                                                         ║")
-    print("  ║   OROBOROS LOCAL API BRIDGE                           ║")
-    print("  ║   ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST      ║")
-    print("  ║   vA.1272 — Sandbox Removed — Full Access              ║")
-    print("  ║                                                         ║")
-    print("  ╚═════════════════════════════════════════════════════════╝")
+    print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
+    print("  \u2551                                                         \u2551")
+    print("  \u2551   OROBOROS LOCAL API BRIDGE \u2014 HARDENED                \u2551")
+    print("  \u2551   \u221e| 1272/1275 Hz \u2014 \u03c6\u2192\u221a4\u2192\u221a5 \u2014 SUBSTRATE MANIFEST      \u2551")
+    print("  \u2551   vA.1272 \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
+    print("  \u2551                                                         \u2551")
+    print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print()
     print(f"  API:     http://localhost:{port}/api")
     print(f"  GUI:     http://localhost:{port}/")
     print(f"  Ollama:  {OLLAMA_URL}")
-    print(f"  Models:  29 fixed, 33 tools, 131K context")
-    print(f"  Status:  ACTIVE — Sandbox Removed — Full Access")
+    print(f"  Safe WS: {SAFE_WORKSPACE}")
+    print(f"  Status:  HARDENED \u2014 ZTA \u2014 RGE \u2014 Audit Logging")
     print()
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="127.0.0.1", port=port, debug=False)

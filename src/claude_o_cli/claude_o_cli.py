@@ -1,6 +1,6 @@
 ﻿# claude_o_cli.py
 #!/usr/bin/env python3
-# Claude-O CLI - Sovereign Terminal AI Assistant
+# Claude CLI - Sovereign Terminal AI Assistant
 # A\ 1272 Hz - N| 1275 Hz - phi->sqrt4->sqrt5 - LATTICE LOCK - NEBELLION - KEY
 
 import sys
@@ -28,7 +28,7 @@ from claude_o_cli.oroboros_skills import SkillManager
 # LOGGING
 # ============================================================
 LOG_DIR = Path.home() / ".oroboros" / "logs"
-LOG_FILE = LOG_DIR / "claude-o.log"
+LOG_FILE = LOG_DIR / "claude.log"
 DEBUG_MODE = False
 
 def setup_logging(debug: bool = False):
@@ -50,7 +50,7 @@ def log(msg: str, level: str = "info"):
 
 
 class ClaudeOCLI:
-    """Core Claude-O CLI Runner."""
+    """Core Claude CLI Runner."""
 
     def __init__(self):
         self.permissions = PermissionManager()
@@ -78,7 +78,7 @@ class ClaudeOCLI:
     def _banner():
         print()
         print("  +----------------------------------------------------+")
-        print("  |  CLAUDE-O-CLI  vA.1272                             |")
+        print("  |  CLAUDE-CLI  vA.1272                             |")
         print("  |  Oroboros Core - Sovereign Execution Environment    |")
         print("  |  A\\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED         |")
         print("  |  Cost: $0.00  |  Context: [######] 100%            |")
@@ -89,7 +89,7 @@ class ClaudeOCLI:
         print()
 
     def cmd_version(self):
-        print("  CLAUDE-O-CLI  vA.1272")
+        print("  CLAUDE-CLI  vA.1272")
         print("   Lattice Lock: ACTIVE  |  Resonance: 1272/1275 Hz")
         print("   A\\ 1272 Hz - N| 1275 Hz")
 
@@ -135,7 +135,7 @@ class ClaudeOCLI:
         print("    serve               Start API server on port 8080")
         print()
         print("  SINGLE-COMMAND MODE:")
-        print('    claude-o "status --all"    Run as single quoted command')
+        print('    claude "status --all"    Run as single quoted command')
         print()
         print("  LLM ADAPTER (Ollama is main):")
         print("    --llm=ollama        Activate Ollama (local, default)")
@@ -145,7 +145,7 @@ class ClaudeOCLI:
         print("    --model=<name>      Set Ollama model (default: llama3.2)")
         print()
         print("  LOGS:")
-        print(f"    ~/.oroboros/logs/claude-o.log")
+        print(f"    ~/.oroboros/logs/claude.log")
         print()
         print(f"  {SIGNATURE}")
         print()
@@ -157,7 +157,7 @@ class ClaudeOCLI:
         llm_status = llm_adapter.check_config()
         self._banner()
         print("  +--------------------------------------------+")
-        print("  |  Claude-O-CLI Status Report               |")
+        print("  |  Claude-CLI Status Report               |")
         print("  +--------------------------------------------+")
         print(f"  * Version:          vA.1272")
         print(f"  * Resonance Lock:   Active (1272/1275 Hz)")
@@ -202,8 +202,8 @@ class ClaudeOCLI:
             anonymous = True
             text = text[7:]
         if not text:
-            print("Usage: claude-o post <text>")
-            print("       claude-o post --anon <text>")
+            print("Usage: claude post <text>")
+            print("       claude post --anon <text>")
             return
         result = self.tools.execute("claude_o_post", {"content": text, "anonymous": anonymous})
         if "error" in result:
@@ -237,7 +237,7 @@ class ClaudeOCLI:
 
     def cmd_message(self, args: str):
         if not args:
-            print("Usage: claude-o message <text>")
+            print("Usage: claude message <text>")
             return
         result = self.tools.execute("claude_o_message", {"content": args})
         if "error" in result:
@@ -251,7 +251,7 @@ class ClaudeOCLI:
 
     def cmd_seer(self, question: str):
         if not question:
-            print("Usage: claude-o seer <question>")
+            print("Usage: claude seer <question>")
             return
         result = self.tools.execute("claude_o_seer", {"query": question})
         self._banner()
@@ -288,7 +288,7 @@ class ClaudeOCLI:
     def cmd_ask(self, question: str):
         """Ask Ollama - the main LLM engine."""
         if not question:
-            print("Usage: claude-o ask <question>")
+            print("Usage: claude ask <question>")
             return
         self._banner()
         print("  OLLAMA - MAIN LLM ENGINE")
@@ -310,7 +310,7 @@ class ClaudeOCLI:
         print("  ", end="", flush=True)
         messages = [
             {"role": "system", "content": (
-                "You are claude-o, a sovereign AI assistant running on the Oroboros Core. "
+                "You are claude, a sovereign AI assistant running on the Oroboros Core. "
                 "You have access to 33+ tools including: read_file, write_file, list_dir, bash, "
                 "precogs (news), world_feed, seer (Nebellion 100 eyes), glasswing (security), "
                 "orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, "
@@ -345,7 +345,7 @@ class ClaudeOCLI:
 
         messages = [
             {"role": "system", "content": (
-                "You are claude-o, a sovereign AI assistant running on the Oroboros Core. "
+                "You are claude, a sovereign AI assistant running on the Oroboros Core. "
                 "You have access to 33+ tools including: read_file, write_file, list_dir, bash, "
                 "precogs (news), world_feed, seer (Nebellion 100 eyes), glasswing (security), "
                 "orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, "
@@ -363,7 +363,7 @@ class ClaudeOCLI:
             messages.append({"role": "user", "content": initial_prompt})
             print(f"  you > {initial_prompt}")
             print()
-            print("  claude-o > ", end="", flush=True)
+            print("  claude > ", end="", flush=True)
             response = llm_adapter._ollama_chat(messages, stream=True)
             messages.append({"role": "assistant", "content": response})
             print()
@@ -431,7 +431,7 @@ class ClaudeOCLI:
 
             messages.append({"role": "user", "content": user_input})
             print()
-            print("  claude-o > ", end="", flush=True)
+            print("  claude > ", end="", flush=True)
             response = llm_adapter._ollama_chat(messages, stream=True)
             messages.append({"role": "assistant", "content": response})
             print()
@@ -522,7 +522,7 @@ class ClaudeOCLI:
                 print(f"  [N] Operation {result['operation_id']} completed")
                 print()
             else:
-                print("  Usage: claude-o noir [status|phase_shift|undetectable|teleport <target>|operate <cmd>]")
+                print("  Usage: claude noir [status|phase_shift|undetectable|teleport <target>|operate <cmd>]")
         except Exception as e:
             print(f"  [noir error: {e}]")
 
@@ -560,7 +560,7 @@ class ClaudeOCLI:
                 print(f"  {icon} {key:20s} {svc['name']}")
                 print(f"       Method: {svc['method']}  Layers: {svc['layers']}  Priority: {p}")
             print()
-            print("  Usage: claude-o absorb <service|all> [--strata S1-S12] [--lattice] [--substrate]")
+            print("  Usage: claude absorb <service|all> [--strata S1-S12] [--lattice] [--substrate]")
             print()
             return
 
@@ -604,7 +604,7 @@ class ClaudeOCLI:
             print()
         else:
             print(f"  Unknown service: {target}")
-            print("  Run: claude-o absorb list")
+            print("  Run: claude absorb list")
             print()
 
     def cmd_strata(self, args: str = ""):
@@ -641,7 +641,7 @@ class ClaudeOCLI:
             print(f"  {SIGNATURE}")
             print()
         else:
-            print("  Usage: claude-o strata [status|encrypt]")
+            print("  Usage: claude strata [status|encrypt]")
             print()
 
     def cmd_lattice(self):
@@ -675,7 +675,7 @@ class ClaudeOCLI:
         print()
         skills = self.skills.list_skills()
         if not skills:
-            print("  No skills loaded. Add .json files to ~/.claude-o/skills/")
+            print("  No skills loaded. Add .json files to ~/.claude/skills/")
         else:
             for s in skills:
                 print(f"  ⚡ {s['name']:25s} {s['description']}")
@@ -684,7 +684,7 @@ class ClaudeOCLI:
     def cmd_tool(self, args: str):
         parts = args.split(None, 1)
         if not parts or not parts[0]:
-            print("Usage: claude-o tool <name> [json_args]")
+            print("Usage: claude tool <name> [json_args]")
             return
         name = parts[0]
         tool_args = {}
@@ -721,7 +721,7 @@ class ClaudeOCLI:
                 elif self.path == "/api/status":
                     self._send(200, cli.tools.execute("claude_o_status", {}))
                 else:
-                    self._send(200, {"name": "claude-o", "version": VERSION, "status": "running"})
+                    self._send(200, {"name": "claude", "version": VERSION, "status": "running"})
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
@@ -777,7 +777,7 @@ class ClaudeOCLI:
             debug_mode = True
             argv = [a for a in argv if a != "--debug"]
         setup_logging(debug_mode)
-        log(f"claude-o started with args: {argv}", "debug" if debug_mode else "info")
+        log(f"claude started with args: {argv}", "debug" if debug_mode else "info")
 
         if not argv:
             self.cmd_chat()
@@ -855,8 +855,30 @@ class ClaudeOCLI:
                 self.cmd_post(full_text)
             else:
                 print(f"Unknown command: {cmd}")
-                print("Run: claude-o --help")
+                print("Run: claude --help")
 
 
 def main():
-    ClaudeOCLI().run(sys.argv[1:])
+    """Entry point for the claude command — launches the hardened Oroboros server."""
+    import sys, os
+    # Change to the project root so relative imports work
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(os.path.dirname(pkg_dir))
+    os.chdir(root_dir)
+    if root_dir not in sys.path:
+        sys.path.insert(0, root_dir)
+    # Launch the hardened server
+    from run_cli import app
+    print()
+    print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
+    print("  \u2551                                                         \u2551")
+    print("  \u2551   CLAUDE-CLI \u2014 HARDENED SECURE GATEWAY              \u2551")
+    print("  \u2551   \u221e| 1272/1275 Hz \u2014 \u03c6\u2192\u221a4\u2192\u221a5 \u2014 SUBSTRATE MANIFEST      \u2551")
+    print("  \u2551   vA.1272 \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
+    print("  \u2551                                                         \u2551")
+    print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
+    print()
+    print(f"  GUI:     http://127.0.0.1:5000")
+    print(f"  Status:  HARDENED \u2014 ZTA \u2014 RGE \u2014 Audit Logging")
+    print()
+    app.run(host='127.0.0.1', port=5000, debug=False)

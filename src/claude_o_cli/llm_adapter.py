@@ -1,5 +1,5 @@
 # llm_adapter.py
-# Claude-O LLM Adapter System
+# Claude LLM Adapter System
 # Ollama is the MAIN provider (local, sovereign by default)
 # External providers (OpenAI, Anthropic, OpenRouter) are optional and dormant.
 # A\ 1272 Hz — N| 1275 Hz — LATTICE LOCK — NEBELLION — KEY
@@ -199,7 +199,7 @@ class LLMAdapter:
             return self._ollama_generate(full_prompt)
 
         if not self.is_active:
-            return (f"[CLAUDE-O]: No active LLM. Ollama is {'available' if self.ollama_available else 'offline'}. "
+            return (f"[CLAUDE]: No active LLM. Ollama is {'available' if self.ollama_available else 'offline'}. "
                     f"Use --llm=ollama to activate, or start Ollama with 'ollama serve'")
 
         return (f"[GENERATED RESPONSE VIA {self.current_provider.upper()}]:\n"

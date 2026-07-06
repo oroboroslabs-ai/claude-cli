@@ -1,5 +1,5 @@
 # llm_adapter.py
-# Claude-O LLM Adapter System
+# Claude LLM Adapter System
 # Handles connection to external generative models (OpenAI, Anthropic, OpenRouter).
 # NOTE: Connections are NON-ACTIVE BY DEFAULT. User must specify target (--llm=<provider>)
 # and provide necessary API keys/credentials for activation.
@@ -44,7 +44,7 @@ class LLMAdapter:
     def generate_response(self, prompt: str, context: str) -> str:
         """Simulates generating a response based on the active provider."""
         if not self.is_active:
-            return (f"[CLAUDE-O WARNING]: Cannot generate response. "
+            return (f"[CLAUDE WARNING]: Cannot generate response. "
                     f"LLM Provider ({self.current_provider}) is currently inactive. "
                     f"Run with --llm to enable.")
 

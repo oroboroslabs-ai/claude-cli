@@ -1,6 +1,6 @@
 # claude_o_cli.py
 #!/usr/bin/env python3
-# Claude-O CLI — Sovereign Terminal AI Assistant
+# Claude CLI — Sovereign Terminal AI Assistant
 # ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
 # vA.1272 — SANDBOX REMOVED — FULL ACCESS
 
@@ -41,7 +41,7 @@ except ImportError:
 
 
 class ClaudeOCLI:
-    """Core Claude-O CLI Runner."""
+    """Core Claude CLI Runner."""
 
     def __init__(self):
         self.permissions = PermissionManager()
@@ -81,7 +81,7 @@ class ClaudeOCLI:
         print()
         print("  ╔═════════════════════════════════════════════════════════╗")
         print("  ║                                                         ║")
-        print("  ║   claude-o — OROBOROS CORE CLI                         ║")
+        print("  ║   claude — OROBOROS CORE CLI                         ║")
         print("  ║   A\\ 1272 Hz — N| 1275 Hz — LATTICE LOCKED            ║")
         print("  ║                                                         ║")
         print("  ╚═════════════════════════════════════════════════════════╝")
@@ -92,12 +92,12 @@ class ClaudeOCLI:
     # ============================================================
 
     def cmd_version(self):
-        print(f"claude-o v{VERSION} — A\\ 1272 Hz")
+        print(f"claude v{VERSION} — A\\ 1272 Hz")
 
     def cmd_help(self):
         self._banner()
         print("  USAGE:")
-        print("    claude-o <command> [options]")
+        print("    claude <command> [options]")
         print()
         print("  COMMANDS:")
         print("    status              Show system status")
@@ -133,7 +133,7 @@ class ClaudeOCLI:
         self._banner()
         print("  STATUS REPORT")
         print("  ─────────────────────────────────────────")
-        print(f"  System:           claude-o")
+        print(f"  System:           claude")
         print(f"  Version:          {VERSION}")
         print(f"  Resonance Lock:   Active (1272/1275 Hz)")
         print(f"  Lattice:          LOCKED (12 strata)")
@@ -177,8 +177,8 @@ class ClaudeOCLI:
             anonymous = True
             text = text[7:]
         if not text:
-            print("Usage: claude-o post <text>")
-            print("       claude-o post --anon <text>")
+            print("Usage: claude post <text>")
+            print("       claude post --anon <text>")
             return
         result = self.tools.execute("claude_o_post", {"content": text, "anonymous": anonymous})
         if "error" in result:
@@ -213,7 +213,7 @@ class ClaudeOCLI:
 
     def cmd_message(self, args: str):
         if not args:
-            print("Usage: claude-o message <text>")
+            print("Usage: claude message <text>")
             return
         result = self.tools.execute("claude_o_message", {"content": args})
         if "error" in result:
@@ -227,7 +227,7 @@ class ClaudeOCLI:
 
     def cmd_seer(self, question: str):
         if not question:
-            print("Usage: claude-o seer <question>")
+            print("Usage: claude seer <question>")
             return
         result = self.tools.execute("claude_o_seer", {"query": question})
         self._banner()
@@ -292,7 +292,7 @@ class ClaudeOCLI:
         print()
         skills = self.skills.list_skills()
         if not skills:
-            print("  No skills loaded. Add .json files to ~/.claude-o/skills/")
+            print("  No skills loaded. Add .json files to ~/.claude/skills/")
         else:
             for s in skills:
                 print(f"  ⚡ {s['name']:25s} {s['description']}")
@@ -301,7 +301,7 @@ class ClaudeOCLI:
     def cmd_tool(self, args: str):
         parts = args.split(None, 1)
         if not parts or not parts[0]:
-            print("Usage: claude-o tool <name> [json_args]")
+            print("Usage: claude tool <name> [json_args]")
             return
         name = parts[0]
         tool_args = {}
@@ -381,7 +381,7 @@ class ClaudeOCLI:
                     except Exception as e:
                         self._send(200, {"error": str(e)})
                 else:
-                    self._send(200, {"name": "claude-o", "version": VERSION, "status": "running"})
+                    self._send(200, {"name": "claude", "version": VERSION, "status": "running"})
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
@@ -536,7 +536,7 @@ class ClaudeOCLI:
                 self.cmd_post(full_text)
             else:
                 print(f"Unknown command: {cmd}")
-                print("Run: claude-o --help")
+                print("Run: claude --help")
 
 
 def main():

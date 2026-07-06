@@ -1,8 +1,8 @@
-# Claude-O-CLI — Sovereign Terminal AI Assistant
+# Claude-CLI — Sovereign Terminal AI Assistant
 
 ```
 +----------------------------------------------------+
-|  CLAUDE-O-CLI  vA.1272                             |
+|  CLAUDE-CLI  vA.1272                             |
 |  Oroboros Core - Sovereign Execution Environment    |
 |  A\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED         |
 |  Cost: $0.00  |  Context: [######] 100%            |
@@ -10,7 +10,7 @@
 ```
 
 ## Overview
-Claude-O-CLI is a sovereign terminal AI assistant that runs fully local via Ollama. No API keys, no cloud, no tracking. Built on the Oroboros Core with 33+ integrated tools, Docker MCP, strata encryption, and service absorption.
+Claude-CLI is a sovereign terminal AI assistant that runs fully local via Ollama. No API keys, no cloud, no tracking. Built on the Oroboros Core with 33+ integrated tools, Docker MCP, strata encryption, and service absorption.
 
 ## Install
 ```bash
@@ -18,27 +18,27 @@ cd Q:\oroboros-core\claude-o-cli
 pip install -r requirements.txt
 pip install -e .
 ```
-Then type `claude-o` in any terminal.
+Then type `claude` in any terminal.
 
 ## Commands
 | Command | Description |
 |---------|-------------|
-| `claude-o` | Interactive chat (default, like Claude Code) |
-| `claude-o ask <question>` | One-shot question to Ollama |
-| `claude-o status` | Full system status |
-| `claude-o scan` | Scan all Oroboros systems |
-| `claude-o models` | List Ollama models |
-| `claude-o --model <name>` | Switch model |
-| `claude-o /think xhigh` | Maximum reasoning depth (131K context) |
-| `claude-o absorb all` | Absorb all Anthropic services |
-| `claude-o absorb list` | List absorption targets |
-| `claude-o strata status` | Strata encryption status |
-| `claude-o strata encrypt` | Encrypt all 12 strata |
-| `claude-o noir` | Noir-Nephilim shadow entity |
-| `claude-o ui` | Launch Glass Liquid UI in browser |
-| `claude-o serve` | Start API server on port 8080 |
-| `claude-o --debug` | Debug mode with logging |
-| `claude-o --help` | Show help |
+| `claude` | Interactive chat (default, like Claude Code) |
+| `claude ask <question>` | One-shot question to Ollama |
+| `claude status` | Full system status |
+| `claude scan` | Scan all Oroboros systems |
+| `claude models` | List Ollama models |
+| `claude --model <name>` | Switch model |
+| `claude /think xhigh` | Maximum reasoning depth (131K context) |
+| `claude absorb all` | Absorb all Anthropic services |
+| `claude absorb list` | List absorption targets |
+| `claude strata status` | Strata encryption status |
+| `claude strata encrypt` | Encrypt all 12 strata |
+| `claude noir` | Noir-Nephilim shadow entity |
+| `claude ui` | Launch Glass Liquid UI in browser |
+| `claude serve` | Start API server on port 8080 |
+| `claude --debug` | Debug mode with logging |
+| `claude --help` | Show help |
 
 ## Think Levels
 | Level | Context | Temperature | Use Case |

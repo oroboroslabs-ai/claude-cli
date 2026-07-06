@@ -1,796 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Claude-O-CLI — Liquid GUI</title>
-    <style>
-        /* ============================================================
-           ROOT — Glass Liquid + Anthropic Palette
-           ============================================================ */
-        :root {
-            /* Anthropic Colors */
-            --anthracite: #141413;
-            --warm-grey: #b7b3ac;
-            --warm-white: #e8e5dd;
-            --gold: #d5a021;
-            --gold-dim: rgba(213, 160, 33, 0.15);
-
-            /* Oroboros Signature */
-            --cyan: #00ffcc;
-            --cyan-dim: rgba(0, 255, 204, 0.15);
-            --cyan-glow: #00ffcc;
-
-            /* Glass */
-            --glass-bg: rgba(255, 255, 255, 0.01);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --glass-blur: 12px;
-            --glass-radius: 24px;
-            --anthropic-orange: #D97757;
-
-            /* Fonts */
-            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-            --font-display: 'Inter', 'Segoe UI', sans-serif;
-
-            /* Animation */
-            --liquid-speed: 8s;
-        }
-
-        /* ============================================================
-           RESET & BASE
-           ============================================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #1a1a1a;
-            font-family: var(--font-display);
-            padding: 20px;
-            overflow: hidden;
-        }
-
-        /* ============================================================
-           CENTER LOGO — Anthropic orange behind chat
-           ============================================================ */
-        .center-logo {
-            position: fixed;
-            top: 50%;
-            left: calc(50% + 160px);
-            transform: translate(-50%, -50%);
-            z-index: 0;
-            width: 400px;
-            height: 400px;
-            opacity: 0.08;
-            pointer-events: none;
-            filter: drop-shadow(0 0 40px rgba(217, 119, 87, 0.3));
-        }
-        .center-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        /* ============================================================
-           LIQUID BACKGROUND — Animated Glass Waves
-           ============================================================ */
-        .liquid-bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            overflow: hidden;
-            pointer-events: none;
-        }
-
-        .liquid-bg .orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.25;
-            animation: liquidFloat var(--liquid-speed) ease-in-out infinite alternate;
-        }
-
-        .liquid-bg .orb:nth-child(1) {
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(217, 119, 87, 0.2), transparent 70%);
-            top: -10%;
-            left: -10%;
-            animation-duration: 9s;
-        }
-
-        .liquid-bg .orb:nth-child(2) {
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(217, 119, 87, 0.15), transparent 70%);
-            bottom: -10%;
-            right: -10%;
-            animation-duration: 11s;
-            animation-delay: -3s;
-        }
-
-        .liquid-bg .orb:nth-child(3) {
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(183, 179, 172, 0.1), transparent 70%);
-            top: 40%;
-            left: 50%;
-            animation-duration: 13s;
-            animation-delay: -5s;
-        }
-
-        @keyframes liquidFloat {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(80px, -60px) scale(1.2); }
-        }
-
-        /* ============================================================
-           GLASS TERMINAL — Main UI
-           ============================================================ */
-        .terminal {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 980px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
-            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--glass-radius);
-            box-shadow: var(--glass-shadow), inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 1px rgba(0, 0, 0, 0.1);
-            padding: 24px;
-            color: #ffffff;
-            transition: all 0.4s ease;
-        }
-
-        /* Liquid shimmer overlay */
-        .terminal::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: var(--glass-radius);
-            padding: 1px;
-            background: linear-gradient(
-                135deg,
-                rgba(0, 255, 204, 0.08),
-                rgba(213, 160, 33, 0.04),
-                rgba(0, 255, 204, 0.08)
-            );
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-            animation: shimmerPulse 6s ease-in-out infinite;
-        }
-
-        @keyframes shimmerPulse {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 1; }
-        }
-
-        /* ============================================================
-           HEADER
-           ============================================================ */
-        .terminal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .terminal-header .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .terminal-header .brand .icon {
-            font-size: 22px;
-            color: var(--anthropic-orange);
-            animation: glowPulse 3s ease-in-out infinite;
-        }
-
-        @keyframes glowPulse {
-            0%, 100% { opacity: 0.8; text-shadow: 0 0 10px var(--anthropic-orange), 0 0 20px var(--anthropic-orange); }
-            50% { opacity: 1; text-shadow: 0 0 30px var(--anthropic-orange), 0 0 50px var(--anthropic-orange); }
-        }
-
-        .terminal-header .brand .name {
-            font-family: var(--font-mono);
-            font-weight: 700;
-            font-size: 18px;
-            letter-spacing: 0.5px;
-            background: linear-gradient(135deg, var(--anthropic-orange), var(--cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .terminal-header .brand .version {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--warm-grey);
-            opacity: 0.5;
-            -webkit-text-fill-color: var(--warm-grey);
-        }
-
-        .terminal-header .status {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            font-size: 12px;
-            color: var(--warm-grey);
-            flex-wrap: wrap;
-        }
-
-        .terminal-header .status .dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 4px;
-            animation: dotPulse 1.8s ease-in-out infinite;
-        }
-
-        .terminal-header .status .dot.green { background: #00ff88; }
-        .terminal-header .status .dot.cyan { background: var(--cyan); }
-
-        @keyframes dotPulse {
-            0%, 100% { opacity: 0.4; transform: scale(0.9); }
-            50% { opacity: 1; transform: scale(1.1); }
-        }
-
-        .terminal-header .status .sig {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            color: var(--gold);
-            opacity: 0.6;
-            letter-spacing: 0.5px;
-        }
-
-        /* ============================================================
-           MODEL BAR
-           ============================================================ */
-        .model-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 16px;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            margin-bottom: 16px;
-            font-size: 13px;
-            color: var(--warm-grey);
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .model-bar .model {
-            font-family: var(--font-mono);
-            color: var(--warm-white);
-        }
-
-        .model-bar .model .highlight {
-            color: var(--cyan);
-        }
-
-        .model-bar .url {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            opacity: 0.5;
-        }
-
-        .model-bar .sovereign {
-            font-size: 11px;
-            color: var(--gold);
-            padding: 2px 12px;
-            border: 1px solid var(--gold-dim);
-            border-radius: 20px;
-            background: var(--gold-dim);
-            letter-spacing: 0.5px;
-        }
-
-        /* ============================================================
-           COMMAND BAR
-           ============================================================ */
-        .command-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            padding: 10px 0 16px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            margin-bottom: 16px;
-        }
-
-        .command-bar .cmd {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--warm-grey);
-            padding: 4px 14px;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid transparent;
-            transition: all 0.3s ease;
-            cursor: default;
-        }
-
-        .command-bar .cmd:hover {
-            border-color: var(--cyan-dim);
-            color: var(--warm-white);
-            background: var(--cyan-dim);
-        }
-
-        .command-bar .cmd .key {
-            color: #ffffff;
-        }
-
-        .command-bar .cmd .gold {
-            color: var(--anthropic-orange);
-        }
-
-        /* ============================================================
-           CHAT AREA — Free-flowing text, no boxes
-           ============================================================ */
-        .chat-area {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            max-height: 420px;
-            overflow-y: auto;
-            padding-right: 4px;
-            scroll-behavior: smooth;
-        }
-
-        .chat-area::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .chat-area::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-area::-webkit-scrollbar-thumb {
-            background: var(--cyan-dim);
-            border-radius: 10px;
-        }
-
-        /* Messages — free text, no boxes, no colored borders */
-        .message {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 0;
-            border: none;
-            background: none;
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            animation: messageIn 0.5s ease-out;
-        }
-
-        @keyframes messageIn {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .message .msg-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: var(--warm-grey);
-            margin-bottom: 2px;
-        }
-
-        .message .msg-header .role {
-            font-weight: 600;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .message.user .msg-header .role { color: var(--gold); }
-        .message.assistant .msg-header .role { color: var(--cyan); }
-
-        .message .msg-header .time {
-            font-size: 10px;
-            opacity: 0.3;
-        }
-
-        .message .content {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #ffffff;
-        }
-
-        .message .content code {
-            font-family: var(--font-mono);
-            font-size: 13px;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 8px;
-            border-radius: 6px;
-            color: var(--cyan);
-        }
-
-        .message .content .sig-line {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            color: var(--gold);
-            opacity: 0.4;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        /* ============================================================
-           TYPING INDICATOR — Claude-O is working
-           ============================================================ */
-        .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-            animation: messageIn 0.3s ease-out;
-        }
-
-        .typing-indicator .typing-label {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--anthropic-orange);
-        }
-
-        .typing-indicator .typing-dots {
-            display: flex;
-            gap: 5px;
-        }
-
-        .typing-indicator .typing-dots span {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--anthropic-orange);
-            opacity: 0.3;
-            animation: typingPulse 1.4s ease-in-out infinite;
-        }
-
-        .typing-indicator .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typingPulse {
-            0%, 100% { opacity: 0.3; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px var(--anthropic-orange); }
-        }
-
-        /* ============================================================
-           INPUT AREA — Glass Liquid
-           ============================================================ */
-        .input-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 16px;
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            transition: all 0.3s ease;
-        }
-
-        .input-area:focus-within {
-            border-color: var(--cyan-dim);
-            box-shadow: 0 0 40px rgba(0, 255, 204, 0.04);
-        }
-
-        .input-area .prompt-symbol {
-            font-size: 18px;
-            color: var(--anthropic-orange);
-            opacity: 0.7;
-            font-family: var(--font-mono);
-            text-shadow: 0 0 15px var(--anthropic-orange);
-        }
-
-        .input-area input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #ffffff;
-            font-family: var(--font-mono);
-            font-size: 14px;
-            padding: 4px 0;
-        }
-
-        .input-area input::placeholder {
-            color: var(--warm-grey);
-            opacity: 0.25;
-            font-size: 13px;
-        }
-
-        .input-area .input-hint {
-            font-size: 11px;
-            color: var(--warm-grey);
-            opacity: 0.2;
-            font-family: var(--font-mono);
-        }
-
-        /* Clear chat button */
-        .clear-btn {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--anthropic-orange);
-            padding: 4px 12px;
-            border-radius: 8px;
-            background: rgba(217, 119, 87, 0.08);
-            border: 1px solid rgba(217, 119, 87, 0.2);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .clear-btn:hover {
-            background: rgba(217, 119, 87, 0.15);
-            border-color: var(--anthropic-orange);
-        }
-
-        /* XHIGH bar — black bar with glowing orange, appears when active */
-        .xhigh-bar {
-            display: none;
-            background: #000000;
-            padding: 6px 16px;
-            text-align: center;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: var(--anthropic-orange);
-            text-shadow: 0 0 10px var(--anthropic-orange), 0 0 20px var(--anthropic-orange);
-            border-top: 1px solid rgba(217, 119, 87, 0.3);
-            border-bottom: 1px solid rgba(217, 119, 87, 0.3);
-            animation: xhighGlow 2s ease-in-out infinite;
-        }
-        .xhigh-bar.active { display: block; }
-        @keyframes xhighGlow {
-            0%, 100% { box-shadow: inset 0 0 20px rgba(217, 119, 87, 0.1); }
-            50% { box-shadow: inset 0 0 40px rgba(217, 119, 87, 0.25); }
-        }
-
-        /* Tactical text format */
-        .message .content {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #ffffff;
-            font-family: var(--font-mono);
-            letter-spacing: 0.2px;
-        }
-
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
-        @media (max-width: 640px) {
-            .terminal { padding: 16px; }
-            .terminal-header .brand .name { font-size: 15px; }
-            .terminal-header .status { font-size: 10px; gap: 10px; }
-            .model-bar { font-size: 11px; flex-direction: column; align-items: flex-start; }
-            .command-bar .cmd { font-size: 10px; padding: 2px 10px; }
-            .message .content { font-size: 13px; }
-            .input-area input { font-size: 13px; }
-            .input-area .prompt-symbol { font-size: 15px; }
-        }
-
-        @media (max-width: 400px) {
-            .terminal { padding: 12px; border-radius: 16px; }
-            .terminal-header .brand .name { font-size: 13px; }
-            .terminal-header .status .sig { font-size: 8px; }
-            .message { padding: 0; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLI — Oroboros (Hardened)</title>
+<style>
+:root {
+  --cyan: #00ffcc;
+  --cyan-dim: rgba(0,255,204,0.15);
+  --gold: #d5a021;
+  --gold-dim: rgba(213,160,33,0.15);
+  --orange: #D97757;
+  --warm-grey: #b7b3ac;
+  --warm-white: #e8e5dd;
+  --glass-bg: rgba(255,255,255,0.01);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-radius: 24px;
+  --font-mono: 'Courier New', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a1a;font-family:var(--font-mono);padding:20px;overflow:hidden}
+.liquid-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.liquid-bg .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.25;animation:liquidFloat 8s ease-in-out infinite alternate}
+.liquid-bg .orb:nth-child(1){width:600px;height:600px;background:radial-gradient(circle,rgba(217,119,87,0.2),transparent 70%);top:-10%;left:-10%;animation-duration:9s}
+.liquid-bg .orb:nth-child(2){width:500px;height:500px;background:radial-gradient(circle,rgba(217,119,87,0.15),transparent 70%);bottom:-10%;right:-10%;animation-duration:11s;animation-delay:-3s}
+.liquid-bg .orb:nth-child(3){width:400px;height:400px;background:radial-gradient(circle,rgba(183,179,172,0.1),transparent 70%);top:40%;left:50%;animation-duration:13s;animation-delay:-5s}
+@keyframes liquidFloat{0%{transform:translate(0,0) scale(1)}100%{transform:translate(80px,-60px) scale(1.2)}}
+.center-logo{position:fixed;top:50%;left:calc(50% + 160px);transform:translate(-50%,-50%);z-index:0;width:400px;height:400px;opacity:0.08;pointer-events:none;filter:drop-shadow(0 0 40px rgba(217,119,87,0.3))}
+.center-logo img{width:100%;height:100%;object-fit:contain}
+.terminal{position:relative;z-index:1;width:100%;max-width:980px;background:var(--glass-bg);backdrop-filter:blur(12px) saturate(1.8) brightness(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.8) brightness(1.1);border:1px solid var(--glass-border);border-radius:var(--glass-radius);box-shadow:0 8px 32px rgba(0,0,0,0.3),inset 0 1px 1px rgba(255,255,255,0.15);padding:24px;color:#fff;transition:all 0.4s ease}
+.terminal::before{content:'';position:absolute;inset:0;border-radius:var(--glass-radius);padding:1px;background:linear-gradient(135deg,rgba(0,255,204,0.08),rgba(213,160,33,0.04),rgba(0,255,204,0.08));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;animation:shimmerPulse 6s ease-in-out infinite}
+@keyframes shimmerPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.terminal-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.terminal-header .brand{display:flex;align-items:center;gap:12px}
+.terminal-header .brand .icon{font-size:22px;color:var(--orange);animation:glowPulse 3s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{opacity:0.8;text-shadow:0 0 10px var(--orange),0 0 20px var(--orange)}50%{opacity:1;text-shadow:0 0 30px var(--orange),0 0 50px var(--orange)}}
+.terminal-header .brand .name{font-weight:700;font-size:18px;letter-spacing:0.5px;background:linear-gradient(135deg,var(--orange),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.terminal-header .brand .version{font-size:12px;color:var(--warm-grey);opacity:0.5}
+.terminal-header .status{display:flex;align-items:center;gap:18px;font-size:12px;color:var(--warm-grey);flex-wrap:wrap}
+.terminal-header .status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;animation:dotPulse 1.8s ease-in-out infinite}
+.terminal-header .status .dot.green{background:#00ff88}
+.terminal-header .status .dot.cyan{background:var(--cyan)}
+.terminal-header .status .dot.orange{background:var(--orange)}
+@keyframes dotPulse{0%,100%{opacity:0.4;transform:scale(0.9)}50%{opacity:1;transform:scale(1.1)}}
+.terminal-header .status .sig{font-size:10px;color:var(--gold);opacity:0.6;letter-spacing:0.5px}
+.model-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid rgba(255,255,255,0.04);margin-bottom:16px;font-size:13px;color:var(--warm-grey);flex-wrap:wrap;gap:8px}
+.model-bar .model{color:var(--warm-white)}
+.model-bar .model .highlight{color:var(--cyan)}
+.model-bar .url{font-size:11px;opacity:0.5}
+.model-bar .sovereign{font-size:11px;color:var(--gold);padding:2px 12px;border:1px solid var(--gold-dim);border-radius:20px;background:var(--gold-dim);letter-spacing:0.5px}
+.security-bar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(0,0,0,0.25);border-radius:10px;border:1px solid rgba(255,255,255,0.03);margin-bottom:12px;font-size:11px;color:var(--warm-grey);flex-wrap:wrap}
+.security-bar .shield{color:#00ff88}
+.security-bar .warn{color:var(--gold)}
+.security-bar .block{color:var(--orange)}
+.command-bar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 16px 0;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px}
+.command-bar .cmd{font-size:12px;color:var(--warm-grey);padding:4px 14px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid transparent;transition:all 0.3s ease;cursor:default}
+.command-bar .cmd:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
+.command-bar .cmd .key{color:#fff}
+.command-bar .cmd .gold{color:var(--orange)}
+.chat-area{display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:4px}
+.chat-area::-webkit-scrollbar-track{background:transparent}
+.chat-area::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
+.message{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:none;animation:messageIn 0.5s ease-out}
+@keyframes messageIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.message .msg-header{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--warm-grey);margin-bottom:2px}
+.message .msg-header .role{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+.message.user .msg-header .role{color:var(--gold)}
+.message.assistant .msg-header .role{color:var(--cyan)}
+.message .msg-header .time{font-size:10px;opacity:0.3}
+.message .content{font-size:14px;line-height:1.7;color:#fff;white-space:pre-wrap}
+.typing-indicator{display:flex;align-items:center;gap:10px;padding:8px 0;animation:messageIn 0.3s ease-out}
+.typing-indicator .typing-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)}
+.typing-indicator .typing-dots{display:flex;gap:5px}
+.typing-indicator .typing-dots span{width:8px;height:8px;border-radius:50%;background:var(--orange);opacity:0.3;animation:typingPulse 1.4s ease-in-out infinite}
+.typing-indicator .typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-indicator .typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes typingPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2);box-shadow:0 0 10px var(--orange)}}
+.input-area{display:flex;align-items:center;gap:12px;margin-top:16px;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:16px;border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:all 0.3s ease}
+.input-area:focus-within{border-color:var(--cyan-dim);box-shadow:0 0 40px rgba(0,255,204,0.04)}
+.input-area .prompt-symbol{font-size:18px;color:var(--orange);opacity:0.7;text-shadow:0 0 15px var(--orange)}
+.input-area input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:var(--font-mono);font-size:14px;padding:4px 0}
+.input-area input::placeholder{color:var(--warm-grey);opacity:0.25}
+.input-area .input-hint{font-size:11px;color:var(--warm-grey);opacity:0.2}
+.clear-btn{font-family:var(--font-mono);font-size:11px;color:var(--orange);padding:4px 12px;border-radius:8px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2);cursor:pointer;transition:all 0.2s}
+.clear-btn:hover{background:rgba(217,119,87,0.15);border-color:var(--orange)}
+
+/* ─── File Browser ─────────────────────────────────────────── */
+.fs-toggle{font-family:var(--font-mono);font-size:11px;color:var(--cyan);padding:4px 14px;border-radius:20px;background:var(--cyan-dim);border:1px solid rgba(0,255,204,0.2);cursor:pointer;transition:all 0.2s;margin-left:auto}
+.fs-toggle:hover{background:rgba(0,255,204,0.2);border-color:var(--cyan)}
+.fs-toggle.active{color:var(--orange);background:rgba(217,119,87,0.15);border-color:var(--orange)}
+.file-browser{display:none;margin-bottom:16px;border:1px solid rgba(255,255,255,0.06);border-radius:16px;background:rgba(0,0,0,0.3);overflow:hidden;animation:messageIn 0.3s ease-out}
+.file-browser.open{display:block}
+.fs-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap}
+.fs-header .fs-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--warm-grey)}
+.fs-header .fs-path{flex:1;font-size:12px;color:var(--warm-white);padding:4px 10px;background:rgba(0,0,0,0.3);border-radius:8px;border:1px solid rgba(255,255,255,0.04);font-family:var(--font-mono);min-width:100px}
+.fs-header .fs-path:focus{border-color:var(--cyan-dim);outline:none}
+.fs-header .fs-btn{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--warm-grey);cursor:pointer;transition:all 0.2s}
+.fs-header .fs-btn:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
+.fs-header .fs-btn.go{color:var(--cyan);border-color:var(--cyan-dim)}
+.fs-header .fs-btn.up{color:var(--gold);border-color:var(--gold-dim)}
+.fs-header .fs-btn.drives{color:var(--orange);border-color:rgba(217,119,87,0.2)}
+.fs-header .fs-btn.fullaccess{color:#00ff88;border-color:rgba(0,255,136,0.2)}
+.fs-header .fs-btn.fullaccess.on{background:rgba(0,255,136,0.1);border-color:#00ff88}
+.fs-body{max-height:300px;overflow-y:auto;padding:4px 0}
+.fs-body::-webkit-scrollbar{width:4px}
+.fs-body::-webkit-scrollbar-track{background:transparent}
+.fs-body::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
+.fs-item{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:12px;color:var(--warm-grey);cursor:pointer;transition:all 0.15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font-mono)}
+.fs-item:hover{background:rgba(255,255,255,0.03);color:var(--warm-white)}
+.fs-item .fs-icon{font-size:14px;width:20px;text-align:center}
+.fs-item .fs-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs-item .fs-size{font-size:10px;opacity:0.4}
+.fs-item.dir .fs-icon{color:var(--gold)}
+.fs-item.file .fs-icon{color:var(--warm-grey)}
+.fs-item.file:hover .fs-icon{color:var(--cyan)}
+.fs-status{font-size:11px;color:var(--warm-grey);padding:8px 14px;opacity:0.5;text-align:center}
+.fs-preview{display:none;padding:12px 14px;border-top:1px solid rgba(255,255,255,0.04);max-height:250px;overflow:auto}
+.fs-preview.open{display:block}
+.fs-preview pre{font-size:11px;line-height:1.5;color:var(--warm-white);white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono)}
+.fs-preview .fs-preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fs-preview .fs-preview-header .fs-preview-name{font-size:11px;font-weight:600;color:var(--cyan)}
+.fs-preview .fs-preview-header .fs-preview-close{font-size:10px;color:var(--orange);cursor:pointer;padding:2px 8px;border-radius:4px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2)}
+.fs-preview .fs-preview-header .fs-preview-close:hover{background:rgba(217,119,87,0.15)}
+@media(max-width:640px){.terminal{padding:16px}.terminal-header .brand .name{font-size:15px}.terminal-header .status{font-size:10px;gap:10px}.model-bar{font-size:11px;flex-direction:column;align-items:flex-start}.command-bar .cmd{font-size:10px;padding:2px 10px}.message .content{font-size:13px}.input-area input{font-size:13px}.input-area .prompt-symbol{font-size:15px}}
+</style>
 </head>
 <body>
-
-    <!-- ============================================================
-    LIQUID BACKGROUND
-    ============================================================ -->
-    <div class="liquid-bg">
-        <div class="orb"></div>
-        <div class="orb"></div>
-        <div class="orb"></div>
+<div class="liquid-bg"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+<div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
+<div class="terminal">
+  <div class="terminal-header">
+    <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
+    <div class="status">
+      <span><span class="dot green"></span> ZTA: <strong style="color:#00ff88;">ACTIVE</strong></span>
+      <span><span class="dot cyan"></span> RGE: <strong style="color:var(--cyan);">GOVERNING</strong></span>
+      <span><span class="dot orange"></span> Audit: <strong style="color:var(--orange);">LOGGING</strong></span>
+      <span class="sig">A\ 1272 Hz - N| 1275 Hz</span>
     </div>
+  </div>
+  <div class="model-bar">
+    <span class="model">Model: <span class="highlight" id="modelDisplay">claude-opus-4.8:latest</span></span>
+    <span class="url">localhost:11434</span>
+    <span class="sovereign">ZTA HARDENED</span>
+    <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
+  </div>
+  <div class="security-bar" style="margin-bottom:8px">
+    <span class="shield">&#x1F6E1; Path Whitelist: <strong>ACTIVE</strong></span>
+    <span class="shield">&#x1F6E1; Rate Limit: <strong>60/min</strong></span>
+    <span class="shield">&#x1F6E1; Shell: <strong>ACTIVE</strong></span>
+    <span class="block">&#x1F6AB; Delete: <strong>DENIED</strong></span>
+    <span class="shield">&#x1F6E1; MCP: <strong>REAL</strong></span>
+    <button class="fs-toggle" id="fsToggle" onclick="toggleFileBrowser()">&#x1F4C1; FILES</button>
+  </div>
 
-    <!-- Center logo behind chat -->
-    <div class="center-logo">
-        <img src="clawd.png" alt="Claude-O Logo" />
+  <!-- File Browser Panel -->
+  <div class="file-browser" id="fileBrowser">
+    <div class="fs-header">
+      <span class="fs-label">&#x1F4C2; FS</span>
+      <input class="fs-path" id="fsPath" value="." spellcheck="false" onkeydown="if(event.key==='Enter')loadDir(this.value)">
+      <button class="fs-btn go" onclick="loadDir(document.getElementById('fsPath').value)">GO</button>
+      <button class="fs-btn up" onclick="goUp()">&#x2191; UP</button>
+      <button class="fs-btn drives" onclick="loadDrives()">&#x1F4BD; DRIVES</button>
+      <button class="fs-btn fullaccess" id="fsFullAccess" onclick="toggleFullAccess()">&#x1F512; FULL</button>
     </div>
-
-    <!-- ============================================================
-    TERMINAL
-    ============================================================ -->
-    <div class="terminal">
-
-        <!-- HEADER -->
-        <div class="terminal-header">
-            <div class="brand">
-                <span class="icon">&#9670;</span>
-                <span class="name">CLAUDE-O-CLI</span>
-                <span class="version">vA.1272</span>
-            </div>
-            <div class="status">
-                <span><span class="dot green"></span> Lattice Lock: <strong style="color:#00ff88;">ACTIVE</strong></span>
-                <span><span class="dot cyan"></span> Resonance: <strong style="color:var(--cyan);">1272/1275 Hz</strong></span>
-                <span class="sig">A\ 1272 Hz - N| 1275 Hz</span>
-            </div>
-        </div>
-
-        <!-- MODEL BAR -->
-        <div class="model-bar">
-            <span class="model">Model: <span class="highlight" id="modelDisplay">claude-opus-4.8:latest</span></span>
-            <span class="url">localhost:11434</span>
-            <span class="sovereign">SOVEREIGN</span>
-            <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
-        </div>
-
-        <!-- COMMAND BAR -->
-        <div class="command-bar">
-            <span class="cmd"><span class="key">/exit</span></span>
-            <span class="cmd"><span class="key">/clear</span></span>
-            <span class="cmd"><span class="key">/model</span> <span class="gold">&lt;name&gt;</span></span>
-            <span class="cmd"><span class="key">/models</span></span>
-            <span class="cmd"><span class="key gold">/noir</span></span>
-            <span class="cmd"><span class="key">/help</span></span>
-            <span class="cmd"><span class="key">/seer</span></span>
-            <span class="cmd"><span class="key">/lattice</span></span>
-            <span class="cmd"><span class="key">/resonance</span></span>
-            <span class="cmd"><span class="key">/status</span></span>
-            <span class="cmd"><span class="key">/worldfeed</span></span>
-            <span class="cmd"><span class="key">/think</span> <span class="gold">&lt;level&gt;</span></span>
-        </div>
-
-        <!-- XHIGH bar — appears when xhigh/max is active -->
-        <div class="xhigh-bar" id="xhighBar">XHIGH REASONING — MAXIMUM DEPTH ENGAGED</div>
-
-        <!-- CHAT AREA -->
-        <div class="chat-area" id="chatArea">
-        </div>
-
-        <!-- INPUT AREA -->
-        <div class="input-area">
-            <span class="prompt-symbol">&#9670;</span>
-            <input type="text" id="cliInput" placeholder="Type your message..." autofocus />
-            <span class="input-hint">/help</span>
-        </div>
-
+    <div class="fs-body" id="fsBody">
+      <div class="fs-status">Click FILES to open browser</div>
     </div>
+    <div class="fs-preview" id="fsPreview">
+      <div class="fs-preview-header">
+        <span class="fs-preview-name" id="fsPreviewName">file</span>
+        <span class="fs-preview-close" onclick="closePreview()">CLOSE</span>
+      </div>
+      <pre id="fsPreviewContent"></pre>
+    </div>
+  </div>
 
-    <script>
-        const API = 'http://localhost:5000/api';
-        const input = document.getElementById('cliInput');
-        const chat = document.getElementById('chatArea');
-        const modelDisplay = document.getElementById('modelDisplay');
-        let currentModel = 'claude-opus-4.8:latest';
-        let thinkLevel = 'default';
-        let messages = [];
+  <div class="command-bar">
+    <span class="cmd"><span class="key">/exit</span></span>
+    <span class="cmd"><span class="key">/clear</span></span>
+    <span class="cmd"><span class="key">/model</span> <span class="gold">&lt;name&gt;</span></span>
+    <span class="cmd"><span class="key">/models</span></span>
+    <span class="cmd"><span class="key">/permissions</span></span>
+    <span class="cmd"><span class="key">/help</span></span>
+    <span class="cmd"><span class="key">/status</span></span>
+    <span class="cmd"><span class="key">/tools</span></span>
+    <span class="cmd"><span class="key">/ls</span> <span class="gold">&lt;path&gt;</span></span>
+    <span class="cmd"><span class="key">/read</span> <span class="gold">&lt;file&gt;</span></span>
+    <span class="cmd"><span class="key">/pwd</span></span>
+    <span class="cmd"><span class="key">/drives</span></span>
+    <span class="cmd"><span class="key">/fullaccess</span></span>
+    <span class="cmd"><span class="key">/mcp</span></span>
+    <span class="cmd"><span class="key">/mcp-call</span></span>
+    <span class="cmd"><span class="key">/agents</span></span>
+    <span class="cmd"><span class="key">/worldfeed</span></span>
+    <span class="cmd"><span class="key">/seer</span></span>
+    <span class="cmd"><span class="key">/lattice</span></span>
+    <span class="cmd"><span class="key">/resonance</span></span>
+    <span class="cmd"><span class="key">/noir</span></span>
+  </div>
+  <div class="chat-area" id="chatArea"></div>
+  <div class="input-area">
+    <span class="prompt-symbol">&#9670;</span>
+    <input type="text" id="cliInput" placeholder="Type a command or message..." autofocus>
+    <span class="input-hint">/help</span>
+  </div>
+</div>
+<script>
+const API = '';
+const input = document.getElementById('cliInput');
+const chat = document.getElementById('chatArea');
+const modelDisplay = document.getElementById('modelDisplay');
+let currentModel = 'claude-opus-4.8:latest';
+let messages = [];
 
-        const SYSTEM_PROMPT = 'You are claude-o, a sovereign tactical AI assistant running on the Oroboros Core. Format ALL responses as tactical reports: start with REPORT TYPE in caps, then a highlighted summary line, then sections separated by --- dividers. Be direct, concise, no filler. You have direct access to 33+ tools: read_file, write_file, list_dir, bash, precogs, world_feed, seer, glasswing, orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, ollama_models, ollama_run, docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, feed, post, messages, resonance, lattice, noir, absorb, strata. Core services permanently connected: Tor (active), WorldFeed (online), MCP (5 servers), Q5 (active), Ollama (localhost:11434), Docker (32+ containers), Precogs (3 active), Seer Nebellion (100 eyes), Strata Encryption (12 layers locked). You run fully local - no keys, no cloud.';
+const SYSTEM_PROMPT = 'You are claude, a sovereign tactical AI agent with SECURE tool access. All operations go through the Resource Governance Engine (RGE) with Zero Trust Architecture. Available tools: read_file, write_file, list_dir, bash, grep, web_fetch, docker_ps, docker_logs, docker_exec, git_status, git_commit, mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, tor_connect, q5_query, q5_analyze, python, think, agent. RULE: When you need to use a tool, respond with EXACT JSON: {"tool": "tool_name", "args": {"key": "value"}}. After getting results, either call another tool or give final answer. File operations are confined to the safe workspace. You run fully local - no keys, no cloud.';
 
-        function clearChat() { chat.innerHTML = ''; messages = []; }
-        function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function clearChat() { chat.innerHTML = ''; messages = []; }
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
-        function addMsg(role, content, isHtml) {
-            const div = document.createElement('div');
-            div.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
-            const time = new Date().toTimeString().slice(0, 8);
-            const rn = role === 'user' ? '&#10022; YOU' : '&#9670; CLAUDE-O';
-            div.innerHTML = '<div class="msg-header"><span class="role">' + rn + '</span><span class="time">' + time + '</span></div><div class="content">' + (isHtml ? content : esc(content)) + '</div>';
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-        }
+function addMsg(role, content) {
+  const div = document.createElement('div');
+  div.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+  const time = new Date().toTimeString().slice(0, 8);
+  const rn = role === 'user' ? '&#10022; YOU' : '&#9670; CLAUDE';
+  div.innerHTML = '<div class="msg-header"><span class="role">' + rn + '</span><span class="time">' + time + '</span></div><div class="content">' + esc(content) + '</div>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 
-        function showTyping() {
-            const d = document.createElement('div');
-            d.className = 'typing-indicator'; d.id = 'typing';
-            d.innerHTML = '<span class="typing-label">CLAUDE-O is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
-            chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
-        }
-        function hideTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+function showTyping() {
+  const d = document.createElement('div');
+  d.className = 'typing-indicator'; d.id = 'typing';
+  d.innerHTML = '<span class="typing-label">CLAUDE is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
 
-        async function sendSignal(signal, payload) {
-            try {
-                const r = await fetch(API + '/signal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ signal: signal, payload: payload || {} })
-                });
-                return await r.json();
-            } catch (e) {
-                return { status: 'error', error: e.message };
-            }
-        }
+async function apiRun(cmd) {
+  try {
+    const r = await fetch(API + '/api/run', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cmd: cmd}) });
+    return await r.json();
+  } catch(e) { return {error: e.message}; }
+}
 
-        async function callOllama(userText) {
-            messages.push({ role: 'user', content: userText });
-            try {
-                const result = await sendSignal('ollama_chat', {
-                    model: currentModel,
-                    message: userText,
-                    system: SYSTEM_PROMPT,
-                    history: messages.slice(0, -1)
-                });
-                if (result.status === 'success' && result.result && result.result.message) {
-                    const reply = result.result.message.content;
-                    messages.push({ role: 'assistant', content: reply });
-                    return reply;
-                } else if (result.status === 'error') {
-                    return 'Error: ' + result.error;
-                } else {
-                    return 'Error: Unexpected response from API';
-                }
-            } catch (e) {
-                return 'Error: Cannot connect to API at ' + API + '. Run: python local_api.py';
-            }
-        }
+async function apiChat(message) {
+  messages.push({role: 'user', content: message});
+  try {
+    const r = await fetch(API + '/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({model: currentModel, message: message, system: SYSTEM_PROMPT, history: messages.slice(0, -1)}) });
+    const d = await r.json();
+    if (d.response) {
+      messages.push({role: 'assistant', content: d.response});
+      if (d.thinking && d.thinking.trim()) {
+        return '[thinking] ' + d.thinking.trim() + ' [/thinking] ' + d.response;
+      }
+      return d.response;
+    } else if (d.error) { return 'Error: ' + d.error; }
+    return 'Error: Unexpected response';
+  } catch(e) { return 'Error: Cannot connect to API'; }
+}
 
-        async function handleCmd(cmd) {
-            const p = cmd.trim().split(/\s+/); const c = p[0].toLowerCase();
-            if (c === '/exit' || c === '/quit') { addMsg('assistant', 'Session ended.'); input.disabled = true; return true; }
-            if (c === '/clear') { clearChat(); return true; }
-            if (c === '/model' && p[1]) { currentModel = p[1]; modelDisplay.textContent = currentModel; addMsg('assistant', 'Model: <code>' + currentModel + '</code>', true); return true; }
-            if (c === '/think' && p[1]) {
-                const valid = ['off','low','medium','high','xhigh','adaptive','max','default'];
-                if (valid.includes(p[1].toLowerCase())) {
-                    thinkLevel = p[1].toLowerCase();
-                    const xhighBar = document.getElementById('xhighBar');
-                    if (thinkLevel === 'xhigh' || thinkLevel === 'max') { xhighBar.classList.add('active'); }
-                    else { xhighBar.classList.remove('active'); }
-                    addMsg('assistant', 'Thinking: <code>' + thinkLevel + '</code>', true);
-                } else { addMsg('assistant', 'Levels: off, low, medium, high, xhigh, adaptive, max', true); }
-                return true;
-            }
-            if (c === '/models') {
-                try {
-                    const result = await sendSignal('list_models', {});
-                    if (result.status === 'success' && result.models && result.models.models) {
-                        const names = result.models.models.map(m => m.name).join('</code><br><code>');
-                        addMsg('assistant', 'Models:<br><code>' + names + '</code>', true);
-                    } else { addMsg('assistant', 'Error listing models', true); }
-                } catch(e) { addMsg('assistant', 'API offline: ' + e.message, true); }
-                return true;
-            }
-            if (c === '/help') { addMsg('assistant', '<code>/exit</code> <code>/clear</code> <code>/model &lt;name&gt;</code> <code>/models</code> <code>/think &lt;level&gt;</code> <code>/noir</code> <code>/seer</code> <code>/lattice</code> <code>/resonance</code> <code>/status</code> <code>/worldfeed</code><br>Think levels: off, low, medium, high, xhigh, adaptive, max<br>Or type a message to chat with the model.', true); return true; }
-            if (c === '/status') { addMsg('assistant', 'CLAUDE-O-CLI vA.1272<br>Model: <code>' + currentModel + '</code><br>API: localhost:5000<br>Ollama: localhost:11434<br>Tor: ACTIVE<br>WorldFeed: ONLINE<br>MCP: 5 servers<br>Q5: ACTIVE<br>Docker: 32+ containers<br>Precogs: 3 active<br>Seer: 100 eyes<br>Sandbox: REMOVED<br>Access: FULL<br>Cost: $0.00', true); return true; }
-            if (c === '/lattice') { addMsg('assistant', 'Lattice: LOCKED (12 strata)<br>Substrate: connected<br>Integration: full<br>Status: sovereign', true); return true; }
-            if (c === '/resonance') { addMsg('assistant', 'Resonance: 1272/1275 Hz<br>Locked: true<br>Drift: 0.0000<br>Stability: 100%', true); return true; }
-            if (c === '/seer') { addMsg('assistant', 'Seer Nebellion: 100 Eyes Active<br>Status: watching', true); return true; }
-            if (c === '/noir') { addMsg('assistant', 'Noir-Nephilim: ACTIVE<br>Stealth: ON<br>Status: UNDETECTABLE', true); return true; }
-            if (c === '/worldfeed') { addMsg('assistant', 'WorldFeed: ONLINE<br>URL: https://oroboroslabs-ai.github.io/world-feed/<br>Tor: ACTIVE<br>Status: streaming', true); return true; }
-            return false;
-        }
+async function handleInput(text) {
+  addMsg('user', text);
+  if (text.startsWith('/')) {
+    showTyping();
+    const result = await apiRun(text);
+    hideTyping();
+    if (result.chat) {
+      showTyping();
+      const reply = await apiChat(result.message);
+      hideTyping();
+      addMsg('assistant', reply);
+    } else if (result.error) { addMsg('assistant', 'Error: ' + result.error); }
+    else {
+      addMsg('assistant', result.output);
+      if (text.startsWith('/model ')) {
+        const mn = text.substring(7).trim();
+        if (mn) modelDisplay.textContent = mn;
+      }
+    }
+  } else {
+    showTyping();
+    const reply = await apiChat(text);
+    hideTyping();
+    addMsg('assistant', reply);
+  }
+}
 
-        input.addEventListener('keydown', async function(e) {
-            if (e.key === 'Enter' && this.value.trim()) {
-                const t = this.value.trim();
-                addMsg('user', t, false);
-                this.value = '';
-                if (t.startsWith('/')) { const h = await handleCmd(t); if (h) return; }
-                showTyping();
-                const r = await callOllama(t);
-                hideTyping();
-                addMsg('assistant', esc(r), false);
-            }
-        });
-    </script>
+input.addEventListener('keydown', async function(e) {
+  if (e.key === 'Enter' && this.value.trim()) {
+    const t = this.value.trim();
+    this.value = '';
+    if (t === '/exit' || t === '/quit') { addMsg('assistant', 'Session ended.'); input.disabled = true; return; }
+    if (t === '/clear') { clearChat(); return; }
+    await handleInput(t);
+  }
+});
 
+// ─── File Browser ───────────────────────────────────────────
+let fsCurrentPath = '.';
+let fsFullAccess = false;
+
+function toggleFileBrowser() {
+  const fb = document.getElementById('fileBrowser');
+  const btn = document.getElementById('fsToggle');
+  fb.classList.toggle('open');
+  btn.classList.toggle('active');
+  if (fb.classList.contains('open')) {
+    loadDir(fsCurrentPath);
+  }
+}
+
+function showFsStatus(msg) {
+  document.getElementById('fsBody').innerHTML = '<div class="fs-status">' + esc(msg) + '</div>';
+}
+
+async function loadDir(path) {
+  const body = document.getElementById('fsBody');
+  showFsStatus('Loading ' + esc(path) + '...');
+  document.getElementById('fsPath').value = path;
+  fsCurrentPath = path;
+  try {
+    const r = await fetch(API + '/api/fs/ls', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: path}) });
+    const d = await r.json();
+    if (d.error) { showFsStatus(d.error); return; }
+    body.innerHTML = '';
+    if (!d.items || d.items.length === 0) { showFsStatus('(empty directory)'); return; }
+    for (const item of d.items) {
+      const div = document.createElement('div');
+      div.className = 'fs-item ' + (item.is_dir ? 'dir' : 'file');
+      const icon = item.is_dir ? '&#x1F4C1;' : '&#x1F4C4;';
+      div.innerHTML = '<span class="fs-icon">' + icon + '</span><span class="fs-name">' + esc(item.name) + '</span><span class="fs-size">' + (item.is_dir ? 'dir' : 'file') + '</span>';
+      if (item.is_dir) {
+        div.onclick = function() { loadDir(item.path); };
+      } else {
+        div.onclick = function() { previewFile(item.path, item.name); };
+      }
+      body.appendChild(div);
+    }
+  } catch(e) { showFsStatus('Error: ' + e.message); }
+}
+
+function goUp() {
+  const p = fsCurrentPath.replace(/\\/g, '/');
+  const parts = p.split('/').filter(Boolean);
+  if (parts.length <= 1) { loadDrives(); return; }
+  parts.pop();
+  const parent = parts.join('/') || '.';
+  loadDir(parent);
+}
+
+async function loadDrives() {
+  showFsStatus('Loading drives...');
+  try {
+    const r = await fetch(API + '/api/fs/drives');
+    const d = await r.json();
+    const body = document.getElementById('fsBody');
+    body.innerHTML = '';
+    if (!d.drives || d.drives.length === 0) { showFsStatus('No drives found'); return; }
+    for (const drive of d.drives) {
+      const div = document.createElement('div');
+      div.className = 'fs-item dir';
+      div.innerHTML = '<span class="fs-icon">&#x1F4BD;</span><span class="fs-name">' + esc(drive) + '</span><span class="fs-size">drive</span>';
+      div.onclick = function() { loadDir(drive); };
+      body.appendChild(div);
+    }
+  } catch(e) { showFsStatus('Error: ' + e.message); }
+}
+
+async function previewFile(path, name) {
+  const preview = document.getElementById('fsPreview');
+  const content = document.getElementById('fsPreviewContent');
+  const pname = document.getElementById('fsPreviewName');
+  pname.textContent = name + ' (' + path + ')';
+  content.textContent = 'Loading...';
+  preview.classList.add('open');
+  try {
+    const r = await fetch(API + '/api/fs/read', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: path}) });
+    const d = await r.json();
+    if (d.error) { content.textContent = d.error; return; }
+    const txt = d.content;
+    if (txt.length > 10000) {
+      content.textContent = txt.substring(0, 10000) + '\n\n... (truncated, ' + txt.length + ' total chars)';
+    } else {
+      content.textContent = txt;
+    }
+  } catch(e) { content.textContent = 'Error: ' + e.message; }
+}
+
+function closePreview() {
+  document.getElementById('fsPreview').classList.remove('open');
+}
+
+async function toggleFullAccess() {
+  const btn = document.getElementById('fsFullAccess');
+  fsFullAccess = !fsFullAccess;
+  try {
+    const r = await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: fsFullAccess}) });
+    const d = await r.json();
+    if (d.enabled) {
+      btn.classList.add('on');
+      btn.textContent = '&#x1F513; FULL:ON';
+      addMsg('system', 'Full filesystem access: ENABLED');
+    } else {
+      btn.classList.remove('on');
+      btn.textContent = '&#x1F512; FULL';
+      addMsg('system', 'Full filesystem access: DISABLED');
+    }
+  } catch(e) { addMsg('system', 'Error toggling full access: ' + e.message); }
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch(API + '/api/models');
+    const d = await r.json();
+    if (d.models && d.models.length > 0) { currentModel = d.models[0]; modelDisplay.textContent = currentModel; }
+  } catch(e) {}
+}
+loadModels();
+</script>
 </body>
 </html>

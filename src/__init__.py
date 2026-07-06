@@ -5,7 +5,7 @@ __version__ = "1.0.0"
 
 
 def main():
-    """Entry point for the claude-o console command."""
+    """Entry point for the claude console command."""
     import sys
     import os
     pkg_dir = os.path.dirname(os.path.abspath(__file__))

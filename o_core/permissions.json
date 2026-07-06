@@ -1,0 +1,33 @@
+{
+  "default": "ask",
+  "tools": {
+    "read_file": "allowed",
+    "list_dir": "allowed",
+    "ollama_models": "allowed",
+    "ollama_run": "allowed",
+    "oroboros_status": "allowed",
+    "oroboros_resonance": "allowed",
+    "oroboros_lattice": "allowed",
+    "oroboros_seer": "allowed",
+    "oroboros_noir": "allowed",
+    "worldfeed": "allowed",
+    "precog": "allowed",
+    "think": "allowed",
+    "mcp_list": "allowed",
+    "mcp_call": "allowed",
+    "web_fetch": "allowed",
+    "write_file": "ask",
+    "bash": "ask",
+    "python": "ask",
+    "docker_ps": "allowed",
+    "docker_logs": "allowed",
+    "docker_exec": "ask",
+    "git_status": "allowed",
+    "git_commit": "ask",
+    "delete_file": "denied",
+    "tor_connect": "denied",
+    "tor_disconnect": "denied",
+    "full_access": "allowed",
+    "list_drives": "allowed"
+  }
+}
