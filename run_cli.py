@@ -861,7 +861,7 @@ def index():
         html = GUI_HTML.read_text(encoding="utf-8")
         html = html.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
         try:
-            from claude_o_cli.braille_art import render_welcome_html
+            from claude_o_cli.welcome_scene import render_welcome_html
             html = html.replace("__DIGITAL_WELCOME__", render_welcome_html())
         except Exception:
             html = html.replace("__DIGITAL_WELCOME__", "")
