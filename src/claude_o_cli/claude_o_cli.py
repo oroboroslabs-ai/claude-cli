@@ -22,6 +22,7 @@ from claude_o_cli.oroboros_core import (
     load_data, save_data, DATA_FILE
 )
 from claude_o_cli.llm_adapter import llm_adapter
+from claude_o_cli.oroboros_skills import SkillManager
 from claude_o_cli.glass_terminal import GlassTerminal, COMMANDS
 
 # ============================================================
