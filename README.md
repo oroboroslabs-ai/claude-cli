@@ -34,16 +34,20 @@ pip install -e .
 claude-cli
 ```
 
+**Windows (recommended):**
+```powershell
+cd Q:\oroboros-core\claude-o-cli   # or your clone path
+.\install-windows.ps1
+```
+Then **open a new PowerShell window** and run `claude-cli`.
+
 Open **http://127.0.0.1:5000** — the glass terminal (Chat · Files · MCP · Agent).
 
 **Windows shortcut (no pip required):**
 ```bat
 Q:\oroboros-core\claude-o-cli\start_claude_cli.bat
 ```
-Or:
-```bat
-claude-cli.bat
-```
+Or double-click `claude-cli.bat` in the repo folder.
 
 ## Install
 
