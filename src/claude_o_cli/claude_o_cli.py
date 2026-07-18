@@ -858,17 +858,16 @@ class ClaudeOCLI:
                 print("Run: claude-cli --help")
 
 
-def main():
-    """Entry point for the claude-cli command — launches the hardened Oroboros glass server."""
-    import sys, os
-    # Change to the project root so relative imports work
+def _project_root() -> str:
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(os.path.dirname(pkg_dir))
     os.chdir(root_dir)
     if root_dir not in sys.path:
         sys.path.insert(0, root_dir)
-    # Launch the hardened server
-    from run_cli import app
+    return root_dir
+
+
+def _print_glass_banner():
     print()
     print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print("  \u2551                                                         \u2551")
@@ -878,7 +877,94 @@ def main():
     print("  \u2551                                                         \u2551")
     print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print()
-    print(f"  GUI:     http://127.0.0.1:5000")
-    print(f"  Status:  HARDENED \u2014 ZTA \u2014 RGE \u2014 Audit Logging")
+    print("  GUI:     http://127.0.0.1:5000")
+    print("  Status:  HARDENED \u2014 ZTA \u2014 RGE \u2014 Audit Logging")
     print()
-    app.run(host='127.0.0.1', port=5000, debug=False)
+
+
+def _wait_for_glass_server(timeout_s: float = 15.0) -> bool:
+    import urllib.error
+    import urllib.request
+
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            urllib.request.urlopen("http://127.0.0.1:5000/", timeout=0.5)
+            return True
+        except (urllib.error.URLError, TimeoutError, OSError):
+            time.sleep(0.2)
+    return False
+
+
+def _start_glass_server_background() -> bool:
+    """Start the glass UI server on port 5000 in a daemon thread."""
+    import threading
+
+    try:
+        from run_cli import app
+    except ImportError as e:
+        print(f"  [X] Could not start glass UI: {e}")
+        return False
+
+    def _run():
+        app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+
+    threading.Thread(target=_run, daemon=True, name="claude-cli-glass").start()
+    if _wait_for_glass_server():
+        print("  [OK] Glass UI ready at http://127.0.0.1:5000")
+        return True
+    print("  [!] Glass UI is still starting (terminal chat will continue)")
+    return False
+
+
+def _run_glass_server_blocking():
+    """Run only the glass UI server (blocks until Ctrl+C)."""
+    from run_cli import app
+
+    _print_glass_banner()
+    app.run(host="127.0.0.1", port=5000, debug=False)
+
+
+_SERVERLESS_COMMANDS = {
+    "--help", "help", "--version", "version", "status", "feed", "post",
+    "messages", "message", "seer", "age", "resonance", "lattice",
+    "tools", "skills", "tool", "serve", "ask", "models", "scan", "noir",
+    "absorb", "strata",
+}
+
+
+def _wants_interactive_session(argv: List[str]) -> bool:
+    if not argv:
+        return True
+    if argv[0] == "chat":
+        return True
+    return False
+
+
+def main():
+    """Entry point for claude-cli — glass UI + terminal coding chat."""
+    argv = sys.argv[1:]
+    ui_only = "--ui-only" in argv
+    argv = [a for a in argv if a != "--ui-only"]
+
+    _project_root()
+
+    if ui_only:
+        _run_glass_server_blocking()
+        return
+
+    if _wants_interactive_session(argv):
+        _print_glass_banner()
+        _start_glass_server_background()
+        print("  Terminal chat below (coding use). Glass UI runs in background.")
+        print("  Use --ui-only to run the server without terminal chat.")
+        print()
+        ClaudeOCLI().run(argv)
+        return
+
+    cmd = argv[0] if argv else ""
+    if cmd in _SERVERLESS_COMMANDS or cmd.startswith("--"):
+        ClaudeOCLI().run(argv)
+        return
+
+    ClaudeOCLI().run(argv)

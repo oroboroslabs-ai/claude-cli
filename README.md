@@ -62,13 +62,21 @@ This registers the **`claude-cli`** command (not `claude`, to avoid conflicting 
 
 ## Usage
 
-### Start the glass terminal
+### Start the glass terminal + coding chat
 
 ```bash
 claude-cli
 ```
 
-Server listens on **http://127.0.0.1:5000**. Keep the terminal open while using the UI.
+This starts **both**:
+1. **Glass UI** at http://127.0.0.1:5000 (background)
+2. **Terminal chat** in your shell for coding (Ollama, tools, `/model`, etc.)
+
+Server only (no terminal chat):
+
+```bash
+claude-cli --ui-only
+```
 
 ### In the glass UI (chat bar)
 

@@ -1,5 +1,5 @@
 @echo off
 REM Claude CLI (Oroboros) — NOT Anthropic Claude Code
-REM Glass UI: http://127.0.0.1:5000
+REM Glass UI + terminal chat: claude-cli  |  UI only: claude-cli --ui-only
 cd /d "%~dp0"
-python run_cli.py %*
+python -m claude_o_cli.claude_o_cli %*
