@@ -1,13 +1,23 @@
-"""Glass-styled terminal UI — matches Claude CLI HTML design."""
+"""Glass-styled terminal UI — digital xxoo interface matching Claude CLI HTML."""
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.theme import Theme
+
+from claude_o_cli.digital_art import (
+    COMMANDS,
+    chips_line,
+    header_block,
+    model_bar,
+    security_bar,
+    tabs_line,
+    watermark_block,
+    welcome_banner_lines,
+)
 
 GLASS_THEME = Theme({
     "cyan": "#00ffcc",
@@ -19,14 +29,9 @@ GLASS_THEME = Theme({
     "white": "#ffffff",
 })
 
-COMMANDS = (
-    "/exit", "/clear", "/model <name>", "/models", "/help", "/status",
-    "/tools", "/scan", "/noir", "/worldfeed", "/seer",
-)
-
 
 class GlassTerminal:
-    """Terminal renderer aligned with the glass HTML UI."""
+    """Terminal renderer — digital xxoo welcome + glass chrome."""
 
     def __init__(self, model: str, ollama_url: str = "http://localhost:11434"):
         self.console = Console(theme=GLASS_THEME, highlight=False, soft_wrap=True)
@@ -34,73 +39,44 @@ class GlassTerminal:
         host = ollama_url.replace("https://", "").replace("http://", "")
         self.ollama_host = host
         self._streaming = False
+        self._watermark_printed = False
 
     @staticmethod
     def _time() -> str:
         return datetime.now().strftime("%H:%M:%S")
 
     def render_startup(self):
-        header = Text()
-        header.append("◆ ", style="orange")
-        header.append("CLAUDE-CLI", style="bold orange")
-        header.append("  vA.1272", style="warm_grey")
-        header.append("     ● ", style="green")
-        header.append("Connected", style="bold green")
-        header.append("     ● ", style="cyan")
-        header.append("Model: ", style="warm_grey")
-        header.append("Local", style="bold cyan")
-        header.append("     ● ", style="orange")
-        header.append("Tools: ", style="warm_grey")
-        header.append("Ready", style="bold orange")
-        header.append("     Anthropic × OROBOROS", style="gold")
+        # Claude Code-style digital welcome (xxoo block art)
+        for line in welcome_banner_lines():
+            self.console.print(line)
 
-        model_line = Text()
-        model_line.append("Model: ", style="warm_grey")
-        model_line.append(self.model, style="bold cyan")
-        model_line.append(f"     {self.ollama_host}", style="dim warm_grey")
-        model_line.append("     ZTA HARDENED", style="bold gold")
+        self.console.print()
+        for line in header_block():
+            self.console.print(f"  {line}")
+        self.console.print()
+        self.console.print(f"  {model_bar(self.model, self.ollama_host)}")
+        self.console.print(f"  {security_bar()}")
+        self.console.print()
+        self.console.print(f"  {tabs_line('Chat')}")
+        self.console.print()
+        self.console.print(f"  {chips_line()}")
+        self.console.print()
 
-        security = Text()
-        security.append("🛡 Path Whitelist: ", style="warm_grey")
-        security.append("ACTIVE", style="bold green")
-        security.append("   🛡 Rate Limit: ", style="warm_grey")
-        security.append("60/min", style="bold green")
-        security.append("   ⚠ Shell: ", style="warm_grey")
-        security.append("ACTIVE", style="bold gold")
-        security.append("   🚫 Delete: ", style="warm_grey")
-        security.append("DENIED", style="bold orange")
-        security.append("   🛡 MCP: ", style="warm_grey")
-        security.append("REAL", style="bold green")
-
-        chips = Text()
-        for i, cmd in enumerate(COMMANDS):
-            if i:
-                chips.append("  ")
-            if " " in cmd:
-                base, arg = cmd.split(" ", 1)
-                chips.append(base, style="bold white")
-                chips.append(f" {arg}", style="orange")
-            else:
-                chips.append(cmd, style="bold white")
-
+        # Faint mascot watermark behind chat (xxoo)
+        wm = watermark_block()
         body = Text()
-        body.append_text(header)
-        body.append("\n")
-        body.append_text(model_line)
-        body.append("\n")
-        body.append_text(security)
-        body.append("\n")
-        body.append_text(chips)
-
+        for row in wm:
+            body.append(row + "\n")
         self.console.print(
             Panel(
                 body,
-                border_style="cyan",
-                padding=(1, 2),
-                title="[orange]◆[/] [bold orange]Claude CLI[/]",
-                subtitle="[warm_grey]Sovereign · local · $0.00[/]",
+                border_style="dim orange",
+                padding=(0, 2),
+                title="[dim orange]digital · xxoo[/]",
+                subtitle="[dim warm_grey]chat below[/]",
             )
         )
+        self._watermark_printed = True
         self.console.print()
 
     def error(self, message: str):
@@ -125,6 +101,7 @@ class GlassTerminal:
         line.append("CLAUDE", style="bold cyan")
         line.append(f"  {self._time()}", style="dim warm_grey")
         self.console.print(line)
+        self.console.print("  [italic orange]⟳ thinking...[/]")
         self.console.print("  ", end="")
 
     def assistant_token(self, token: str):

@@ -836,14 +836,17 @@ def api_audit():
 # ============================================================
 # STATIC ROUTES
 # ============================================================
-LOGO_PATH = Path(__file__).parent / "glass-ui" / "clawd.png"
+LOGO_PATH = Path(__file__).parent / "glass-ui" / "claude-mascot.png"
+LEGACY_LOGO_PATH = Path(__file__).parent / "glass-ui" / "clawd.png"
 
 @app.route('/clawd.png')
+@app.route('/claude-mascot.png')
 def serve_logo():
-    """Serve the logo image behind the glass UI."""
-    if LOGO_PATH.exists():
+    """Serve the Claude mascot for the glass UI."""
+    path = LOGO_PATH if LOGO_PATH.exists() else LEGACY_LOGO_PATH
+    if path.exists():
         from flask import send_file
-        return send_file(str(LOGO_PATH), mimetype='image/png')
+        return send_file(str(path), mimetype='image/png')
     return jsonify({'error': 'Logo not found'}), 404
 
 # ============================================================

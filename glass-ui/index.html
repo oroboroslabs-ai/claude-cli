@@ -61,7 +61,9 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 .command-bar .cmd:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
 .command-bar .cmd .key{color:#fff}
 .command-bar .cmd .gold{color:var(--orange)}
-.chat-area{display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
+.chat-wrap{position:relative;min-height:300px;margin-bottom:8px}
+.chat-watermark{position:absolute;inset:0;pointer-events:none;z-index:0;background:url('claude-mascot.png') center 55%/min(320px,62%) no-repeat;opacity:0.13;filter:drop-shadow(0 0 40px rgba(217,119,87,0.25))}
+.chat-area{position:relative;z-index:1;display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
 .chat-area::-webkit-scrollbar{width:4px}
 .chat-area::-webkit-scrollbar-track{background:transparent}
 .chat-area::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
@@ -86,6 +88,13 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 .input-area input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:var(--font-mono);font-size:14px;padding:4px 0}
 .input-area input::placeholder{color:var(--warm-grey);opacity:0.25}
 .input-area .input-hint{font-size:11px;color:var(--warm-grey);opacity:0.2}
+.digital-welcome{font-family:var(--font-mono);font-size:11px;line-height:1.35;color:var(--warm-grey);white-space:pre;overflow-x:auto;padding:12px 14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.35)}
+.digital-welcome .o{color:var(--orange)}
+.digital-welcome .m{color:var(--warm-white);opacity:0.85}
+.digital-welcome .s{color:var(--warm-white)}
+.digital-welcome .c{color:var(--warm-grey);opacity:0.45}
+.digital-welcome .g{color:var(--warm-grey)}
+.digital-welcome-title{color:var(--orange);font-family:var(--font-serif);font-size:1.05rem;margin-bottom:8px}
 .clear-btn{font-family:var(--font-mono);font-size:11px;color:var(--orange);padding:4px 12px;border-radius:8px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2);cursor:pointer;transition:all 0.2s}
 .clear-btn:hover{background:rgba(217,119,87,0.15);border-color:var(--orange)}
 
@@ -131,15 +140,15 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 </head>
 <body>
 <div class="liquid-bg"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
-<div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
+<div class="center-logo"><img src="claude-mascot.png" alt="Claude mascot" /></div>
 <div class="terminal">
   <div class="terminal-header">
     <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
     <div class="status">
-      <span><span class="dot green"></span> <strong style="color:#00ff88;">Connected</strong></span>
-      <span><span class="dot cyan"></span> Model: <strong style="color:var(--cyan);">Local</strong></span>
-      <span><span class="dot orange"></span> Tools: <strong style="color:var(--orange);">Ready</strong></span>
-      <span class="sig">Anthropic &times; OROBOROS</span>
+      <span><span class="dot green"></span> <strong style="color:#00ff88;">ZTA: ACTIVE</strong></span>
+      <span><span class="dot cyan"></span> <strong style="color:var(--cyan);">RGE: GOVERNING</strong></span>
+      <span><span class="dot orange"></span> <strong style="color:var(--orange);">Audit: LOGGING</strong></span>
+      <span class="sig">A\ 1272 Hz · N| 1275 Hz</span>
     </div>
   </div>
   <div class="model-bar">
@@ -149,10 +158,11 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
   </div>
   <div class="security-bar" style="margin-bottom:8px">
-    <span class="shield">&#x1F6E1; Sandbox: <strong>Active</strong></span>
-    <span class="shield">&#x1F6E1; Shell: <strong>Enabled</strong></span>
-    <span class="shield">&#x1F6E1; MCP: <strong>Connected</strong></span>
-    <span class="block">&#x1F6AB; Delete: <strong>Protected</strong></span>
+    <span class="shield">Path Whitelist: <strong>ACTIVE</strong></span>
+    <span class="shield">Rate Limit: <strong>60/min</strong></span>
+    <span class="warn">Shell: <strong>ACTIVE</strong></span>
+    <span class="block">Delete: <strong>DENIED</strong></span>
+    <span class="shield">MCP: <strong>REAL</strong></span>
     <button class="fs-toggle" id="fsToggle" onclick="toggleFileBrowser()">&#x1F4C1; FILES</button>
   </div>
 
@@ -178,6 +188,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     </div>
   </div>
 
+  <div class="digital-welcome-title">Welcome to Claude CLI vA.1272</div>
+  <pre class="digital-welcome" id="digitalWelcome" aria-hidden="true"></pre>
   <div class="command-bar">
     <span class="cmd"><span class="key">/exit</span></span>
     <span class="cmd"><span class="key">/clear</span></span>
@@ -202,7 +214,10 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     <span class="cmd"><span class="key">/noir</span></span>
   </div>
   <div class="thinking-bar" id="thinkingBar" style="display:none;padding:4px 0;font-size:11px;color:#D97757;font-style:italic">⟳ Claude is working...</div>
-  <div class="chat-area" id="chatArea"></div>
+  <div class="chat-wrap">
+    <div class="chat-watermark" aria-hidden="true"></div>
+    <div class="chat-area" id="chatArea"></div>
+  </div>
   <div class="input-area">
     <span class="prompt-symbol">&#9670;</span>
     <input type="text" id="cliInput" placeholder="Type a command or message..." autofocus>
@@ -211,6 +226,33 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 </div>
 <script>
 const API = '';
+const DIGITAL_DOT = '.'.repeat(72);
+const DIGITAL_SCENE = [
+  ".  *         ooooooo                              **    *          .",
+  ".                  XXXXXX                              MMMMMMM       .",
+  ".                 XXXXXXXX                            MMMMMMMMM     .",
+  ".    *            XXXXXXXX         ooo               MMMMMMMMM     .",
+  ".                 XX@XX@XXX              *             MMMMMMM      .",
+  ".                  XXXXXXXX                              MMMMM       .",
+  ".        ooooo       XX  XX                                MMM        .",
+  ".                     XX  XX                                         .",
+  ".  ----------------------------------------------------------------  ."
+];
+function paintDigital(line) {
+  return line
+    .replace(/X/g, '<span class="o">X</span>')
+    .replace(/@/g, '<span class="c">@</span>')
+    .replace(/M/g, '<span class="m">M</span>')
+    .replace(/\*/g, '<span class="s">*</span>')
+    .replace(/o/g, '<span class="c">o</span>')
+    .replace(/-/g, '<span class="g">-</span>');
+}
+(function renderDigitalWelcome() {
+  const el = document.getElementById('digitalWelcome');
+  if (!el) return;
+  el.innerHTML = DIGITAL_DOT + '\n' + DIGITAL_SCENE.map(paintDigital).join('\n') + '\n' + DIGITAL_DOT;
+})();
+
 const input = document.getElementById('cliInput');
 const chat = document.getElementById('chatArea');
 const modelDisplay = document.getElementById('modelDisplay');
