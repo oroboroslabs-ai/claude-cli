@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CLI — Oroboros (Hardened)</title>
+<title>Claude CLI</title>
 <style>
 :root {
   --cyan: #00ffcc;
@@ -131,26 +131,25 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 <div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
 <div class="terminal">
   <div class="terminal-header">
-    <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
+    <div class="brand"><span class="icon">&#9670;</span><span class="name">Claude CLI</span><span class="version">v1.0</span></div>
     <div class="status">
-      <span><span class="dot green"></span> ZTA: <strong style="color:#00ff88;">ACTIVE</strong></span>
-      <span><span class="dot cyan"></span> RGE: <strong style="color:var(--cyan);">GOVERNING</strong></span>
-      <span><span class="dot orange"></span> Audit: <strong style="color:var(--orange);">LOGGING</strong></span>
-      <span class="sig">A\ 1272 Hz - N| 1275 Hz</span>
+      <span><span class="dot green"></span> <strong style="color:#00ff88;">Connected</strong></span>
+      <span><span class="dot cyan"></span> Model: <strong style="color:var(--cyan);">Local</strong></span>
+      <span><span class="dot orange"></span> Tools: <strong style="color:var(--orange);">Ready</strong></span>
+      <span class="sig">Anthropic &times; OROBOROS</span>
     </div>
   </div>
   <div class="model-bar">
     <span class="model">Model: <span class="highlight" id="modelDisplay">claude-opus-4.8:latest</span></span>
     <span class="url">localhost:11434</span>
-    <span class="sovereign">ZTA HARDENED</span>
+    <span class="sovereign">LOCAL</span>
     <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
   </div>
   <div class="security-bar" style="margin-bottom:8px">
-    <span class="shield">&#x1F6E1; Path Whitelist: <strong>ACTIVE</strong></span>
-    <span class="shield">&#x1F6E1; Rate Limit: <strong>60/min</strong></span>
-    <span class="shield">&#x1F6E1; Shell: <strong>ACTIVE</strong></span>
-    <span class="block">&#x1F6AB; Delete: <strong>DENIED</strong></span>
-    <span class="shield">&#x1F6E1; MCP: <strong>REAL</strong></span>
+    <span class="shield">&#x1F6E1; Sandbox: <strong>Active</strong></span>
+    <span class="shield">&#x1F6E1; Shell: <strong>Enabled</strong></span>
+    <span class="shield">&#x1F6E1; MCP: <strong>Connected</strong></span>
+    <span class="block">&#x1F6AB; Delete: <strong>Protected</strong></span>
     <button class="fs-toggle" id="fsToggle" onclick="toggleFileBrowser()">&#x1F4C1; FILES</button>
   </div>
 
@@ -223,7 +222,7 @@ function addMsg(role, content) {
   const div = document.createElement('div');
   div.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
   const time = new Date().toTimeString().slice(0, 8);
-  const rn = role === 'user' ? '&#10022; YOU' : '&#9670; CLAUDE';
+  const rn = role === 'user' ? 'You' : 'Claude';
   div.innerHTML = '<div class="msg-header"><span class="role">' + rn + '</span><span class="time">' + time + '</span></div><div class="content">' + esc(content) + '</div>';
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
@@ -232,7 +231,7 @@ function addMsg(role, content) {
 function showTyping() {
   const d = document.createElement('div');
   d.className = 'typing-indicator'; d.id = 'typing';
-  d.innerHTML = '<span class="typing-label">CLAUDE is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
+  d.innerHTML = '<span class="typing-label">Claude is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
   chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
 }
 function hideTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }

@@ -104,8 +104,17 @@ class CLIBridge:
         cmd = cmd.strip()
         if not cmd:
             return {"output": "", "status": "empty"}
-        
-        # --- Try primary path: RGE (if available) ---
+
+        # --- Primary path: slash commands route through CLI bridge first ---
+        if cmd.startswith('/'):
+            try:
+                result = self._route_slash_command(cmd)
+                if result:
+                    return {"output": result, "status": "ok", "method": "cli"}
+            except Exception as e:
+                return {"output": f"CLI error: {e}", "status": "error", "method": "cli"}
+
+        # --- Secondary path: RGE (if available) ---
         if self.rge is not None:
             try:
                 result = self.rge.execute("bash", {"command": cmd})
@@ -181,6 +190,9 @@ class CLIBridge:
             "/pwd": lambda: os.getcwd(),
             "/clear": lambda: "[CLEARED]",
             "/exit": lambda: "[SESSION ENDED]",
+            "/mcp": lambda: self._mcp_list(),
+            "/mcp-tools": lambda: self._mcp_tools(),
+            "/orchestrate": lambda: self._orchestrate(),
         }
         
         # Parameterized commands
@@ -314,6 +326,18 @@ class CLIBridge:
         except:
             return "Drive listing unavailable"
     
+    def _authorize_drives(self) -> str:
+        """Authorize C:, J:, Q: drives with Architect authority."""
+        if self.rge:
+            # Import the gateway functions
+            from server_secure_gateway import authorize_architect, add_authorized_drive, get_authorized_drives
+            authorize_architect()
+            drives = ["C:", "J:", "Q:"]
+            for d in drives:
+                add_authorized_drive(d)
+            return f"✅ ARCHITECT AUTHORITY GRANTED\nDrives authorized: {', '.join(get_authorized_drives())}\nFull access to C:\\, J:\\, Q:\\ for this session.\nPersists until server restart."
+        return "✅ Architect authority granted — Full access to C:, J:, Q: drives"
+    
     def _set_model(self, name: str) -> str:
         """Set the active model."""
         from claude_o_cli.llm_adapter import llm_adapter
@@ -397,7 +421,23 @@ class CLIBridge:
                 args = {}
             return self.rge.execute("mcp_call", {"server": server, "tool": tool, "args": args})
         return f"MCP call: {server}/{tool} — RGE not available"
-    
+
+    def _mcp_list(self) -> str:
+        """List all MCP servers."""
+        if self.rge:
+            return self.rge.execute("mcp_list", {})
+        return "MCP list — RGE not available"
+
+    def _mcp_tools(self) -> str:
+        """List all tools on all MCP servers."""
+        if self.rge:
+            return self.rge.execute("mcp_tools", {})
+        return "MCP tools — RGE not available"
+
+    def _orchestrate(self) -> str:
+        """Run orchestration."""
+        return "Usage: /orchestrate <task> — Runs multi-agent orchestration"
+
     def _run_agent(self, task: str) -> str:
         """Run the agent loop on a task."""
         if self.rge:

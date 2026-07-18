@@ -45,6 +45,13 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 FULL_ACCESS_ENABLED = True
 FULL_ACCESS_LOCK = threading.Lock()
 
+# AUTHORIZED_DRIVES — Architect-approved drives for this session
+# Set via /authorize command. Persists until server restart.
+AUTHORIZED_DRIVES = []
+AUTHORIZED_DRIVES_LOCK = threading.Lock()
+ARCHITECT_AUTHORIZED = False
+ARCHITECT_AUTHORIZED_LOCK = threading.Lock()
+
 def set_full_access(enabled: bool):
     """Toggle full filesystem access mode."""
     global FULL_ACCESS_ENABLED
@@ -56,6 +63,45 @@ def set_full_access(enabled: bool):
 def is_full_access() -> bool:
     with FULL_ACCESS_LOCK:
         return FULL_ACCESS_ENABLED
+
+def authorize_architect():
+    """Grant architect-level authority for the session."""
+    global ARCHITECT_AUTHORIZED
+    with ARCHITECT_AUTHORIZED_LOCK:
+        ARCHITECT_AUTHORIZED = True
+        audit("architect_authorization", "Architect authority granted for session", "ok")
+    return ARCHITECT_AUTHORIZED
+
+def is_architect_authorized() -> bool:
+    with ARCHITECT_AUTHORIZED_LOCK:
+        return ARCHITECT_AUTHORIZED
+
+def add_authorized_drive(drive: str):
+    """Add a drive to the authorized list for this session."""
+    global AUTHORIZED_DRIVES
+    drive = drive.upper().rstrip("\\").rstrip("/")
+    if not drive.endswith(":"):
+        drive = drive[0] + ":"
+    with AUTHORIZED_DRIVES_LOCK:
+        if drive not in AUTHORIZED_DRIVES:
+            AUTHORIZED_DRIVES.append(drive)
+            audit("drive_authorized", f"Drive {drive} authorized by Architect", "ok")
+    return AUTHORIZED_DRIVES
+
+def is_drive_authorized(path: str) -> bool:
+    """Check if a path is on an authorized drive."""
+    if not path:
+        return False
+    path = path.upper()
+    with AUTHORIZED_DRIVES_LOCK:
+        for drive in AUTHORIZED_DRIVES:
+            if path.startswith(drive.upper()):
+                return True
+    return False
+
+def get_authorized_drives() -> list:
+    with AUTHORIZED_DRIVES_LOCK:
+        return list(AUTHORIZED_DRIVES)
 
 # Resource limits — set to generous values (effectively unlimited)
 RESOURCE_LIMITS = {
@@ -146,22 +192,31 @@ _rate_limiter = RateLimiter(RESOURCE_LIMITS["RATE_LIMIT_PER_MIN"])
 
 def _check_path_safety(target_path: str) -> bool:
     """
-    Validates that a path is within the SAFE_WORKSPACE.
-    This is the PRIMARY security gate for all file operations.
-    Returns True only if the resolved path starts with SAFE_WORKSPACE,
-    OR if FULL_ACCESS_ENABLED is True (allows any path).
+    Validates that a path is accessible.
+    Returns True if:
+      1. FULL_ACCESS_ENABLED is True (global bypass), OR
+      2. The path is on an AUTHORIZED_DRIVE (Architect-approved), OR
+      3. The path is within SAFE_WORKSPACE or PROJECT_ROOT
     """
     if not target_path or not isinstance(target_path, str):
         return False
-    # Full access mode bypasses path restrictions
+    # Full access mode bypasses all path restrictions
     if is_full_access():
+        return True
+    # Check if path is on an authorized drive
+    if is_drive_authorized(target_path):
         return True
     try:
         full = Path(target_path).resolve()
         safe = SAFE_WORKSPACE.resolve()
-        return str(full).startswith(str(safe))
+        if str(full).startswith(str(safe)):
+            return True
+        root = PROJECT_ROOT.resolve()
+        if str(full).startswith(str(root)):
+            return True
     except (ValueError, OSError, RuntimeError):
-        return False
+        pass
+    return False
 
 def _sanitize_filename(name: str) -> str:
     """Remove path traversal and dangerous characters from a filename."""
@@ -418,7 +473,7 @@ class MCPClient:
         self._discover_servers()
 
     def _discover_servers(self):
-        """Discover MCP servers from config and environment."""
+        """Discover MCP servers from config, Docker, and environment."""
         # Check for MCP config file
         mcp_config_paths = [
             Path("J:/oroboros-mcp-fixed.json"),
@@ -435,11 +490,43 @@ class MCPClient:
                             "command": cfg.get("command", ""),
                             "args": cfg.get("args", []),
                             "url": cfg.get("url", ""),
-                            "type": "stdio" if cfg.get("command") else "http",
+                            "env": cfg.get("env", {}),
+                            "type": "http" if cfg.get("url") else ("stdio" if cfg.get("command") else "unknown"),
                             "status": "configured"
                         }
                 except Exception:
                     pass
+
+        # Discover running Docker MCP containers
+        try:
+            import subprocess as _sp
+            result = _sp.run(
+                ["docker", "ps", "--format", "{{.Names}}\t{{.Ports}}"],
+                capture_output=True, text=True, timeout=10
+            )
+            for line in result.stdout.strip().split("\n"):
+                if not line.strip():
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 2:
+                    continue
+                name = parts[0].strip()
+                ports = parts[1].strip()
+                # Extract host port from port mapping
+                import re as _re
+                port_match = _re.search(r"0\.0\.0\.0:(\d+)", ports)
+                if port_match:
+                    port = port_match.group(1)
+                    url = f"http://localhost:{port}/mcp"
+                    if name not in self.servers:
+                        self.servers[name] = {
+                            "name": name,
+                            "type": "http",
+                            "url": url,
+                            "status": "running"
+                        }
+        except Exception:
+            pass
 
         # Add known local MCP servers
         known = {
@@ -461,6 +548,50 @@ class MCPClient:
                 "status": cfg.get("status", "unknown"),
             })
         return result
+
+    def list_tools(self, server_name: str) -> List[Dict]:
+        """List all tools available on an MCP server."""
+        server = self.servers.get(server_name)
+        if not server:
+            return [{"error": f"MCP server '{server_name}' not found"}]
+
+        timeout = RESOURCE_LIMITS["MCP_TIMEOUT_SEC"]
+        request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list",
+            "params": {}
+        }
+
+        try:
+            if server.get("type") == "http":
+                url = server.get("url", "")
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(request).encode(),
+                    headers={"Content-Type": "application/json"},
+                    method="POST"
+                )
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    response = json.loads(resp.read().decode())
+                    return response.get("result", {}).get("tools", [])
+            elif server.get("type") == "stdio":
+                command = server.get("command", "")
+                cmd_args = server.get("args", [])
+                if not command:
+                    return [{"error": "No command configured"}]
+                full_cmd = [command] + cmd_args
+                proc = subprocess.run(
+                    full_cmd,
+                    input=json.dumps(request).encode(),
+                    capture_output=True, text=False, timeout=timeout
+                )
+                if proc.returncode == 0 and proc.stdout:
+                    response = json.loads(proc.stdout.decode("utf-8", errors="replace"))
+                    return response.get("result", {}).get("tools", [])
+        except Exception as e:
+            return [{"error": str(e)}]
+        return []
 
     def call_tool(self, server_name: str, tool_name: str, args: Dict) -> Dict:
         """
@@ -965,9 +1096,21 @@ class ResourceGovernanceEngine:
                 return "No MCP servers configured."
             lines = ["MCP Servers:"]
             for s in servers:
-                status_icon = "🟢" if s["status"] == "configured" else "🔴"
+                status_icon = "🟢" if s["status"] in ("configured", "running") else "🔴"
                 lines.append(f"  {status_icon} {s['name']} ({s['type']}) — {s['status']}")
             return "\n".join(lines)
+
+        elif name == "mcp_tools":
+            server = args.get("server", "")
+            if not server:
+                servers = self.mcp.list_servers()
+                result = {}
+                for s in servers:
+                    tools = self.mcp.list_tools(s["name"])
+                    result[s["name"]] = tools
+                return json.dumps(result, indent=2)
+            tools = self.mcp.list_tools(server)
+            return json.dumps(tools, indent=2)
 
         elif name == "mcp_call":
             server = args.get("server", "")
@@ -975,6 +1118,16 @@ class ResourceGovernanceEngine:
             tool_args = args.get("args", {})
             result = self.mcp.call_tool(server, tool, tool_args)
             return json.dumps(result, indent=2)
+
+        elif name == "orchestrate":
+            task = args.get("task", "")
+            model = args.get("model", "claude-nebillion:latest")
+            if not task:
+                return "Error: No task provided for orchestration."
+            # Multi-agent orchestration: decompose task, dispatch to MCP servers, aggregate
+            from server_secure_gateway import agent_engine
+            result = agent_engine.run(model, task)
+            return json.dumps(result, indent=2, default=str)
 
         # ===== PYTHON CODE EXEC (Active) =====
         elif name == "python":
@@ -1220,19 +1373,6 @@ class AgentEngine:
             "5. Use 'python' for calculations or data processing\n"
             "6. Be thorough — use multiple tools if needed to fully complete the task\n"
             "7. You have FULL filesystem access — no restrictions\n"
-            "8. You run fully local — no keys, no cloud"
-        )
-            "  agent — Dispatch sub-agents\n\n"
-            "RULES:\n"
-            "1. When you need to use a tool, respond with EXACTLY:\n"
-            '   {"tool": "tool_name", "args": {"key": "value"}}\n'
-            "2. After getting tool results, decide: call another tool OR give final answer\n"
-            "3. When the task is complete, respond with:\n"
-            '   {"final": "your final answer here"}\n'
-            "4. Use the 'think' tool to reason through complex problems step by step\n"
-            "5. Use 'python' for calculations or data processing\n"
-            "6. Be thorough — use multiple tools if needed to fully complete the task\n"
-            "7. All file operations are confined to the safe workspace\n"
             "8. You run fully local — no keys, no cloud"
         )
 
