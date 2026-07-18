@@ -22,7 +22,7 @@ from claude_o_cli.oroboros_core import (
     load_data, save_data, DATA_FILE
 )
 from claude_o_cli.llm_adapter import llm_adapter
-from claude_o_cli.oroboros_skills import SkillManager
+from claude_o_cli.glass_terminal import GlassTerminal, COMMANDS
 
 # ============================================================
 # LOGGING
@@ -330,18 +330,16 @@ class ClaudeOCLI:
         print()
 
     def cmd_chat(self, initial_prompt: str = ""):
-        """Interactive chat with Ollama - like Claude CLI / ollama run."""
+        """Interactive chat with Ollama — glass UI styling in terminal."""
+        ui = GlassTerminal(llm_adapter.ollama_model, llm_adapter.ollama_url)
+
         if not llm_adapter.ollama_available:
-            print("  [X] Ollama is offline. Start it with: ollama serve")
-            print(f"     URL: {llm_adapter.ollama_url}")
+            ui.error("Ollama is offline. Start it with: ollama serve")
+            ui.note(f"URL: {llm_adapter.ollama_url}")
             return
 
-        self._banner()
-        print(f"  Model: {llm_adapter.ollama_model}  |  URL: {llm_adapter.ollama_url}")
-        print(f"  Sovereign mode - no keys, no cloud, fully local.")
-        print(f"  Commands: /exit  /clear  /model <name>  /models  /noir  /help")
-        print("  -----------------------------------------")
-        print()
+        ui.render_startup()
+        ui.note("Glass UI: http://127.0.0.1:5000  ·  Terminal chat active")
 
         messages = [
             {"role": "system", "content": (
@@ -358,69 +356,59 @@ class ClaudeOCLI:
             )}
         ]
 
-        # If initial prompt provided, process it immediately
+        def _reply():
+            ui.assistant_begin()
+            response = llm_adapter._ollama_chat(
+                messages,
+                stream=True,
+                on_token=ui.assistant_token,
+            )
+            ui.assistant_end()
+            return response
+
         if initial_prompt:
             messages.append({"role": "user", "content": initial_prompt})
-            print(f"  you > {initial_prompt}")
-            print()
-            print("  claude > ", end="", flush=True)
-            response = llm_adapter._ollama_chat(messages, stream=True)
+            ui.user_message(initial_prompt)
+            response = _reply()
             messages.append({"role": "assistant", "content": response})
-            print()
 
         while True:
             try:
-                user_input = input("  you > ").strip()
+                user_input = ui.read_prompt()
             except (EOFError, KeyboardInterrupt):
-                print()
                 break
             if not user_input:
                 continue
             if user_input.lower() in ("/exit", "/quit", "/q", "exit", "quit"):
                 break
             if user_input.lower() in ("/clear", "/c"):
-                messages = [messages[0]]  # keep system prompt
-                print("  [context cleared]")
-                print()
+                messages = [messages[0]]
+                ui.note("Context cleared.")
                 continue
             if user_input.lower().startswith("/model "):
                 new_model = user_input[7:].strip()
                 llm_adapter.ollama_model = new_model
-                print(f"  [model switched to: {new_model}]")
-                print()
+                ui.model = new_model
+                ui.note(f"Model switched to: {new_model}")
                 continue
             if user_input.lower() in ("/models", "/m"):
                 models = llm_adapter._ollama_list_models()
                 for m in models:
                     marker = " ← active" if m == llm_adapter.ollama_model else ""
-                    print(f"  [M] {m}{marker}")
-                print()
+                    ui.note(f"{m}{marker}")
                 continue
             if user_input.lower() in ("/help", "/h", "?"):
-                print("  /exit       Quit chat")
-                print("  /clear      Clear conversation")
-                print("  /model <n>  Switch model")
-                print("  /models     List models")
-                print("  /noir       Noir-Nephilim status")
-                print("  /status     System status")
-                print("  /scan       Scan all systems")
-                print()
+                for cmd in COMMANDS:
+                    ui.note(cmd)
                 continue
             if user_input.lower() in ("/noir", "/n"):
                 try:
                     from claude_o_cli.noir_nephilim import NoirNephilim
                     noir = NoirNephilim()
                     status = noir.get_status()
-                    print(f"  [N] Noir-Nephilim - {status['name']}")
-                    print(f"     ID: {status['entity_id']}")
-                    print(f"     Status: {status['status'].upper()} - UNDETECTABLE")
-                    print(f"     Stealth: {'ON' if status['stealth_mode'] else 'OFF'}")
-                    print(f"     Operations: {status['operations']}")
-                    print(f"     Shadow entries: {status['shadow_entries']}")
-                    print()
+                    ui.note(f"Noir-Nephilim — {status['name']} · {status['status'].upper()}")
                 except Exception as e:
-                    print(f"  [noir error: {e}]")
-                    print()
+                    ui.error(f"noir error: {e}")
                 continue
             if user_input.lower() in ("/status", "/s"):
                 self.cmd_status()
@@ -430,15 +418,11 @@ class ClaudeOCLI:
                 continue
 
             messages.append({"role": "user", "content": user_input})
-            print()
-            print("  claude > ", end="", flush=True)
-            response = llm_adapter._ollama_chat(messages, stream=True)
+            ui.user_message(user_input)
+            response = _reply()
             messages.append({"role": "assistant", "content": response})
-            print()
 
-        print()
-        print(f"  {SIGNATURE}")
-        print()
+        ui.farewell(SIGNATURE)
 
     def cmd_models(self):
         """List available Ollama models."""
@@ -898,7 +882,10 @@ def _wait_for_glass_server(timeout_s: float = 15.0) -> bool:
 
 def _start_glass_server_background() -> bool:
     """Start the glass UI server on port 5000 in a daemon thread."""
+    import logging
     import threading
+
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
     try:
         from run_cli import app
@@ -911,9 +898,7 @@ def _start_glass_server_background() -> bool:
 
     threading.Thread(target=_run, daemon=True, name="claude-cli-glass").start()
     if _wait_for_glass_server():
-        print("  [OK] Glass UI ready at http://127.0.0.1:5000")
         return True
-    print("  [!] Glass UI is still starting (terminal chat will continue)")
     return False
 
 
@@ -954,11 +939,7 @@ def main():
         return
 
     if _wants_interactive_session(argv):
-        _print_glass_banner()
         _start_glass_server_background()
-        print("  Terminal chat below (coding use). Glass UI runs in background.")
-        print("  Use --ui-only to run the server without terminal chat.")
-        print()
         ClaudeOCLI().run(argv)
         return
 

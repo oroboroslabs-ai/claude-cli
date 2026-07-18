@@ -84,7 +84,13 @@ class LLMAdapter:
         except Exception as e:
             return f"[OLLAMA ERROR]: {e}"
 
-    def _ollama_chat(self, messages: list, model: Optional[str] = None, stream: bool = True) -> str:
+    def _ollama_chat(
+        self,
+        messages: list,
+        model: Optional[str] = None,
+        stream: bool = True,
+        on_token=None,
+    ) -> str:
         """Chat with Ollama using message history."""
         model = model or self.ollama_model
         payload = json.dumps({
@@ -100,6 +106,12 @@ class LLMAdapter:
             method="POST"
         )
 
+        def _emit(token: str):
+            if on_token:
+                on_token(token)
+            else:
+                print(token, end="", flush=True)
+
         try:
             if stream:
                 full_response = []
@@ -112,13 +124,14 @@ class LLMAdapter:
                             chunk = json.loads(line)
                             token = chunk.get("message", {}).get("content", "")
                             if token:
-                                print(token, end="", flush=True)
+                                _emit(token)
                                 full_response.append(token)
                             if chunk.get("done"):
                                 break
                         except json.JSONDecodeError:
                             continue
-                print()
+                if not on_token:
+                    print()
                 return "".join(full_response)
             else:
                 with urllib.request.urlopen(req, timeout=120) as resp:
