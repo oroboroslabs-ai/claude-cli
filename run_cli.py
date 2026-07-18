@@ -859,7 +859,13 @@ GUI_HTML = GUI_DIR / "index.html"
 def index():
     if GUI_HTML.exists():
         html = GUI_HTML.read_text(encoding="utf-8")
-        return html.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
+        html = html.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
+        try:
+            from claude_o_cli.braille_art import render_welcome_html
+            html = html.replace("__DIGITAL_WELCOME__", render_welcome_html())
+        except Exception:
+            html = html.replace("__DIGITAL_WELCOME__", "")
+        return html
     return "Glass UI not found", 404
 
 # ============================================================

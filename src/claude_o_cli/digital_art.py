@@ -1,53 +1,12 @@
-"""Digital xxoo / block-art for Claude CLI terminal — Claude Code-style welcome."""
+"""Digital terminal chrome — uses braille art from logo PNG (Claude Code method)."""
 from __future__ import annotations
 
 from typing import Iterable, List
 
-# Claude mascot (logo without white outline) — X = body, @ = eye, . = empty
-CLAUDE_MASCOT = [
-    "......XXXXXX......",
-    "...XXXXXXXXXXXX...",
-    "..XXXXXXXXXXXXXX..",
-    "..XXX@XXXX@XXXXX..",
-    "..XXXXXXXXXXXXXX..",
-    "...XX........XX...",
-    "...XX........XX...",
-    "...XX........XX...",
-    "...XX........XX...",
-]
-
-# Compact mascot for inline / watermark use
-CLAUDE_MASCOT_SM = [
-    "..XXXX..",
-    ".XXXXXX.",
-    "XX@XX@XX",
-    ".XXXXXX.",
-    ".X....X.",
-    ".X....X.",
-]
-
-# Welcome scene — Claude Code-style dot frame + night sky + mascot + moon
-WELCOME_FRAME_WIDTH = 72
-WELCOME_DOT_LINE = "." * WELCOME_FRAME_WIDTH
-
-# Layer keys: . empty  X mascot  @ eye  * star  M moon  o cloud  - ground
-WELCOME_SCENE = [
-    ".  *         ooooooo                              **    *          .",
-    ".                  XXXXXX                              MMMMMMM       .",
-    ".                 XXXXXXXX                            MMMMMMMMM     .",
-    ".    *            XXXXXXXX         ooo               MMMMMMMMM     .",
-    ".                 XX@XX@XXX              *             MMMMMMM      .",
-    ".                  XXXXXXXX                              MMMMM       .",
-    ".        ooooo       XX  XX                                MMM        .",
-    ".                     XX  XX                                         .",
-    ".  ----------------------------------------------------------------  .",
-]
-
-# Full-width interface chrome matching glass UI screenshot
-DIGITAL_HEADER = (
-    "◆ CLAUDE-CLI  vA.1272",
-    "● ZTA: ACTIVE    ● RGE: GOVERNING    ● Audit: LOGGING",
-    "A\\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE — KEY",
+from claude_o_cli.braille_art import (
+    MASCOT_RGB,
+    load_mascot_braille,
+    render_welcome_art,
 )
 
 TABS = ("Chat", "Files", "MCP", "Agent")
@@ -57,55 +16,32 @@ COMMAND_CHIPS = (
     "/status", "/tools", "/worldfeed", "/seer", "/lattice", "/resonance", "/noir",
 )
 
-# Back-compat alias used by cmd_chat help
 COMMANDS = COMMAND_CHIPS
 
-
-def _paint_mascot_line(line: str, *, dim: bool = False) -> str:
-    """Return rich markup for one mascot/scene line."""
-    parts: List[str] = []
-    for ch in line:
-        if ch == "X":
-            parts.append("[dim orange]X[/]" if dim else "[orange]X[/]")
-        elif ch == "@":
-            parts.append("[black on orange]@[/]" if not dim else "[dim]@[/]")
-        elif ch == "M":
-            parts.append("[dim white]M[/]" if dim else "[white]M[/]")
-        elif ch == "*":
-            parts.append("[white]*[/]")
-        elif ch == "o":
-            parts.append("[dim warm_grey]o[/]")
-        elif ch == "-":
-            parts.append("[warm_grey]-[/]")
-        elif ch == ".":
-            parts.append("[warm_grey].[/]" if not dim else "[dim warm_grey].[/]")
-        else:
-            parts.append(ch)
-    return "".join(parts)
-
-
-def mascot_lines(*, dim: bool = False) -> List[str]:
-    return [_paint_mascot_line(row, dim=dim) for row in CLAUDE_MASCOT]
+DIGITAL_HEADER = (
+    "◆ CLAUDE-CLI  vA.1272",
+    "● ZTA: ACTIVE    ● RGE: GOVERNING    ● Audit: LOGGING",
+    "A\\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE — KEY",
+)
 
 
 def welcome_banner_lines(version: str = "vA.1272") -> List[str]:
-    """Claude Code-style welcome block with xxoo digital art."""
-    lines: List[str] = []
-    lines.append(f"[orange]Welcome to Claude CLI {version}[/]")
-    lines.append("")
-    lines.append(f"[warm_grey]{WELCOME_DOT_LINE}[/]")
-    for row in WELCOME_SCENE:
-        lines.append(_paint_mascot_line(row))
-    lines.append(f"[warm_grey]{WELCOME_DOT_LINE}[/]")
-    lines.append("")
-    lines.append("[warm_grey]  Sovereign local terminal · Ollama · ZTA Hardened · $0.00 API cost[/]")
-    lines.append("[warm_grey]  Not Anthropic Claude Code — this is [/][cyan]claude-cli[/][warm_grey] (Oroboros)[/]")
-    return lines
+    """Braille welcome from claude-mascot.png — matches Claude Code craft."""
+    return render_welcome_art(version)
 
 
 def watermark_block() -> List[str]:
-    """Faint background mascot for chat area."""
-    return mascot_lines(dim=True)
+    """Dim braille mascot watermark for chat area."""
+    lines: List[str] = []
+    for text, rgb in load_mascot_braille(cols=14):
+        r, g, b = rgb
+        dim = tuple(max(0, c // 3) for c in (r, g, b))
+        line = "".join(
+            f"[rgb({dim[0]},{dim[1]},{dim[2]})]{ch}[/]" if ord(ch) >= 0x2800 else " "
+            for ch in text
+        )
+        lines.append(line)
+    return lines
 
 
 def tabs_line(active: str = "Chat") -> str:
@@ -148,9 +84,10 @@ def security_bar() -> str:
 
 
 def header_block() -> Iterable[str]:
+    r, g, b = MASCOT_RGB
     for line in DIGITAL_HEADER:
         if line.startswith("◆"):
-            yield f"[orange]{line[:1]}[/][bold orange]{line[1:]}[/]"
+            yield f"[rgb({r},{g},{b})]◆[/][bold orange]{line[1:]}[/]"
         elif "1272 Hz" in line:
             yield f"[dim warm_grey]{line}[/]"
         else:

@@ -89,11 +89,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 .input-area input::placeholder{color:var(--warm-grey);opacity:0.25}
 .input-area .input-hint{font-size:11px;color:var(--warm-grey);opacity:0.2}
 .digital-welcome{font-family:var(--font-mono);font-size:11px;line-height:1.35;color:var(--warm-grey);white-space:pre;overflow-x:auto;padding:12px 14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.35)}
-.digital-welcome .o{color:var(--orange)}
-.digital-welcome .m{color:var(--warm-white);opacity:0.85}
-.digital-welcome .s{color:var(--warm-white)}
-.digital-welcome .c{color:var(--warm-grey);opacity:0.45}
-.digital-welcome .g{color:var(--warm-grey)}
 .digital-welcome-title{color:var(--orange);font-family:var(--font-serif);font-size:1.05rem;margin-bottom:8px}
 .clear-btn{font-family:var(--font-mono);font-size:11px;color:var(--orange);padding:4px 12px;border-radius:8px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2);cursor:pointer;transition:all 0.2s}
 .clear-btn:hover{background:rgba(217,119,87,0.15);border-color:var(--orange)}
@@ -188,8 +183,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     </div>
   </div>
 
-  <div class="digital-welcome-title">Welcome to Claude CLI vA.1272</div>
-  <pre class="digital-welcome" id="digitalWelcome" aria-hidden="true"></pre>
+  <div class="digital-welcome" id="digitalWelcome">__DIGITAL_WELCOME__</div>
   <div class="command-bar">
     <span class="cmd"><span class="key">/exit</span></span>
     <span class="cmd"><span class="key">/clear</span></span>
@@ -226,33 +220,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 </div>
 <script>
 const API = '';
-const DIGITAL_DOT = '.'.repeat(72);
-const DIGITAL_SCENE = [
-  ".  *         ooooooo                              **    *          .",
-  ".                  XXXXXX                              MMMMMMM       .",
-  ".                 XXXXXXXX                            MMMMMMMMM     .",
-  ".    *            XXXXXXXX         ooo               MMMMMMMMM     .",
-  ".                 XX@XX@XXX              *             MMMMMMM      .",
-  ".                  XXXXXXXX                              MMMMM       .",
-  ".        ooooo       XX  XX                                MMM        .",
-  ".                     XX  XX                                         .",
-  ".  ----------------------------------------------------------------  ."
-];
-function paintDigital(line) {
-  return line
-    .replace(/X/g, '<span class="o">X</span>')
-    .replace(/@/g, '<span class="c">@</span>')
-    .replace(/M/g, '<span class="m">M</span>')
-    .replace(/\*/g, '<span class="s">*</span>')
-    .replace(/o/g, '<span class="c">o</span>')
-    .replace(/-/g, '<span class="g">-</span>');
-}
-(function renderDigitalWelcome() {
-  const el = document.getElementById('digitalWelcome');
-  if (!el) return;
-  el.innerHTML = DIGITAL_DOT + '\n' + DIGITAL_SCENE.map(paintDigital).join('\n') + '\n' + DIGITAL_DOT;
-})();
-
 const input = document.getElementById('cliInput');
 const chat = document.getElementById('chatArea');
 const modelDisplay = document.getElementById('modelDisplay');

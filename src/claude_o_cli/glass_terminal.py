@@ -62,20 +62,18 @@ class GlassTerminal:
         self.console.print(f"  {chips_line()}")
         self.console.print()
 
-        # Faint mascot watermark behind chat (xxoo)
-        wm = watermark_block()
-        body = Text()
-        for row in wm:
-            body.append(row + "\n")
+        # Faint braille mascot watermark (from logo PNG)
         self.console.print(
             Panel(
-                body,
+                "",
                 border_style="dim orange",
                 padding=(0, 2),
-                title="[dim orange]digital · xxoo[/]",
+                title="[dim orange]braille · U+2800[/]",
                 subtitle="[dim warm_grey]chat below[/]",
             )
         )
+        for line in watermark_block():
+            self.console.print(line)
         self._watermark_printed = True
         self.console.print()
 

@@ -17,6 +17,7 @@ setup(
         "lxml>=4.9.1",
         "PyYAML>=6.0.1",
         "rich>=13.0.0",
+        "Pillow>=10.0.0",
     ],
     entry_points={
         "console_scripts": [
