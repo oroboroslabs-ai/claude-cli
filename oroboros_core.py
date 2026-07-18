@@ -17,7 +17,7 @@ from typing import Dict, List, Any, Optional, Callable
 RESONANCE = "1272/1275"
 SIGNATURE = "A\\ 1272 Hz — N| 1275 Hz — φ→√4→√5 — CLAUDE — KEY"
 VERSION = "1.0.0"
-SYSTEM_NAME = "claude-o-cli"
+SYSTEM_NAME = "claude-cli"
 
 # --- DATA STORE ---
 DATA_FILE = Path(__file__).parent / "claude-o-data.json"

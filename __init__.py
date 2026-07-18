@@ -1,4 +1,4 @@
-# claude-o-cli package
+# Claude CLI package
 # ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
 # vA.1272 — ZTA Active — RGE Governing
 

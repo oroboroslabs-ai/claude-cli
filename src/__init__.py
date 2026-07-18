@@ -1,4 +1,4 @@
-# claude-o-cli package
+# Claude CLI package
 # A\ 1272 Hz — N| 1275 Hz — LATTICE LOCK — NEBELLION — KEY
 
 __version__ = "1.0.0"

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="claude-cli",
     version="1.0.0",
-    description="claude — Sovereign Terminal AI Assistant (Oroboros Core) — Hardened",
+    description="Claude CLI — Sovereign Terminal AI Assistant (Oroboros Core) — Hardened",
     author="Oroboros Labs",
     license="MIT",
     package_dir={"": "src"},

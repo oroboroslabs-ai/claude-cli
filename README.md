@@ -1,4 +1,4 @@
-# Claude-CLI — Sovereign Terminal AI Assistant
+# Claude CLI — Sovereign Terminal AI Assistant
 
 ```
 +----------------------------------------------------+
@@ -10,11 +10,12 @@
 ```
 
 ## Overview
-Claude-CLI is a sovereign terminal AI assistant that runs fully local via Ollama. No API keys, no cloud, no tracking. Built on the Oroboros Core with 33+ integrated tools, Docker MCP, strata encryption, and service absorption.
+Claude CLI is a sovereign terminal AI assistant that runs fully local via Ollama. No API keys, no cloud, no tracking. Built on the Oroboros Core with 33+ integrated tools, Docker MCP, strata encryption, and service absorption.
 
 ## Install
 ```bash
-cd Q:\oroboros-core\claude-o-cli
+git clone https://github.com/oroboroslabs-ai/claude-cli
+cd claude-cli
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -89,7 +90,7 @@ Then type `claude` in any terminal.
 
 ## Structure
 ```
-claude-o-cli/
+claude-cli/
 +-- src/claude_o_cli/
 |   +-- __init__.py
 |   +-- claude_o_cli.py       # Main CLI engine

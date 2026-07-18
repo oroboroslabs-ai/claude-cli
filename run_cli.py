@@ -150,7 +150,7 @@ def call_local_mcp(server: str, tool: str, tool_args: Dict[str, Any]):
         "params": {
             "protocolVersion": "2025-03-26",
             "capabilities": {},
-            "clientInfo": {"name": "claude-o-cli", "version": VERSION},
+            "clientInfo": {"name": "claude-cli", "version": VERSION},
         },
     }
     response = session.post(url, headers=headers, json=initialize, timeout=20)
@@ -663,7 +663,7 @@ def api_status():
 
 @app.route('/api/mao-haki', methods=['GET'])
 def api_mao_haki():
-    """Architect Mao Haki / Neiye operational context for Claude-O CLI."""
+    """Architect Mao Haki / Neiye operational context for Claude CLI."""
     try:
         from mao_haki_context import load_registry, MAO_HAKI_SYSTEM_FRAGMENT
         registry = load_registry()
@@ -965,7 +965,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 <div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
 <div class="terminal">
   <div class="terminal-header">
-    <div class="brand"><span class="icon">&#9670;</span><span class="name">Claude CLI</span><span class="version">v1.0</span></div>
+    <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
     <div class="status">
       <span><span class="dot green"></span> <strong style="color:#00ff88;">Connected</strong></span>
       <span><span class="dot cyan"></span> Model: <strong style="color:var(--cyan);">Local</strong></span>
