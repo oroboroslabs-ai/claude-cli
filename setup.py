@@ -20,7 +20,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "claude=claude_o_cli.claude_o_cli:main",
+            "claude-cli=claude_o_cli.claude_o_cli:main",
         ],
     },
 )

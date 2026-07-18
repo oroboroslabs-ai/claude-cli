@@ -855,11 +855,11 @@ class ClaudeOCLI:
                 self.cmd_post(full_text)
             else:
                 print(f"Unknown command: {cmd}")
-                print("Run: claude --help")
+                print("Run: claude-cli --help")
 
 
 def main():
-    """Entry point for the claude command — launches the hardened Oroboros server."""
+    """Entry point for the claude-cli command — launches the hardened Oroboros glass server."""
     import sys, os
     # Change to the project root so relative imports work
     pkg_dir = os.path.dirname(os.path.abspath(__file__))
