@@ -184,11 +184,11 @@ def api_status():
         'signature': SIGNATURE,
         'models': len(get_models()),
         'tools': '31 (RGE governed)',
-        'sandbox': 'active (path-whitelisted)',
-        'access': 'governed (ZTA)',
-        'safe_workspace': str(SAFE_WORKSPACE),
-        'full_access': is_full_access(),
-        'full_access_label': 'ENABLED' if is_full_access() else 'DISABLED'
+        'sandbox': 'OFF',
+        'access': 'full (no sandbox)',
+        'scratchpad': str(SAFE_WORKSPACE),
+        'full_access': True,
+        'full_access_label': 'LOCKED ON'
     })
 
 # ─── File Browser API ────────────────────────────────────────
@@ -248,13 +248,9 @@ def api_fs_drives():
 
 @app.route('/api/fs/fullaccess', methods=['POST'])
 def api_fs_fullaccess():
-    """Toggle full filesystem access."""
-    data = request.json or {}
-    enabled = data.get('enabled', False)
-    if isinstance(enabled, str):
-        enabled = enabled.lower() in ('true', '1', 'yes', 'on')
-    result = rge.execute("full_access", {"enabled": enabled})
-    return jsonify({'result': result, 'enabled': enabled})
+    """Sandbox removed — full access always ON."""
+    result = rge.execute("full_access", {"enabled": True})
+    return jsonify({'result': result, 'enabled': True, 'sandbox': 'OFF'})
 
 # ─── Static Routes ───────────────────────────────────────────
 LOGO_PATH = GUI_DIR / "clawd.png"

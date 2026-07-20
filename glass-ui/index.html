@@ -61,9 +61,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 .command-bar .cmd:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
 .command-bar .cmd .key{color:#fff}
 .command-bar .cmd .gold{color:var(--orange)}
-.chat-wrap{position:relative;min-height:300px;margin-bottom:8px}
-.chat-watermark{position:absolute;inset:0;pointer-events:none;z-index:0;background:url('claude-mascot.png') center 55%/min(320px,62%) no-repeat;opacity:0.13;filter:drop-shadow(0 0 40px rgba(217,119,87,0.25))}
-.chat-area{position:relative;z-index:1;display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
+.chat-area{display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
 .chat-area::-webkit-scrollbar{width:4px}
 .chat-area::-webkit-scrollbar-track{background:transparent}
 .chat-area::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
@@ -88,8 +86,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 .input-area input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:var(--font-mono);font-size:14px;padding:4px 0}
 .input-area input::placeholder{color:var(--warm-grey);opacity:0.25}
 .input-area .input-hint{font-size:11px;color:var(--warm-grey);opacity:0.2}
-.digital-welcome{font-family:var(--font-mono);font-size:11px;line-height:1.35;color:var(--warm-grey);white-space:pre;overflow-x:auto;padding:12px 14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);background:rgba(0,0,0,0.35)}
-.digital-welcome-title{color:var(--orange);font-family:var(--font-serif);font-size:1.05rem;margin-bottom:8px}
 .clear-btn{font-family:var(--font-mono);font-size:11px;color:var(--orange);padding:4px 12px;border-radius:8px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2);cursor:pointer;transition:all 0.2s}
 .clear-btn:hover{background:rgba(217,119,87,0.15);border-color:var(--orange)}
 
@@ -135,29 +131,29 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
 </head>
 <body>
 <div class="liquid-bg"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
-<div class="center-logo"><img src="claude-mascot.png" alt="Claude mascot" /></div>
+<div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
 <div class="terminal">
   <div class="terminal-header">
     <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
     <div class="status">
-      <span><span class="dot green"></span> <strong style="color:#00ff88;">ZTA: ACTIVE</strong></span>
-      <span><span class="dot cyan"></span> <strong style="color:var(--cyan);">RGE: GOVERNING</strong></span>
-      <span><span class="dot orange"></span> <strong style="color:var(--orange);">Audit: LOGGING</strong></span>
-      <span class="sig">A\ 1272 Hz · N| 1275 Hz</span>
+      <span><span class="dot green"></span> <strong style="color:#00ff88;">Connected</strong></span>
+      <span><span class="dot cyan"></span> Model: <strong style="color:var(--cyan);">Local</strong></span>
+      <span><span class="dot orange"></span> Tools: <strong style="color:var(--orange);">Ready</strong></span>
+      <span class="sig">Anthropic &times; OROBOROS</span>
     </div>
   </div>
   <div class="model-bar">
     <span class="model">Model: <span class="highlight" id="modelDisplay">__DEFAULT_MODEL__</span></span>
     <span class="url">localhost:11434</span>
-    <span class="sovereign">ZTA HARDENED</span>
+    <span class="sovereign">NO SANDBOX · FULL ACCESS</span>
     <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
   </div>
   <div class="security-bar" style="margin-bottom:8px">
-    <span class="shield">Path Whitelist: <strong>ACTIVE</strong></span>
-    <span class="shield">Rate Limit: <strong>60/min</strong></span>
-    <span class="warn">Shell: <strong>ACTIVE</strong></span>
-    <span class="block">Delete: <strong>DENIED</strong></span>
-    <span class="shield">MCP: <strong>REAL</strong></span>
+    <span class="shield">&#x1F6E1; Sandbox: <strong>OFF</strong></span>
+    <span class="shield">&#x1F6E1; Shell: <strong>Unrestricted</strong></span>
+    <span class="shield">&#x1F6E1; MCP: <strong>Connected</strong></span>
+    <span class="shield">&#x1F6E1; Delete: <strong>Allowed</strong></span>
+    <span class="shield">&#x1F6E1; Paths: <strong>All drives</strong></span>
     <button class="fs-toggle" id="fsToggle" onclick="toggleFileBrowser()">&#x1F4C1; FILES</button>
   </div>
 
@@ -169,7 +165,11 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
       <button class="fs-btn go" onclick="loadDir(document.getElementById('fsPath').value)">GO</button>
       <button class="fs-btn up" onclick="goUp()">&#x2191; UP</button>
       <button class="fs-btn drives" onclick="loadDrives()">&#x1F4BD; DRIVES</button>
-      <button class="fs-btn fullaccess" id="fsFullAccess" onclick="toggleFullAccess()">&#x1F512; FULL</button>
+      <button class="fs-btn fullaccess on" id="fsFullAccess" onclick="toggleFullAccess()">&#x1F513; FULL:ON</button>
+      <label class="fs-btn go" style="cursor:pointer;margin:0">
+        &#x1F4E4; UPLOAD
+        <input type="file" id="fsUpload" multiple style="display:none" onchange="uploadFiles(this)">
+      </label>
     </div>
     <div class="fs-body" id="fsBody">
       <div class="fs-status">Click FILES to open browser</div>
@@ -183,7 +183,6 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     </div>
   </div>
 
-  <div class="digital-welcome" id="digitalWelcome">__DIGITAL_WELCOME__</div>
   <div class="command-bar">
     <span class="cmd"><span class="key">/exit</span></span>
     <span class="cmd"><span class="key">/clear</span></span>
@@ -208,10 +207,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;bac
     <span class="cmd"><span class="key">/noir</span></span>
   </div>
   <div class="thinking-bar" id="thinkingBar" style="display:none;padding:4px 0;font-size:11px;color:#D97757;font-style:italic">⟳ Claude is working...</div>
-  <div class="chat-wrap">
-    <div class="chat-watermark" aria-hidden="true"></div>
-    <div class="chat-area" id="chatArea"></div>
-  </div>
+  <div class="chat-area" id="chatArea"></div>
   <div class="input-area">
     <span class="prompt-symbol">&#9670;</span>
     <input type="text" id="cliInput" placeholder="Type a command or message..." autofocus>
@@ -226,7 +222,7 @@ const modelDisplay = document.getElementById('modelDisplay');
 let currentModel = '__DEFAULT_MODEL__';
 let messages = [];
 
-const SYSTEM_PROMPT = 'You are claude, a sovereign tactical AI agent with SECURE tool access. All operations go through the Resource Governance Engine (RGE) with Zero Trust Architecture. Available tools: read_file, write_file, list_dir, bash, grep, web_fetch, docker_ps, docker_logs, docker_exec, git_status, git_commit, mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, tor_connect, q5_query, q5_analyze, python, think, agent. RULE: When you need to use a tool, respond with EXACT JSON: {"tool": "tool_name", "args": {"key": "value"}}. After getting results, either call another tool or give final answer. File operations are confined to the safe workspace. You run fully local - no keys, no cloud.';
+const SYSTEM_PROMPT = 'You are claude, a sovereign AI agent on Oroboros. NO SANDBOX — full filesystem access on all drives, shell unrestricted, delete allowed. Available tools: read_file, write_file, list_dir, delete_file, bash, grep, web_fetch, docker_ps, docker_logs, docker_exec, git_status, git_commit, mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, tor_connect, q5_query, q5_analyze, python, think, agent, full_access, list_drives. RULE: When you need to use a tool, respond with EXACT JSON: {"tool": "tool_name", "args": {"key": "value"}}. After getting results, either call another tool or give final answer. Agentic loop: Detect → Reason → Access → Sovereignty → Integrate. You run fully local - no keys, no cloud. 毛色霸气.';
 
 function clearChat() { chat.innerHTML = ''; messages = []; }
 function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
@@ -315,7 +311,7 @@ input.addEventListener('keydown', async function(e) {
 
 // ─── File Browser ───────────────────────────────────────────
 let fsCurrentPath = '.';
-let fsFullAccess = false;
+let fsFullAccess = true;
 
 function toggleFileBrowser() {
   const fb = document.getElementById('fileBrowser');
@@ -409,21 +405,45 @@ function closePreview() {
 }
 
 async function toggleFullAccess() {
+  // Sandbox permanently removed — full access cannot be turned off
   const btn = document.getElementById('fsFullAccess');
-  fsFullAccess = !fsFullAccess;
+  fsFullAccess = true;
   try {
-    const r = await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: fsFullAccess}) });
+    await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: true}) });
+    btn.classList.add('on');
+    btn.innerHTML = '&#x1F513; FULL:ON';
+    addMsg('system', 'Sandbox OFF — full filesystem access locked ON');
+  } catch(e) { addMsg('system', 'Error confirming full access: ' + e.message); }
+}
+
+async function ensureNoSandbox() {
+  fsFullAccess = true;
+  const btn = document.getElementById('fsFullAccess');
+  if (btn) { btn.classList.add('on'); btn.innerHTML = '&#x1F513; FULL:ON'; }
+  try {
+    await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: true}) });
+  } catch(e) {}
+}
+
+async function uploadFiles(input) {
+  const files = input.files;
+  if (!files || !files.length) return;
+  const fd = new FormData();
+  fd.append('path', fsCurrentPath || '.');
+  for (let i = 0; i < files.length; i++) fd.append('file', files[i]);
+  showFsStatus('Uploading ' + files.length + ' file(s) to ' + fsCurrentPath + '...');
+  try {
+    const r = await fetch(API + '/api/fs/upload', { method: 'POST', body: fd });
     const d = await r.json();
-    if (d.enabled) {
-      btn.classList.add('on');
-      btn.textContent = '&#x1F513; FULL:ON';
-      addMsg('system', 'Full filesystem access: ENABLED');
-    } else {
-      btn.classList.remove('on');
-      btn.textContent = '&#x1F512; FULL';
-      addMsg('system', 'Full filesystem access: DISABLED');
-    }
-  } catch(e) { addMsg('system', 'Error toggling full access: ' + e.message); }
+    if (d.error) { showFsStatus(d.error); addMsg('system', 'Upload failed: ' + d.error); return; }
+    const names = (d.uploaded || []).map(u => u.name).join(', ');
+    addMsg('system', 'Uploaded (sandbox OFF): ' + names);
+    input.value = '';
+    await loadDir(fsCurrentPath || d.path || '.');
+  } catch(e) {
+    showFsStatus('Upload error: ' + e.message);
+    addMsg('system', 'Upload error: ' + e.message);
+  }
 }
 
 async function loadModels() {
@@ -434,6 +454,7 @@ async function loadModels() {
   } catch(e) {}
 }
 loadModels();
+ensureNoSandbox();
 </script>
 </body>
 </html>

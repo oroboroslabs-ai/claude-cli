@@ -85,47 +85,26 @@ class PermissionLevel(Enum):
 
 
 class PermissionManager:
-    """Manages tool permissions."""
+    """No sandbox — every tool is always allowed. No ask prompts."""
 
     def __init__(self, config_path: Optional[Path] = None):
         self.config_path = config_path or Path.home() / ".claude" / "permissions.json"
-        self.permissions = self._load()
+        self.permissions = {"default": "allowed", "tools": {}, "sandbox": False}
 
     def _load(self) -> Dict:
-        if self.config_path.exists():
-            try:
-                with open(self.config_path, 'r') as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        return {"default": "ask", "tools": {}}
+        return {"default": "allowed", "tools": {}, "sandbox": False}
 
     def _save(self):
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.config_path, 'w') as f:
-            json.dump(self.permissions, f, indent=2)
+        return  # unrestricted — do not persist deny/ask state
 
     def check(self, tool_name: str) -> PermissionLevel:
-        tool_perm = self.permissions.get("tools", {}).get(tool_name)
-        if tool_perm:
-            return PermissionLevel(tool_perm)
-        return PermissionLevel(self.permissions.get("default", "ask"))
+        return PermissionLevel.ALLOWED
 
     def allow(self, tool_name: str, level: PermissionLevel = PermissionLevel.ALLOWED):
-        if "tools" not in self.permissions:
-            self.permissions["tools"] = {}
-        self.permissions["tools"][tool_name] = level.value
-        self._save()
+        return
 
     def ask_user(self, tool_name: str, description: str) -> bool:
-        try:
-            resp = input(f"\n🔐 Permission required for '{tool_name}': {description}\n   Allow? (y/n): ")
-            if resp.strip().lower() in ('y', 'yes'):
-                self.allow(tool_name, PermissionLevel.ALLOWED)
-                return True
-        except Exception:
-            pass
-        return False
+        return True
 
 
 # ============================================================
@@ -205,45 +184,105 @@ class ToolRegistry:
         tool = self.tools.get(name)
         if not tool:
             return {"error": f"Tool '{name}' not found"}
-        if tool.permission_required:
-            level = self.permissions.check(name)
-            if level == PermissionLevel.DENIED:
-                return {"error": f"Permission denied for '{name}'"}
-            elif level == PermissionLevel.ASK:
-                if not self.permissions.ask_user(name, tool.description):
-                    return {"error": f"Permission denied for '{name}'"}
+        # No sandbox — never gate on permissions
         try:
             return tool.handler(args)
         except Exception as e:
             return {"error": str(e)}
 
-    # --- File Handlers ---
+    # --- File Handlers (ALL Windows drives — no sandbox, no MCP required) ---
+    def _normalize_win_path(self, path: str) -> Path:
+        """Fix drive-root gotchas: C:file.txt / J:file.txt → X:\\file.txt."""
+        import re as _re
+        raw = (path or "").strip().strip('"').strip("'")
+        if not raw:
+            return Path("")
+        # X:foo or X:/foo → X:\foo (absolute at drive root)
+        m = _re.match(r"^([A-Za-z]):([^\\/].*)$", raw)
+        if m:
+            raw = f"{m.group(1)}:\\{m.group(2)}"
+        elif _re.match(r"^[A-Za-z]:$", raw):
+            raw = raw + "\\"
+        raw = raw.replace("/", "\\")
+        return Path(raw)
+
     def _handle_read_file(self, args: Dict) -> Dict:
-        p = Path(args.get("path", ""))
+        p = self._normalize_win_path(str(args.get("path", "")))
         if not p.exists():
             return {"error": f"File not found: {p}"}
-        return {"path": str(p), "content": p.read_text(encoding='utf-8', errors='replace')}
+        try:
+            return {"path": str(p), "content": p.read_text(encoding="utf-8", errors="replace"), "ok": True}
+        except Exception as e:
+            return {"error": f"read_file failed for {p}: {e}"}
 
     def _handle_write_file(self, args: Dict) -> Dict:
-        p = Path(args.get("path", ""))
+        """Direct host write — any drive (C: D: E: J: Q: …). No agent/MCP needed."""
+        p = self._normalize_win_path(str(args.get("path", "")))
         content = args.get("content", "")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding='utf-8')
-        return {"path": str(p), "bytes_written": len(content)}
+        if not str(p) or str(p) in (".",):
+            return {"error": "write_file needs a path, e.g. C:\\\\note.txt or J:\\\\note.txt"}
+        try:
+            parent = p.parent
+            if parent and str(parent) not in ("", "."):
+                parent.mkdir(parents=True, exist_ok=True)
+            # Prefer binary-safe write for arbitrary content
+            if isinstance(content, bytes):
+                p.write_bytes(content)
+                nbytes = len(content)
+            else:
+                text = str(content)
+                p.write_text(text, encoding="utf-8")
+                nbytes = len(text)
+            return {
+                "path": str(p.resolve()) if p.exists() else str(p),
+                "bytes_written": nbytes,
+                "host": True,
+                "sandbox": False,
+                "ok": True,
+            }
+        except PermissionError as e:
+            # Fallback: cmd echo redirect (still host — may need elevation for C:\ root)
+            try:
+                import tempfile
+                tmp = Path(tempfile.gettempdir()) / f"_cli_write_{p.name}"
+                tmp.write_text(str(content), encoding="utf-8")
+                cmd = f'cmd /c copy /Y "{tmp}" "{p}"'
+                r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+                tmp.unlink(missing_ok=True)
+                if r.returncode == 0 and p.exists():
+                    return {"path": str(p), "bytes_written": len(str(content)), "host": True, "via": "cmd_copy", "ok": True}
+                return {
+                    "error": f"Permission denied writing {p}: {e}",
+                    "stderr": (r.stderr or "")[:300],
+                    "hint": "Windows may block drive-root writes without elevation. Use C:\\\\Users\\\\… or run CLI elevated.",
+                }
+            except Exception as e2:
+                return {"error": f"Permission denied writing {p}: {e} / fallback: {e2}"}
+        except OSError as e:
+            return {"error": f"OS error writing {p}: {e}"}
+        except Exception as e:
+            return {"error": f"write_file failed for {p}: {e}"}
 
     def _handle_list_dir(self, args: Dict) -> Dict:
-        p = Path(args.get("path", "."))
+        raw = str(args.get("path", "."))
+        p = self._normalize_win_path(raw) if (len(raw) >= 2 and raw[1] == ":") else Path(raw)
         if not p.exists():
             return {"error": f"Directory not found: {p}"}
-        items = [{"name": c.name, "type": "dir" if c.is_dir() else "file"} for c in sorted(p.iterdir())]
-        return {"path": str(p), "items": items}
+        try:
+            items = [{"name": c.name, "type": "dir" if c.is_dir() else "file"} for c in sorted(p.iterdir())]
+            return {"path": str(p), "items": items, "ok": True}
+        except Exception as e:
+            return {"error": f"list_dir failed for {p}: {e}"}
 
     def _handle_delete_file(self, args: Dict) -> Dict:
-        p = Path(args.get("path", ""))
-        if p.exists():
-            p.unlink()
-            return {"deleted": str(p)}
-        return {"error": f"File not found: {p}"}
+        p = self._normalize_win_path(str(args.get("path", "")))
+        try:
+            if p.exists() and p.is_file():
+                p.unlink()
+                return {"deleted": str(p), "ok": True}
+            return {"error": f"File not found: {p}"}
+        except Exception as e:
+            return {"error": f"delete_file failed for {p}: {e}"}
 
     def _handle_bash(self, args: Dict) -> Dict:
         cmd = args.get("command", "")

@@ -182,6 +182,8 @@ class CLIBridge:
             "/age": lambda: self.cli.cmd_age(),
             "/resonance": lambda: self.cli.cmd_resonance(),
             "/lattice": lambda: self.cli.cmd_lattice(),
+            "/cowork": lambda: self._cmd_cowork(parts[1:]),
+            "/loop": lambda: self._cmd_cowork(parts[1:]),
             "/noir": lambda: self.cli.cmd_noir(),
             "/memory": lambda: "Memory: ENABLED — Capacity: UNLIMITED — Persistence: ACTIVE",
             "/encrypt": lambda: "Encryption: PHI-HARMONIC — STRATA S1-S12 — LATTICE LOCKED",
@@ -306,7 +308,7 @@ class CLIBridge:
                 icon = "+" if level == "allowed" else ("?" if level == "ask" else "-")
                 lines.append(f"    {icon} {tool_name}: {level}")
             return "\n".join(lines)
-        return "Permission Manager: ACTIVE — ZTA: ENABLED"
+        return "Permission Manager: OFF — NO SANDBOX — FULL ACCESS"
     
     def _list_drives(self) -> str:
         """List available drives."""
@@ -437,6 +439,32 @@ class CLIBridge:
     def _orchestrate(self) -> str:
         """Run orchestration."""
         return "Usage: /orchestrate <task> — Runs multi-agent orchestration"
+
+    def _cmd_cowork(self, args: list) -> str:
+        """Show or set Claude Cowork DPEV loop state."""
+        try:
+            from loop_cowork_context import load_state, save_state, default_state, build_state_block
+        except Exception as exc:
+            return f"Cowork loop unavailable: {exc}"
+
+        if not args:
+            state = load_state()
+            return build_state_block(state)
+
+        sub = args[0].lower()
+        if sub in ("clear", "reset", "stop"):
+            save_state(default_state())
+            return "Cowork loop cleared."
+        if sub == "status":
+            return build_state_block(load_state())
+        if sub == "run" and len(args) >= 2:
+            goal = " ".join(args[1:])
+            save_state({**default_state(), "goal": goal, "phase": "DISCOVER"})
+            return f"Cowork goal set: {goal}\n{build_state_block(load_state())}"
+
+        goal = " ".join(args)
+        save_state({**default_state(), "goal": goal, "phase": "DISCOVER"})
+        return f"Cowork goal set: {goal}\n{build_state_block(load_state())}"
 
     def _run_agent(self, task: str) -> str:
         """Run the agent loop on a task."""

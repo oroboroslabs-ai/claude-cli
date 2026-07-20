@@ -374,6 +374,52 @@ class LoopEngine:
 
         return {"status": "complete", "plan": plan[:300], "steps_completed": len(results), "log": log}
 
+    def loop_dpev_cowork(self, model: str, task: str, max_cycles: int = 5) -> Dict:
+        """DPEV Cowork Loop — Discover → Plan → Execute → Verify → Loop until done."""
+        log = []
+        goal = task
+        phases = ["DISCOVER", "PLAN", "EXECUTE", "VERIFY"]
+        context = ""
+
+        for cycle in range(1, max_cycles + 1):
+            for phase in phases:
+                prompt = (
+                    f"Goal: {goal}\n"
+                    f"Cycle: {cycle}/{max_cycles}\n"
+                    f"Phase: {phase}\n"
+                    f"Context so far:\n{context[-2000:] if context else '(starting)'}\n\n"
+                    f"Complete the {phase} phase. If VERIFY and goal is met, reply with GOAL_ACHIEVED."
+                )
+                result = self._call_model(
+                    model,
+                    [{"role": "user", "content": prompt}],
+                    "You are Claude Cowork. Operate the DPEV loop autonomously.",
+                )
+                log.append({"cycle": cycle, "phase": phase, "content": result[:400]})
+                context += f"\n[{phase}] {result[:500]}"
+
+                if phase == "VERIFY" and "GOAL_ACHIEVED" in result.upper():
+                    self.memory_store[f"dpev_{hashlib.md5(goal.encode()).hexdigest()[:8]}"] = {
+                        "goal": goal,
+                        "status": "complete",
+                        "cycles": cycle,
+                    }
+                    return {
+                        "status": "complete",
+                        "goal": goal,
+                        "cycles": cycle,
+                        "output": result[:800],
+                        "log": log,
+                    }
+
+        return {
+            "status": "max_cycles",
+            "goal": goal,
+            "cycles": max_cycles,
+            "output": context[-800:],
+            "log": log,
+        }
+
     def loop_12_dynamic_workflow(self, model: str, task: str) -> Dict:
         """Pattern 12: Dynamic Workflow Loop
         Pipeline decides its own shape at runtime based on results."""
@@ -752,6 +798,10 @@ class LoopEngine:
             "18": self.loop_18_debate,
             "19": self.loop_19_prompt_optimization,
             "20": self.loop_20_workflow_optimization,
+            "21": self.loop_dpev_cowork,
+            "dpev_cowork": self.loop_dpev_cowork,
+            "cowork": self.loop_dpev_cowork,
+            "dpev": self.loop_dpev_cowork,
             "generate_critique_rewrite": self.loop_1_generate_critique_rewrite,
             "score_retry": self.loop_2_score_and_retry,
             "multi_critic": self.loop_3_multi_critic,
@@ -776,7 +826,7 @@ class LoopEngine:
 
         handler = loop_map.get(pattern)
         if not handler:
-            return {"status": "error", "error": f"Unknown pattern: {pattern}. Available: 1-20 or by name."}
+            return {"status": "error", "error": f"Unknown pattern: {pattern}. Available: 1-21, dpev_cowork, or by name."}
 
         return handler(model, task, **kwargs)
 
@@ -803,4 +853,6 @@ class LoopEngine:
             {"id": "18", "name": "Debate", "category": "Exploration", "desc": "Two agents argue opposite positions."},
             {"id": "19", "name": "Prompt Optimization", "category": "System", "desc": "Prompt rewrites itself based on where it fails."},
             {"id": "20", "name": "Workflow Optimization", "category": "System", "desc": "The loop improves the loop. Self-redesign."},
+            {"id": "21", "name": "DPEV Cowork Loop", "category": "Cowork", "desc": "Discover → Plan → Execute → Verify → Loop until goal achieved."},
+            {"id": "dpev_cowork", "name": "DPEV Cowork Loop", "category": "Cowork", "desc": "Autonomous coworker loop — alias for pattern 21."},
         ]

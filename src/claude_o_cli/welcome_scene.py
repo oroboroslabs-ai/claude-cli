@@ -99,7 +99,7 @@ def render_welcome_art(version: str = "vA.1272") -> List[str]:
     lines.append(_paint_line(ground))
     lines.append(f"[{_rgb(DOT)}]{DOT_LINE}[/]")
     lines.append("")
-    lines.append(f"[{_rgb(GREY)}]  Sovereign local terminal · Ollama · ZTA Hardened · $0.00 API cost[/]")
+    lines.append(f"[{_rgb(GREY)}]  Sovereign local terminal · Ollama · no sandbox · full access · $0.00 API[/]")
     lines.append(
         f"[{_rgb(GREY)}]  Not Anthropic Claude Code — run [/][{_rgb(ORANGE)}]claude-cli[/]"
         f"[{_rgb(GREY)}] (Oroboros · local)[/]"

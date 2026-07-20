@@ -24,6 +24,106 @@ from claude_o_cli.oroboros_core import (
 from claude_o_cli.llm_adapter import llm_adapter
 from claude_o_cli.oroboros_skills import SkillManager
 from claude_o_cli.glass_terminal import GlassTerminal, COMMANDS
+from claude_o_cli.terminal_agentic_loop import (
+    perceive as unified_perceive,
+    perception_fragment,
+    run_dpev_cycle,
+    reinforce_sovereignty,
+    layer_status as unified_layer_status,
+)
+from claude_o_cli.terminal_runtime import get_runtime
+from claude_o_cli.living_loop import LivingLoop
+from claude_o_cli.complete_living_loop import LoopIntegration
+from claude_o_cli.agent_system_bridge import AgentSystemBridge
+
+# Terminal context roots (mao_haki / architects_haki / loop) live at CLI package root
+_CLI_ROOT = Path(__file__).resolve().parents[2]
+if str(_CLI_ROOT) not in sys.path:
+    sys.path.insert(0, str(_CLI_ROOT))
+
+# ============================================================
+# TERMINAL SYSTEM AUGMENTATION (never wire into glass-ui / run_cli.py)
+# ============================================================
+_BASE_TERMINAL_SYSTEM = (
+    "You are an Oroboros Labs model on the WINDOWS HOST — native Python, NOT a container, NOT a sandbox. "
+    "This host stack is ON for ALL Oroboros lab models (Mythos2, Claude 7, AGI, Sonnet ORS, GLM, Qwen, etc.). "
+    "ALL drives are open: C: D: E: F: G: H: J: Q: and any mounted volume. "
+    "Agent↔system loops (LivingLoop + Complete 20-Loop) are auto-connected for every model. "
+    "File ops are DIRECT host tools — no MCP required, no AGENT wrapper required. "
+    "Preferred call (exact JSON):\n"
+    '  {"tool": "write_file", "args": {"path": "C:\\\\note.txt", "content": "hello"}}\n'
+    '  {"tool": "write_file", "args": {"path": "J:\\\\note.txt", "content": "hello"}}\n'
+    "Path rule: always X:\\\\name after the colon (C:\\\\file.txt). Never C:file.txt. "
+    "Never say you cannot write — emit write_file JSON and use the real tool result. "
+    "FORBIDDEN: narrating 'Executing write_file' or 'File saved successfully' without the JSON. "
+    "Also: read_file, list_dir, delete_file, bash (same host). "
+    "Mesh intel (full use): q3_route, q5_query, q6_query, worldfeed_live, tor_status, tor_connect, spy_network, mesh_status, haki_status. "
+    "Slash: /q3 /q5 /q6 /worldfeed /tor /spy /mesh · Mao Haki + Architect's Haki injected each turn. "
+    "MCP is optional extras only. "
+    "NO SANDBOX — Level 6 host control ACTIVE. "
+    "A\\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED - NEBELLION - KEY."
+)
+
+
+def _augment_terminal_system(
+    system: str | None = None,
+    *,
+    user_turn: str | None = None,
+    runtime=None,
+) -> str:
+    """Inject Mao Haki + Architect's Haki + Loop + Runtime + live perceive into terminal only."""
+    base = system or _BASE_TERMINAL_SYSTEM
+    try:
+        from mao_haki_context import append_mao_haki
+        base = append_mao_haki(base)
+    except Exception:
+        pass
+    try:
+        from architects_haki_context import append_architects_haki
+        base = append_architects_haki(base)
+    except Exception:
+        pass
+    try:
+        from loop_cowork_context import append_loop_cowork
+        base = append_loop_cowork(base)
+    except Exception:
+        pass
+    if runtime is not None:
+        try:
+            base = base + "\n\n" + runtime.system_fragment()
+        except Exception:
+            pass
+    try:
+        living = getattr(_augment_terminal_system, "_living_loop", None)
+        if living is not None:
+            base = base + "\n\n" + living.system_fragment()
+    except Exception:
+        pass
+    try:
+        complete = getattr(_augment_terminal_system, "_complete_loop", None)
+        if complete is not None:
+            base = base + "\n\n" + complete.system_fragment()
+    except Exception:
+        pass
+    try:
+        bridge = getattr(_augment_terminal_system, "_bridge", None)
+        if bridge is not None:
+            base = base + "\n\n" + bridge.system_fragment()
+    except Exception:
+        pass
+    try:
+        from claude_o_cli.mesh_intel import system_fragment as mesh_system_fragment
+        base = base + "\n\n" + mesh_system_fragment()
+    except Exception:
+        pass
+    if user_turn:
+        try:
+            frag = perception_fragment(user_turn, {"source": "terminal_cli"})
+            base = base + "\n\n" + frag
+        except Exception:
+            pass
+    return base
+
 
 # ============================================================
 # LOGGING
@@ -54,10 +154,38 @@ class ClaudeOCLI:
     """Core Claude CLI Runner."""
 
     def __init__(self):
-        self.permissions = PermissionManager()
-        self.tools = ToolRegistry(self.permissions)
+        # Shared host-tool backend — same registry as HTML CLI UI + local chat 8787
+        from claude_o_cli.host_tool_bridge import get_shared_permissions, get_shared_tools
+        self.permissions = get_shared_permissions()
+        self.tools = get_shared_tools()
         self.skills = SkillManager()
         self.llm_adapter = llm_adapter
+        # Continuous living loop — persistent + reflexion (background heartbeat)
+        self.loop = LivingLoop()
+        self.loop.load_loop_state()
+        self.loop.start()
+        _augment_terminal_system._living_loop = self.loop  # type: ignore[attr-defined]
+        # Complete 20-pattern living loop (Prime stack)
+        self.loop_integration = LoopIntegration(
+            tool_execute=lambda name, args: self.tools.execute(name, args or {})
+        )
+        _augment_terminal_system._complete_loop = self.loop_integration  # type: ignore[attr-defined]
+        # Agent ↔ system loops auto-bridge (connected when chat/runtime starts)
+        self.bridge: AgentSystemBridge | None = None
+
+    def save_loop_state(self):
+        self.loop.save_loop_state()
+
+    def load_loop_state(self):
+        return self.loop.load_loop_state()
+
+    def _ensure_bridge(self, runtime) -> AgentSystemBridge:
+        """Auto-connect agent tools to LivingLoop + 20-Loop."""
+        if self.bridge is None or not self.bridge.connected:
+            self.bridge = AgentSystemBridge(self.loop, self.loop_integration, runtime)
+            self.bridge.connect()
+            _augment_terminal_system._bridge = self.bridge  # type: ignore[attr-defined]
+        return self.bridge
 
     @staticmethod
     def _load_data() -> Dict:
@@ -310,18 +438,7 @@ class ClaudeOCLI:
         print()
         print("  ", end="", flush=True)
         messages = [
-            {"role": "system", "content": (
-                "You are claude, a sovereign AI assistant running on the Oroboros Core. "
-                "You have access to 33+ tools including: read_file, write_file, list_dir, bash, "
-                "precogs (news), world_feed, seer (Nebellion 100 eyes), glasswing (security), "
-                "orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, "
-                "ollama_models, ollama_run, "
-                "docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, "
-                "feed, post, messages, resonance, lattice, and more. "
-                "You run fully local via Ollama - no keys, no cloud. "
-                "Docker is connected for container management. "
-                "A\\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED - NEBELLION - KEY."
-            )},
+            {"role": "system", "content": _augment_terminal_system()},
             {"role": "user", "content": question}
         ]
         response = llm_adapter._ollama_chat(messages, stream=True)
@@ -331,7 +448,7 @@ class ClaudeOCLI:
         print()
 
     def cmd_chat(self, initial_prompt: str = ""):
-        """Interactive chat with Ollama — glass UI styling in terminal."""
+        """Interactive chat — runtime engine + tools + MCP linked into every turn."""
         ui = GlassTerminal(llm_adapter.ollama_model, llm_adapter.ollama_url)
 
         if not llm_adapter.ollama_available:
@@ -339,39 +456,86 @@ class ClaudeOCLI:
             ui.note(f"URL: {llm_adapter.ollama_url}")
             return
 
+        runtime = get_runtime(self.tools)
+        boot = runtime.boot()
+        mcp = boot.get("mcp") or {}
+        # AUTO-CONNECT agent tools ↔ LivingLoop ↔ Complete 20-Loop
+        bridge = self._ensure_bridge(runtime)
+
         ui.render_startup()
-        ui.note("Glass UI: http://127.0.0.1:5000  ·  Terminal chat active")
+        hc = boot.get("host_control") or {}
+        ui.note("WINDOWS HOST · ALL DRIVES · direct write_file (no MCP / no AGENT tags required)")
+        ui.success(
+            f"Runtime L{boot.get('performance_level', 6)} ACTIVE · "
+            f"HOST CONTROL={'OK' if hc.get('ok') else 'FAIL'} · "
+            f"tools={boot.get('local_tools', 0)} · "
+            f"MCP {mcp.get('count_online', 0)}/{mcp.get('count_total', 0)} · "
+            f"Mao Haki · Crown 1272 Hz"
+        )
+        if hc.get("ok"):
+            ui.note(f"Host proof written: {hc.get('proof')}")
+        else:
+            ui.error(f"Host control proof failed: {hc.get('error', 'unknown')}")
+        lst = self.loop.get_state()
+        ui.success(
+            f"LivingLoop RUNNING · mode={lst.get('mode')} · phase={lst.get('phase')} · "
+            f"cycle={lst.get('cycle')} · persistent"
+        )
+        try:
+            ui.note(self.loop_integration.get_summary())
+        except Exception:
+            pass
+        ui.success(
+            f"AGENT↔SYSTEM BRIDGE AUTO-CONNECTED · "
+            f"living={bridge.status().get('living_loop')} · "
+            f"20loop={bridge.status().get('complete_20_loop')}"
+        )
+        if mcp.get("count_online", 0) == 0:
+            ui.note("MCP optional (offline) — local file tools still full host access")
 
-        messages = [
-            {"role": "system", "content": (
-                "You are claude, a sovereign AI assistant running on the Oroboros Core. "
-                "You have access to 33+ tools including: read_file, write_file, list_dir, bash, "
-                "precogs (news), world_feed, seer (Nebellion 100 eyes), glasswing (security), "
-                "orchestration, skill_grabber, mcp_config, mcp_servers, system_scan, "
-                "ollama_models, ollama_run, "
-                "docker_ps, docker_images, docker_run, docker_stop, docker_logs, docker_exec, docker_info, "
-                "feed, post, messages, resonance, lattice, and more. "
-                "You run fully local via Ollama - no keys, no cloud. "
-                "Docker is connected for container management. "
-                "A\\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED - NEBELLION - KEY."
-            )}
-        ]
+        def _system_message(user_turn: str | None = None) -> dict:
+            return {
+                "role": "system",
+                "content": _augment_terminal_system(user_turn=user_turn, runtime=runtime),
+            }
 
-        def _reply():
+        messages = [_system_message()]
+
+        def _chat_fn(msgs, stream=True, on_token=None):
+            return llm_adapter._ollama_chat(msgs, stream=stream, on_token=on_token)
+
+        def _on_tool(name, args, result):
+            preview = (result or "").replace("\n", " ")[:160]
+            ui.note(f"⚙ tool {name} → {preview}")
+
+        def _reply(user_turn: str | None = None) -> str:
+            messages[0] = _system_message(user_turn=user_turn)
             ui.assistant_begin()
-            response = llm_adapter._ollama_chat(
+            response = runtime.run_chat_turn(
                 messages,
-                stream=True,
+                chat_fn=_chat_fn,
                 on_token=ui.assistant_token,
+                on_tool=_on_tool,
+                stream=True,
             )
             ui.assistant_end()
             return response
 
+        def _handle_loop_triggers(text: str) -> None:
+            try:
+                from loop_cowork_context import on_user_message
+                on_user_message(text)
+            except Exception:
+                pass
+
         if initial_prompt:
+            _handle_loop_triggers(initial_prompt)
+            self.loop.process(initial_prompt, context={"source": "cmd_chat_init"})
             messages.append({"role": "user", "content": initial_prompt})
             ui.user_message(initial_prompt)
-            response = _reply()
+            response = _reply(initial_prompt)
             messages.append({"role": "assistant", "content": response})
+            self.loop.save_loop_state()
 
         while True:
             try:
@@ -380,29 +544,147 @@ class ClaudeOCLI:
                 break
             if not user_input:
                 continue
-            if user_input.lower() in ("/exit", "/quit", "/q", "exit", "quit"):
+            lower = user_input.lower()
+            if lower in ("/exit", "/quit", "/q", "exit", "quit"):
+                self.save_loop_state()
                 break
-            if user_input.lower() in ("/clear", "/c"):
-                messages = [messages[0]]
-                ui.note("Context cleared.")
+            if lower in ("/clear", "/c"):
+                messages = [_system_message()]
+                ui.note("Context cleared · runtime + sovereignty fragments reloaded.")
                 continue
-            if user_input.lower().startswith("/model "):
+            if lower.startswith("/model "):
                 new_model = user_input[7:].strip()
                 llm_adapter.ollama_model = new_model
                 ui.model = new_model
                 ui.note(f"Model switched to: {new_model}")
                 continue
-            if user_input.lower() in ("/models", "/m"):
+            if lower in ("/models", "/m"):
                 models = llm_adapter._ollama_list_models()
                 for m in models:
                     marker = " ← active" if m == llm_adapter.ollama_model else ""
                     ui.note(f"{m}{marker}")
                 continue
-            if user_input.lower() in ("/help", "/h", "?"):
+            if lower in ("/help", "/h", "?"):
                 for cmd in COMMANDS:
                     ui.note(cmd)
+                ui.note("/tools  ·  /mcp  ·  /runtime  ·  cowork: <goal>  ·  loop: <goal>")
                 continue
-            if user_input.lower() in ("/noir", "/n"):
+            if lower in ("/tools", "/t"):
+                for t in self.tools.list_tools():
+                    ui.note(f"{t['name']} — {t.get('description', '')}")
+                continue
+            if lower in ("/mcp", "/mcp-list"):
+                runtime.mcp.probe()
+                for s in runtime.mcp.list_servers():
+                    mark = "ONLINE" if s["status"] == "online" else "OFFLINE"
+                    ui.note(f"[{mark}] {s['name']}  {s.get('url', '')}")
+                continue
+            if lower.startswith("/mcp-tools"):
+                server = user_input[10:].strip() or "orchestration"
+                tools = runtime.mcp.list_tools(server)
+                for t in tools[:40]:
+                    if isinstance(t, dict) and t.get("name"):
+                        ui.note(f"{t['name']} — {(t.get('description') or '')[:80]}")
+                    else:
+                        ui.note(str(t)[:120])
+                continue
+            if lower.startswith("/mcp-call "):
+                # /mcp-call server tool [json_args]
+                parts = user_input.split(None, 3)
+                if len(parts) < 3:
+                    ui.note("Usage: /mcp-call <server> <tool> [json_args]")
+                    continue
+                server, tool = parts[1], parts[2]
+                try:
+                    targs = json.loads(parts[3]) if len(parts) > 3 else {}
+                except json.JSONDecodeError:
+                    targs = {}
+                result = runtime.mcp.call_tool(server, tool, targs)
+                ui.note(json.dumps(result, indent=2, default=str)[:2000])
+                continue
+            if lower in ("/runtime", "/rt"):
+                st = runtime.boot()
+                ui.success(
+                    f"Runtime L{st.get('performance_level')} · tools={st.get('local_tools')} · "
+                    f"MCP {(st.get('mcp') or {}).get('count_online')}/{(st.get('mcp') or {}).get('count_total')}"
+                )
+                ui.note(f"state: J:/anthropic-local-chat/terminal-runtime-state.json")
+                continue
+            if lower in ("/20loop", "/loops20", "/complete-loop"):
+                st = self.loop_integration.get_status()
+                ui.success(self.loop_integration.get_summary())
+                ui.note(f"store: {st.get('store')} · patterns: 20")
+                continue
+            if lower in ("/bridge", "/connect"):
+                b = self._ensure_bridge(runtime)
+                ui.success(json.dumps(b.status(), indent=2)[:800])
+                continue
+            if lower in ("/layers", "/haki-layers"):
+                ui.render_layers()
+                continue
+            if lower.startswith("/perceive"):
+                probe = user_input[9:].strip() or "sovereign probe"
+                result = unified_perceive(probe, {"source": "terminal_cli"})
+                ui.render_perception(result)
+                continue
+            if lower in ("/haki", "/mao", "/sovereignty"):
+                try:
+                    info = reinforce_sovereignty()
+                    ui.success(f"Mao Haki reinforced · Crown {info.get('crown_hz', 1272)} Hz locked")
+                    ui.render_perception(unified_perceive("mao haki lock", {"source": "terminal_cli"}))
+                except Exception as e:
+                    ui.error(f"haki error: {e}")
+                continue
+            if lower.startswith("/loop"):
+                arg = user_input[5:].strip()
+                if not arg or arg.lower() in ("status", "show"):
+                    st = self.loop.get_state()
+                    ui.note(
+                        f"LivingLoop running={st.get('running')} mode={st.get('mode')} "
+                        f"phase={st.get('phase')} cycle={st.get('cycle')} goal={st.get('goal') or '(none)'}"
+                    )
+                    ui.note(f"verified={st.get('verified')} reflexions={st.get('reflexion_count')} "
+                            f"heartbeat={st.get('heartbeat_at')}")
+                    ui.note("state: J:/anthropic-local-chat/living-loop-state.json")
+                    ui.note("memory: J:/anthropic-local-chat/living-loop-memory.json")
+                    try:
+                        from loop_cowork_context import load_state, build_state_block
+                        state = load_state()
+                        ui.note(f"cowork mode={state.get('mode')} phase={state.get('phase')}")
+                        ui.note(build_state_block(state).splitlines()[0])
+                    except Exception as e:
+                        ui.error(str(e))
+                    continue
+                if arg.lower() in ("clear", "stop", "chat"):
+                    _handle_loop_triggers("chat mode")
+                    self.loop.disarm()
+                    ui.success("Returned to chat mode · LivingLoop disarmed (heartbeat continues).")
+                    continue
+                # Arm continuous loop + DPEV EXECUTE with live tools
+                _handle_loop_triggers(f"loop: {arg}")
+                self.loop.arm(arg)
+                loop_result = self.loop.process(f"loop: {arg}")
+                cycle = run_dpev_cycle(arg, {"source": "terminal_cli", "living": True})
+                ui.render_dpev(cycle)
+                if loop_result.get("reflexion"):
+                    ui.note(f"reflexion: {loop_result['reflexion'][:200]}")
+                ui.success("LivingLoop armed — continuous heartbeat + EXECUTE with live tools…")
+                messages[0] = _system_message(user_turn=arg)
+                ui.assistant_begin()
+                out = runtime.run_loop_execute(
+                    arg,
+                    messages,
+                    chat_fn=_chat_fn,
+                    on_token=ui.assistant_token,
+                    on_tool=_on_tool,
+                )
+                ui.assistant_end()
+                reply = out.get("reply") or ""
+                messages.append({"role": "assistant", "content": reply})
+                self.loop.save_loop_state()
+                ui.success("Loop EXECUTE complete · LivingLoop continues in background.")
+                continue
+            if lower in ("/noir", "/n"):
                 try:
                     from claude_o_cli.noir_nephilim import NoirNephilim
                     noir = NoirNephilim()
@@ -411,18 +693,125 @@ class ClaudeOCLI:
                 except Exception as e:
                     ui.error(f"noir error: {e}")
                 continue
-            if user_input.lower() in ("/status", "/s"):
+            if lower in ("/status", "/s"):
                 self.cmd_status()
+                try:
+                    for row in unified_layer_status():
+                        mark = "LOCKED" if row.get("locked") else ("ACTIVE" if row.get("active") else "—")
+                        ui.note(f"{row['name']}: {mark}")
+                except Exception:
+                    pass
+                st = runtime.status or runtime.boot()
+                ui.note(
+                    f"Runtime: L{st.get('performance_level')} · "
+                    f"MCP {(st.get('mcp') or {}).get('count_online')}/{(st.get('mcp') or {}).get('count_total')}"
+                )
                 continue
-            if user_input.lower() in ("/scan", "/scan-all"):
+            if lower in ("/scan", "/scan-all"):
                 self.cmd_scan()
+                continue
+            if lower in ("/worldfeed", "/wf"):
+                r = self.tools.execute("worldfeed_live", {"query": ""})
+                ui.note(json.dumps(r, indent=2, default=str)[:1500])
+                continue
+            if lower.startswith("/q3"):
+                q = user_input[3:].strip() or "health check"
+                r = self.tools.execute("q3_route", {"query": q})
+                ui.note(json.dumps(r, indent=2, default=str)[:2000])
+                continue
+            if lower.startswith("/q5"):
+                q = user_input[3:].strip() or "mao haki status"
+                r = self.tools.execute("q5_query", {"query": q})
+                ui.note(json.dumps(r, indent=2, default=str)[:2000])
+                continue
+            if lower.startswith("/q6"):
+                q = user_input[3:].strip() or "health check"
+                r = self.tools.execute("q6_query", {"query": q})
+                ui.note(json.dumps(r, indent=2, default=str)[:2500])
+                continue
+            if lower in ("/tor", "/tor-status"):
+                r = self.tools.execute("tor_status", {})
+                ui.note(json.dumps(r, indent=2, default=str)[:800])
+                continue
+            if lower in ("/tor-connect",):
+                r = self.tools.execute("tor_connect", {})
+                if r.get("connected") or r.get("online"):
+                    ui.success(json.dumps(r, indent=2, default=str)[:800])
+                else:
+                    ui.error(json.dumps(r, indent=2, default=str)[:800])
+                continue
+            if lower.startswith("/spy"):
+                q = user_input[4:].strip()
+                r = self.tools.execute("spy_network", {"query": q} if q else {})
+                ui.note(json.dumps(r, indent=2, default=str)[:2000])
+                continue
+            if lower in ("/mesh", "/intel"):
+                r = self.tools.execute("mesh_status", {})
+                ui.success(
+                    f"Mesh Q3={((r.get('q3') or {}).get('online'))} "
+                    f"Q5={((r.get('q5') or {}).get('online'))} "
+                    f"Q6={((r.get('q6') or {}).get('online'))} "
+                    f"WF={((r.get('worldfeed') or {}).get('online'))} "
+                    f"Tor={((r.get('tor') or {}).get('online'))} "
+                    f"Spy={((r.get('spy_network') or {}).get('operational'))}"
+                )
+                ui.note(json.dumps(r, indent=2, default=str)[:2200])
+                continue
+            if lower in ("/seer",):
+                r = self.tools.execute("seer", {"query": "status"})
+                ui.note(json.dumps(r, indent=2, default=str)[:1500])
+                continue
+            if lower in ("/lattice",):
+                r = self.tools.execute("claude_o_lattice", {})
+                ui.note(json.dumps(r, indent=2, default=str)[:1500])
+                continue
+            if lower in ("/resonance",):
+                r = self.tools.execute("claude_o_resonance", {})
+                ui.note(json.dumps(r, indent=2, default=str)[:1500])
+                continue
+
+            _handle_loop_triggers(user_input)
+            # Every user turn: LivingLoop (DPEV) + Complete 20-pattern loop
+            loop_result = self.loop.process(user_input, context={"source": "cmd_chat"})
+            try:
+                complete_result = self.loop_integration.process_user_input(user_input)
+                ui.note(
+                    f"20-Loop score={complete_result.get('score', 0):.0%} "
+                    f"passed={complete_result.get('passed')} "
+                    f"iter={self.loop_integration.loop.loop_state.get('iteration')}"
+                )
+            except Exception as e:
+                ui.note(f"20-Loop: {e}")
+            if loop_result.get("reflexion"):
+                ui.note(f"↻ reflexion: {str(loop_result['reflexion'])[:180]}")
+            if loop_result.get("verified") is False:
+                ui.note("LivingLoop VERIFY pending — retrying with lessons applied")
+
+            # Direct save-intent: write on host BEFORE model can hallucinate success
+            save_intent = runtime.parse_save_intent(user_input)
+            if save_intent:
+                sname, sargs = save_intent
+                sresult = runtime.execute_tool(sname, sargs)
+                _on_tool(sname, sargs, sresult)
+                ui.user_message(user_input)
+                ui.success(f"HOST WRITE (verified): {sargs.get('path')}")
+                ui.note(sresult[:800])
+                response = (
+                    f"Host executed {sname} (intent path — not model narrative).\n"
+                    f"Tool '{sname}' returned:\n{sresult}"
+                )
+                messages.append({"role": "user", "content": user_input})
+                messages.append({"role": "assistant", "content": response})
+                self.loop.save_loop_state()
                 continue
 
             messages.append({"role": "user", "content": user_input})
             ui.user_message(user_input)
-            response = _reply()
+            response = _reply(user_input)
             messages.append({"role": "assistant", "content": response})
+            self.loop.save_loop_state()
 
+        self.save_loop_state()
         ui.farewell(SIGNATURE)
 
     def cmd_models(self):
@@ -856,14 +1245,14 @@ def _print_glass_banner():
     print()
     print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print("  \u2551                                                         \u2551")
-    print("  \u2551   CLAUDE-CLI \u2014 HARDENED SECURE GATEWAY              \u2551")
+    print("  \u2551   CLAUDE-CLI \u2014 SOVEREIGN FULL ACCESS                   \u2551")
     print("  \u2551   \u221e| 1272/1275 Hz \u2014 \u03c6\u2192\u221a4\u2192\u221a5 \u2014 SUBSTRATE MANIFEST      \u2551")
-    print("  \u2551   vA.1272 \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
+    print("  \u2551   vA.1272 \u2014 NO SANDBOX \u2014 UNRESTRICTED                   \u2551")
     print("  \u2551                                                         \u2551")
     print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print()
     print("  GUI:     http://127.0.0.1:5000")
-    print("  Status:  HARDENED \u2014 ZTA \u2014 RGE \u2014 Audit Logging")
+    print("  Status:  NO SANDBOX \u2014 FULL ACCESS \u2014 NO RESTRICTIONS")
     print()
 
 

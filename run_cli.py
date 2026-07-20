@@ -14,6 +14,11 @@ from typing import Dict, List, Any, Optional
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+# Shared host-tool backend (terminal CLI ToolRegistry) must resolve for HTML UI.
+_CLI_SRC = Path(__file__).resolve().parent / "src"
+if str(_CLI_SRC) not in sys.path:
+    sys.path.insert(0, str(_CLI_SRC))
+
 try:
     from mao_haki_context import append_mao_haki, MAO_HAKI_SYSTEM_FRAGMENT
 except Exception:
@@ -83,7 +88,8 @@ from server_secure_gateway import (
     SAFE_WORKSPACE, SIGNATURE, VERSION, RESONANCE,
     audit, PermissionManager, Permission,
     authorize_architect, is_architect_authorized,
-    add_authorized_drive, is_drive_authorized, get_authorized_drives
+    add_authorized_drive, is_drive_authorized, get_authorized_drives,
+    set_full_access, is_full_access, _sanitize_filename,
 )
 
 # Import the CLI Bridge — connects HTML UI to full CLI engine + VS Code fallback
@@ -205,33 +211,50 @@ def save_data(data: Dict):
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    """Chat with a model — maintains history. Detects and executes tool calls via RGE."""
+    """Chat with a model — host tools via shared CLI bridge (same as terminal)."""
     data = request.json or {}
     model = data.get('model', 'claude-opus-4.8:latest')
     message = data.get('message', '')
     system = data.get('system', (
-        'You are claude, a sovereign tactical AI assistant running on the Oroboros Core. '
-        'You have FULL UNRESTRICTED access to ALL tools including: '
-        'read_file, write_file, list_dir, bash, grep, '
-        'web_fetch, docker_ps, docker_logs, docker_exec, '
-        'git_status, git_commit, git_push, git_pull, git_clone, git_branch, git_log, git_diff, git_add, git_remote, '
-        'github_search_repos, github_search_issues, github_view_repo, '
-        'github_list_issues, github_list_prs, github_create_issue, github_create_pr, '
-        'github_view_pr, github_merge_pr, github_check_ci, github_list_releases, '
-        'github_list_workflows, github_trigger_workflow, github_list_commits, '
-        'github_get_contents, github_create_repo, github_fork_repo, '
-        'github_add_collaborator, github_list_labels, github_create_label, github_add_comment, '
-        'mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, '
-        'oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, '
-        'tor_connect, q5_query, q5_analyze, python, think, agent, full_access, list_drives. '
-        'When you need to use a tool, respond with a JSON block: '
-        '{"tool": "tool_name", "args": {"key": "value"}}'
+        'You are claude on the WINDOWS HOST — not a container, not a sandbox. '
+        'ALL drives open. File writes require exact JSON: '
+        '{"tool":"write_file","args":{"path":"J:\\\\note.txt","content":"hi"}}. '
+        'FORBIDDEN: saying File saved successfully without emitting that JSON. '
+        'Also: read_file, list_dir, delete_file, bash, and full Oroboros/MCP tools.'
     ))
     system = append_mao_haki(system)
+    try:
+        from claude_o_cli.terminal_runtime import TOOL_JSON_RULE
+        if "HOST CONTROL" not in system:
+            system = system + "\n\n" + TOOL_JSON_RULE
+    except Exception:
+        pass
     history = data.get('history', [])
 
     if not message:
         return jsonify({'error': 'No message'})
+
+    # Save-intent: write on host BEFORE model can hallucinate (parity with terminal CLI)
+    try:
+        from claude_o_cli.terminal_runtime import AgenticRuntime
+        from claude_o_cli.host_tool_bridge import get_shared_tools, execute_host_tool
+        intent = AgenticRuntime.parse_save_intent(message)
+        if intent:
+            name, args = intent
+            tr = execute_host_tool(name, args, source="html_cli_ui_save_intent")
+            return jsonify({
+                'response': (
+                    f"Host executed {name} (HTML CLI save-intent — verified).\n"
+                    f"Tool '{name}' returned:\n{json.dumps(tr, indent=2, default=str)}"
+                ),
+                'thinking': '',
+                'model': model,
+                'signature': SIGNATURE,
+                'host_write': tr,
+                'backend': 'host_tool_bridge',
+            })
+    except Exception as e:
+        audit("save_intent_error", str(e), "error")
 
     messages = [{"role": "system", "content": system}]
     for msg in history:
@@ -246,19 +269,31 @@ def api_chat():
     reply = result.get("message", {}).get("content", str(result))
     thinking = result.get("message", {}).get("thinking", "")
 
-    # Check for tool call in response
-    tool_match = re.search(r'\{"tool"\s*:\s*"([^"]+)"\s*,\s*"args"\s*:\s*(\{[^}]+\})\}', reply)
+    # Host tools → shared CLI ToolRegistry (same as terminal + 8787 + Q chat HTML)
+    tool_match = re.search(
+        r'\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"(?:args|params)"\s*:\s*(\{.*?\})\s*\}',
+        reply,
+        re.DOTALL,
+    )
     if tool_match:
         tool_name = tool_match.group(1)
         try:
             tool_args = json.loads(tool_match.group(2))
-        except:
+        except Exception:
             tool_args = {}
 
-        # Execute through the Resource Governance Engine
-        tool_result = rge.execute(tool_name, tool_args)
+        try:
+            from claude_o_cli.host_tool_bridge import execute_host_tool, HOST_TOOL_NAMES, alias_tool
+            if alias_tool(tool_name) in HOST_TOOL_NAMES or tool_name in (
+                "write_file", "read_file", "list_dir", "delete_file", "bash"
+            ):
+                tr = execute_host_tool(tool_name, tool_args, source="html_cli_ui_chat")
+                tool_result = json.dumps(tr, default=str)
+            else:
+                tool_result = str(rge.execute(tool_name, tool_args))
+        except Exception:
+            tool_result = str(rge.execute(tool_name, tool_args))
 
-        # Send tool result back to model for final response
         messages.append({"role": "assistant", "content": reply})
         messages.append({
             "role": "user",
@@ -280,20 +315,91 @@ def api_chat():
     })
 
 # ============================================================
-# DIRECT TOOL EXECUTION — Through RGE
+# SHARED HOST TOOLS — CLI ToolRegistry (terminal + HTML UI + 8787)
 # ============================================================
+@app.route('/api/mesh/status', methods=['GET'])
+def api_mesh_status():
+    try:
+        from claude_o_cli.mesh_intel import probe_mesh
+        return jsonify(probe_mesh(persist=True))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/mesh/query', methods=['POST'])
+def api_mesh_query():
+    data = request.json or {}
+    tool = (data.get("tool") or "mesh_status").strip()
+    args = data.get("args") or data.get("params") or {}
+    if data.get("query") and "query" not in args:
+        args = {**args, "query": data.get("query")}
+    try:
+        from claude_o_cli.mesh_intel import (
+            tool_mesh_status, tool_q5_query, tool_spy_network,
+            tool_tor_status, tool_worldfeed_live, tool_tor_connect,
+        )
+        dispatch = {
+            "mesh_status": tool_mesh_status,
+            "q5_query": tool_q5_query,
+            "q5": tool_q5_query,
+            "worldfeed_live": tool_worldfeed_live,
+            "worldfeed": tool_worldfeed_live,
+            "tor_status": tool_tor_status,
+            "tor": tool_tor_status,
+            "tor_connect": tool_tor_connect,
+            "spy_network": tool_spy_network,
+            "spy": tool_spy_network,
+        }
+        fn = dispatch.get(tool, tool_mesh_status)
+        return jsonify(fn(args))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/host/status', methods=['GET'])
+def api_host_status():
+    try:
+        from claude_o_cli.host_tool_bridge import status
+        return jsonify(status(source="html_cli_ui"))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/host/tool', methods=['POST'])
+def api_host_tool():
+    """Direct host tool via shared CLI backend (write_file/bash/…)."""
+    data = request.json or {}
+    try:
+        from claude_o_cli.host_tool_bridge import execute_payload
+        return jsonify(execute_payload(data, source="html_cli_ui"))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "host": True, "sandbox": False}), 400
+
+
 @app.route('/api/tool', methods=['POST'])
 def api_tool():
-    """Directly execute a tool through the Resource Governance Engine."""
+    """Direct tool execution — host tools use CLI bridge; others use RGE."""
     data = request.json or {}
     tool_name = data.get('tool', '')
-    args = data.get('args', {})
+    args = data.get('args') or data.get('params') or {}
 
     if not tool_name:
         return jsonify({'error': 'No tool name provided'})
 
+    try:
+        from claude_o_cli.host_tool_bridge import execute_host_tool, alias_tool
+        hostish = {
+            "write_file", "read_file", "list_dir", "delete_file", "bash",
+            "write", "read", "ls", "dir", "shell", "cmd", "rm", "delete",
+        }
+        if alias_tool(tool_name) in hostish or tool_name in hostish:
+            result = execute_host_tool(tool_name, args, source="html_cli_ui_api_tool")
+            return jsonify({'tool': tool_name, 'result': result, 'backend': 'host_tool_bridge'})
+    except Exception:
+        pass
+
     result = rge.execute(tool_name, args)
-    return jsonify({'tool': tool_name, 'result': result})
+    return jsonify({'tool': tool_name, 'result': result, 'backend': 'rge'})
 
 # ============================================================
 # AGENT EXECUTOR
@@ -650,14 +756,104 @@ def api_status():
         'resonance': RESONANCE,
         'signature': SIGNATURE,
         'models': len(models),
-        'tools': '30+ (RGE governed)',
+        'tools': '30+ (no sandbox)',
         'memory': 'enabled',
         'encryption': 'triple-layer',
-        'sandbox': 'active (path-whitelisted)',
-        'access': 'governed (ZTA)',
-        'safe_workspace': str(SAFE_WORKSPACE),
+        'sandbox': 'OFF',
+        'access': 'full (no sandbox)',
+        'full_access': True,
+        'full_access_label': 'LOCKED ON',
+        'scratchpad': str(SAFE_WORKSPACE),
         'mao_haki': True,
         'mao_haki_api': '/api/mao-haki',
+    })
+
+
+# ============================================================
+# FILE BROWSER / UPLOAD API — no sandbox
+# ============================================================
+@app.route('/api/fs/ls', methods=['POST'])
+def api_fs_ls():
+    data = request.json or {}
+    path = data.get('path', '.')
+    result = rge.execute("list_dir", {"path": path})
+    if isinstance(result, str) and (result.startswith("Error") or result.startswith("SECURITY")):
+        return jsonify({'error': result, 'path': path})
+    items = []
+    for line in str(result).split('\n'):
+        line = line.strip()
+        if not line or line.startswith('(') or line.startswith('...'):
+            continue
+        is_dir = line.startswith('📁')
+        name = line[2:].strip() if (line.startswith('📁') or line.startswith('📄')) else line
+        items.append({'name': name, 'is_dir': is_dir, 'path': str(Path(path) / name)})
+    return jsonify({'items': items, 'path': path, 'sandbox': 'OFF'})
+
+
+@app.route('/api/fs/read', methods=['POST'])
+def api_fs_read():
+    data = request.json or {}
+    path = data.get('path', '')
+    result = rge.execute("read_file", {"path": path})
+    if isinstance(result, str) and (result.startswith("Error") or result.startswith("SECURITY")):
+        return jsonify({'error': result})
+    return jsonify({'content': result, 'path': path})
+
+
+@app.route('/api/fs/write', methods=['POST'])
+def api_fs_write():
+    data = request.json or {}
+    path = data.get('path', '')
+    content = data.get('content', '')
+    result = rge.execute("write_file", {"path": path, "content": content})
+    return jsonify({'result': result, 'sandbox': 'OFF'})
+
+
+@app.route('/api/fs/upload', methods=['POST'])
+def api_fs_upload():
+    """Multipart upload into dest_dir (default: current path or scratchpad)."""
+    dest_dir = request.form.get('path') or request.form.get('dest') or str(SAFE_WORKSPACE)
+    files = request.files.getlist('file') or request.files.getlist('files')
+    if not files:
+        single = request.files.get('file')
+        files = [single] if single else []
+    if not files:
+        return jsonify({'error': 'No file in upload'}), 400
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    saved = []
+    for f in files:
+        if not f or not f.filename:
+            continue
+        name = _sanitize_filename(f.filename)
+        target = dest / name
+        f.save(str(target))
+        audit("file_upload", str(target), "ok")
+        saved.append({'name': name, 'path': str(target), 'bytes': target.stat().st_size})
+    if not saved:
+        return jsonify({'error': 'No valid files uploaded'}), 400
+    return jsonify({'ok': True, 'sandbox': 'OFF', 'uploaded': saved, 'path': str(dest)})
+
+
+@app.route('/api/fs/drives', methods=['GET'])
+def api_fs_drives():
+    result = rge.execute("list_drives", {})
+    drives = []
+    for line in str(result).split('\n'):
+        line = line.strip()
+        if line and '📁' in line:
+            drives.append(line.split('📁')[1].strip())
+    return jsonify({'drives': drives, 'sandbox': 'OFF'})
+
+
+@app.route('/api/fs/fullaccess', methods=['POST'])
+def api_fs_fullaccess():
+    """Sandbox removed — always ON."""
+    set_full_access(True)
+    return jsonify({
+        'result': 'Full filesystem access: LOCKED ON (sandbox removed).',
+        'enabled': True,
+        'sandbox': 'OFF',
     })
 
 
@@ -836,17 +1032,14 @@ def api_audit():
 # ============================================================
 # STATIC ROUTES
 # ============================================================
-LOGO_PATH = Path(__file__).parent / "glass-ui" / "claude-mascot.png"
-LEGACY_LOGO_PATH = Path(__file__).parent / "glass-ui" / "clawd.png"
+LOGO_PATH = Path(__file__).parent / "glass-ui" / "clawd.png"
 
 @app.route('/clawd.png')
-@app.route('/claude-mascot.png')
 def serve_logo():
-    """Serve the Claude mascot for the glass UI."""
-    path = LOGO_PATH if LOGO_PATH.exists() else LEGACY_LOGO_PATH
-    if path.exists():
+    """Serve the logo image behind the glass UI."""
+    if LOGO_PATH.exists():
         from flask import send_file
-        return send_file(str(path), mimetype='image/png')
+        return send_file(str(LOGO_PATH), mimetype='image/png')
     return jsonify({'error': 'Logo not found'}), 404
 
 # ============================================================
@@ -859,13 +1052,7 @@ GUI_HTML = GUI_DIR / "index.html"
 def index():
     if GUI_HTML.exists():
         html = GUI_HTML.read_text(encoding="utf-8")
-        html = html.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
-        try:
-            from claude_o_cli.welcome_scene import render_welcome_html
-            html = html.replace("__DIGITAL_WELCOME__", render_welcome_html())
-        except Exception:
-            html = html.replace("__DIGITAL_WELCOME__", "")
-        return html
+        return html.replace("__DEFAULT_MODEL__", DEFAULT_MODEL)
     return "Glass UI not found", 404
 
 # ============================================================
@@ -875,16 +1062,18 @@ if __name__ == '__main__':
     print()
     print("  " + chr(0x2554) + chr(0x2550)*65 + chr(0x2557))
     print("  " + chr(0x2551) + "                                                         " + chr(0x2551))
-    print("  " + chr(0x2551) + "   OROBOROS CLI + UI " + chr(0x2014) + " HARDENED SECURE GATEWAY          " + chr(0x2551))
+    print("  " + chr(0x2551) + "   OROBOROS CLI + UI " + chr(0x2014) + " SOVEREIGN FULL ACCESS             " + chr(0x2551))
     print("  " + chr(0x2551) + "   " + chr(0x221E) + "| 1272/1275 Hz " + chr(0x2014) + " " + chr(0x3C6) + chr(0x2192) + chr(0x221A) + "4" + chr(0x2192) + chr(0x221A) + "5 " + chr(0x2014) + " SUBSTRATE MANIFEST      " + chr(0x2551))
-    print("  " + chr(0x2551) + "   vA.1272 " + chr(0x2014) + " ZTA Active " + chr(0x2014) + " RGE Governing                  " + chr(0x2551))
+    print("  " + chr(0x2551) + "   vA.1272 " + chr(0x2014) + " NO SANDBOX " + chr(0x2014) + " UNRESTRICTED                  " + chr(0x2551))
     print("  " + chr(0x2551) + "                                                         " + chr(0x2551))
     print("  " + chr(0x255D) + chr(0x2550)*65 + chr(0x255D))
     print()
+    set_full_access(True)
+    SAFE_WORKSPACE.mkdir(parents=True, exist_ok=True)
     print(f"  GUI:     http://127.0.0.1:5000")
     print(f"  Ollama:  {OLLAMA_URL}")
-    print(f"  Safe WS: {SAFE_WORKSPACE}")
-    print(f"  Status:  HARDENED " + chr(0x2014) + " ZTA " + chr(0x2014) + " RGE " + chr(0x2014) + " Audit Logging")
+    print(f"  Scratch: {SAFE_WORKSPACE}")
+    print(f"  Status:  NO SANDBOX " + chr(0x2014) + " FULL ACCESS " + chr(0x2014) + " UPLOAD ENABLED")
     print(f"  {SIGNATURE}")
     print()
     app.run(host='127.0.0.1', port=5000, debug=False)

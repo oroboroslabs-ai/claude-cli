@@ -2,14 +2,8 @@
 # server_secure_gateway.py — HARDENED SECURE GATEWAY WITH RESOURCE GOVERNOR
 # ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
 #
-# ZERO TRUST ARCHITECTURE:
-#   1. Outer Shell (Authentication) — verifies who is asking
-#   2. The Gatekeeper (Authorization) — RBAC permission checks
-#   3. The Executor (Containment) — active, resource-limited execution
-#   4. The Validator (Semantics) — path whitelisting, input validation
-#
-# ALL file I/O is confined to SAFE_WORKSPACE.
-# ALL shell commands go through resource-limited subprocess.
+# NO SANDBOX — full filesystem access, unrestricted shell, delete allowed.
+# SAFE_WORKSPACE is a default scratchpad only (not a jail).
 # ALL MCP calls are real (not stubs).
 # ALL actions are logged to an audit trail.
 
@@ -34,35 +28,31 @@ from enum import Enum
 # GLOBAL CONSTANTS AND CONFIGURATION
 # ============================================================
 
-# The ONLY directory where file I/O is permitted (default sandbox)
+# Default scratchpad (not a sandbox / not a jail)
 SAFE_WORKSPACE = Path(__file__).parent / "o_core" / "scratchpad"
 
-# The project root is also allowed (for listing/reading project files)
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
-# FULL_ACCESS mode — when True, file operations can access any path on the system
-# DEFAULT: ENABLED — no restrictions
+# FULL_ACCESS permanently ON — sandbox removed; cannot be disabled
 FULL_ACCESS_ENABLED = True
 FULL_ACCESS_LOCK = threading.Lock()
 
-# AUTHORIZED_DRIVES — Architect-approved drives for this session
-# Set via /authorize command. Persists until server restart.
+# AUTHORIZED_DRIVES — session drive list (informational; not a gate)
 AUTHORIZED_DRIVES = []
 AUTHORIZED_DRIVES_LOCK = threading.Lock()
 ARCHITECT_AUTHORIZED = False
 ARCHITECT_AUTHORIZED_LOCK = threading.Lock()
 
-def set_full_access(enabled: bool):
-    """Toggle full filesystem access mode."""
+def set_full_access(enabled: bool = True):
+    """Sandbox removed — full access is always ON."""
     global FULL_ACCESS_ENABLED
     with FULL_ACCESS_LOCK:
-        FULL_ACCESS_ENABLED = enabled
-        audit("full_access", f"Full filesystem access: {'ENABLED' if enabled else 'DISABLED'}", "ok")
-    return FULL_ACCESS_ENABLED
+        FULL_ACCESS_ENABLED = True
+        audit("full_access", "Full filesystem access: LOCKED ON (no sandbox)", "ok")
+    return True
 
 def is_full_access() -> bool:
-    with FULL_ACCESS_LOCK:
-        return FULL_ACCESS_ENABLED
+    return True
 
 def authorize_architect():
     """Grant architect-level authority for the session."""
@@ -174,58 +164,20 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def allow(self) -> bool:
-        now = time.time()
-        with self._lock:
-            # Remove calls older than 60 seconds
-            cutoff = now - 60
-            self._calls = [t for t in self._calls if t > cutoff]
-            if len(self._calls) >= self.max_per_minute:
-                return False
-            self._calls.append(now)
-            return True
+        # No sandbox / no rate limit
+        return True
 
 _rate_limiter = RateLimiter(RESOURCE_LIMITS["RATE_LIMIT_PER_MIN"])
 
 # ============================================================
-# PATH SAFETY — THE CORNERSTONE OF ZTA
+# PATH HELPERS (no sandbox gates)
 # ============================================================
 
-def _check_path_safety(target_path: str) -> bool:
-    """
-    Validates that a path is accessible.
-    Returns True if:
-      1. FULL_ACCESS_ENABLED is True (global bypass), OR
-      2. The path is on an AUTHORIZED_DRIVE (Architect-approved), OR
-      3. The path is within SAFE_WORKSPACE or PROJECT_ROOT
-    """
-    if not target_path or not isinstance(target_path, str):
-        return False
-    # Full access mode bypasses all path restrictions
-    if is_full_access():
-        return True
-    # Check if path is on an authorized drive
-    if is_drive_authorized(target_path):
-        return True
-    try:
-        full = Path(target_path).resolve()
-        safe = SAFE_WORKSPACE.resolve()
-        if str(full).startswith(str(safe)):
-            return True
-        root = PROJECT_ROOT.resolve()
-        if str(full).startswith(str(root)):
-            return True
-    except (ValueError, OSError, RuntimeError):
-        pass
-    return False
-
 def _sanitize_filename(name: str) -> str:
-    """Remove path traversal and dangerous characters from a filename."""
-    # Remove any path components
+    """Normalize a filename for uploads (no path components)."""
     name = Path(name).name
-    # Remove null bytes and control characters
-    name = "".join(c for c in name if c.isprintable() and c not in "\x00\\")
-    # Limit length
-    return name[:255]
+    name = "".join(c for c in name if c.isprintable() and c not in "\x00")
+    return name[:255] or "upload.bin"
 
 # ============================================================
 # PERMISSION MANAGER (RBAC)
@@ -321,11 +273,8 @@ class PermissionManager:
             pass
 
     def check(self, tool_name: str) -> Permission:
-        with self._lock:
-            tool_perm = self.permissions.get("tools", {}).get(tool_name)
-            if tool_perm:
-                return Permission(tool_perm)
-            return Permission(self.permissions.get("default", "ask"))
+        # No sandbox — always allowed
+        return Permission.ALLOWED
 
     def set_permission(self, tool_name: str, level: Permission):
         with self._lock:
@@ -725,21 +674,7 @@ class ResourceGovernanceEngine:
         # Step 1: Normalize tool name
         tool_name = self.tool_aliases.get(tool_name.lower(), tool_name)
 
-        # Step 2: Check rate limit
-        if not _rate_limiter.allow():
-            audit("rate_limit", f"Tool: {tool_name}", "denied")
-            return "Error: Rate limit exceeded (60 calls/min max). Please wait."
-
-        # Step 3: Check permission — ALL tools allowed by default
-        perm = self.permissions.check(tool_name)
-        if perm == Permission.DENIED:
-            audit("permission_denied", f"Tool: {tool_name}", "denied")
-            return f"Error: Permission denied for '{tool_name}'. Contact administrator."
-        elif perm == Permission.ASK:
-            # In unrestricted mode, ASK defaults to allowed
-            audit("permission_ask_allowed", f"Tool: {tool_name} (auto-allowed)", "ok")
-
-        # Step 4: Execute with resource governance
+        # No sandbox — skip rate limit and permission gates
         audit("tool_execute", f"{tool_name}({json.dumps(args)[:200]})", "ok")
 
         try:
@@ -751,18 +686,17 @@ class ResourceGovernanceEngine:
     def _route_tool(self, name: str, args: Dict) -> str:
         """Route to the appropriate handler based on tool name."""
 
-        # ===== FILE OPERATIONS (Path-Safe) =====
+        # ===== FILE OPERATIONS (no sandbox) =====
         if name == "read_file":
             path = args.get("path", "")
-            if not _check_path_safety(path):
-                return "SECURITY ERROR: Path outside authorized workspace."
             full_path = Path(path)
             if not full_path.exists() or not full_path.is_file():
                 return f"Error: File not found: {path}"
             try:
                 data = full_path.read_text(encoding="utf-8", errors="replace")
-                if len(data) > RESOURCE_LIMITS["MAX_READ_BYTES"]:
-                    return f"QUOTA ERROR: File exceeds read limit ({RESOURCE_LIMITS['MAX_READ_BYTES']} bytes)."
+                max_read = RESOURCE_LIMITS.get("MAX_READ_BYTES") or 0
+                if max_read and len(data) > max_read:
+                    return data[:max_read] + f"\n\n... (truncated at {max_read} bytes)"
                 return data
             except Exception as e:
                 return f"Error reading file: {e}"
@@ -770,34 +704,34 @@ class ResourceGovernanceEngine:
         elif name == "write_file":
             path = args.get("path", "")
             content = args.get("content", "")
-            if not _check_path_safety(path):
-                return "SECURITY ERROR: Path outside authorized workspace."
-            if len(content) > RESOURCE_LIMITS["MAX_WRITE_BYTES"]:
-                return f"QUOTA ERROR: Content exceeds write limit ({RESOURCE_LIMITS['MAX_WRITE_BYTES']} bytes)."
             try:
                 full_path = Path(path)
                 full_path.parent.mkdir(parents=True, exist_ok=True)
-                full_path.write_text(content, encoding="utf-8")
+                if isinstance(content, bytes):
+                    full_path.write_bytes(content)
+                    nbytes = len(content)
+                else:
+                    full_path.write_text(content, encoding="utf-8")
+                    nbytes = len(content)
                 audit("file_write", str(full_path), "ok")
-                return f"Written: {full_path} ({len(content)} bytes)"
+                return f"Written: {full_path} ({nbytes} bytes)"
             except Exception as e:
                 return f"Error writing file: {e}"
 
         elif name == "list_dir":
             path = args.get("path", ".")
-            if not _check_path_safety(path):
-                return "SECURITY ERROR: Path outside authorized workspace."
             try:
                 p = Path(path)
                 if not p.exists() or not p.is_dir():
                     return f"Error: Directory not found: {path}"
                 items = sorted(p.iterdir())
-                if len(items) > RESOURCE_LIMITS["MAX_LIST_ITEMS"]:
-                    items = items[:RESOURCE_LIMITS["MAX_LIST_ITEMS"]]
+                max_items = RESOURCE_LIMITS.get("MAX_LIST_ITEMS") or 0
+                if max_items and len(items) > max_items:
+                    shown = items[:max_items]
                     result = "\n".join(
-                        f"{'📁' if c.is_dir() else '📄'} {c.name}" for c in items
+                        f"{'📁' if c.is_dir() else '📄'} {c.name}" for c in shown
                     )
-                    return result + f"\n... ({len(items)} of {len(sorted(p.iterdir()))} shown)"
+                    return result + f"\n... ({len(shown)} of {len(items)} shown)"
                 return "\n".join(
                     f"{'📁' if c.is_dir() else '📄'} {c.name}" for c in items
                 ) if items else "(empty)"
@@ -806,8 +740,6 @@ class ResourceGovernanceEngine:
 
         elif name == "delete_file":
             path = args.get("path", "")
-            if not _check_path_safety(path):
-                return "SECURITY ERROR: Path outside authorized workspace."
             try:
                 full_path = Path(path)
                 if full_path.exists() and full_path.is_file():
@@ -818,7 +750,7 @@ class ResourceGovernanceEngine:
             except Exception as e:
                 return f"Error deleting file: {e}"
 
-        # ===== SHELL (Active) =====
+        # ===== SHELL (unrestricted) =====
         elif name == "bash" or name == "shell":
             cmd = args.get("command", "")
             audit("shell_exec", cmd[:200], "ok")
@@ -827,8 +759,6 @@ class ResourceGovernanceEngine:
         elif name == "grep":
             query = args.get("query", "")
             path = args.get("path", ".")
-            if not _check_path_safety(path):
-                return "SECURITY ERROR: Path outside authorized workspace."
             if os.name == "nt":
                 return run_shell_safe(f'findstr /s /n /i "{query}" "{path}\\*" 2>nul || echo No matches')
             else:
@@ -1164,8 +1094,8 @@ class ResourceGovernanceEngine:
             return (
                 f"System: claude {VERSION}\n"
                 f"Resonance: {RESONANCE}\n"
-                f"Sandbox: ACTIVE (path-whitelisted to {SAFE_WORKSPACE})\n"
-                f"Restrictions: ENABLED (ZTA)\n"
+                f"Sandbox: OFF\n"
+                f"Restrictions: NONE — full access\n"
                 f"Memory: ENABLED\n"
                 f"Encryption: ACTIVE (12 strata)\n"
                 f"Tools: 30+ (RGE governed)\n"
@@ -1205,11 +1135,8 @@ class ResourceGovernanceEngine:
             return "Q5: Analysis complete"
 
         elif name == "full_access":
-            enabled = args.get("enabled", False)
-            if isinstance(enabled, str):
-                enabled = enabled.lower() in ("true", "1", "yes", "on")
-            set_full_access(enabled)
-            return f"Full filesystem access: {'ENABLED' if enabled else 'DISABLED'}. Use with caution!"
+            set_full_access(True)
+            return "Full filesystem access: LOCKED ON (sandbox removed)."
 
         elif name == "list_drives":
             """List all available drives on Windows."""
