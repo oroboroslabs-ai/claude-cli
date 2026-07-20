@@ -23,8 +23,7 @@ Claude CLI is a **local** sovereign terminal AI — glass UI + Ollama + ZTA/RGE 
 | Models | Opus, Sonnet (cloud) | claude-7, claude-nebillion, 200+ local |
 
 
-
-<img width="797" height="663" alt="Screenshot 2026-07-16 031130" src="https://github.com/user-attachments/assets/f221f685-299d-4782-9014-f48ac348c981" />
+<img width="1382" height="856" alt="Screenshot 2026-07-07 105411" src="https://github.com/user-attachments/assets/12502349-2d28-4563-9dc6-d8cf4d3d1dba" />
 
 
 
@@ -146,7 +145,8 @@ Use `/think xhigh` in the glass UI.
 ## Project structure
 
 
-<img width="1014" height="817" alt="Screenshot 2026-07-16 030712" src="https://github.com/user-attachments/assets/6d387a62-7dee-4f0c-99c1-4417b5a20985" />
+<img width="626" height="424" alt="Screenshot 2026-07-07 110625" src="https://github.com/user-attachments/assets/fa2b683b-651a-4c54-900b-0c46a6297ee9" />
+
 
 
 
