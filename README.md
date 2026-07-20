@@ -22,6 +22,12 @@ Claude CLI is a **local** sovereign terminal AI — glass UI + Ollama + ZTA/RGE 
 | UI | Claude Code TUI | **Glass terminal @ http://127.0.0.1:5000** |
 | Models | Opus, Sonnet (cloud) | claude-7, claude-nebillion, 200+ local |
 
+
+
+<img width="797" height="663" alt="Screenshot 2026-07-16 031130" src="https://github.com/user-attachments/assets/f221f685-299d-4782-9014-f48ac348c981" />
+
+
+
 ## Quick start
 
 **Prerequisites:** [Ollama](https://ollama.com) running locally (`ollama serve`).
@@ -138,6 +144,11 @@ Use `/think xhigh` in the glass UI.
 - **Shadow:** noir (Noir-Nephilim)
 
 ## Project structure
+
+
+<img width="1014" height="817" alt="Screenshot 2026-07-16 030712" src="https://github.com/user-attachments/assets/6d387a62-7dee-4f0c-99c1-4417b5a20985" />
+
+
 
 ```
 claude-cli/
