@@ -1,0 +1,25 @@
+import type { Message, SystemMessage } from '../../types/message.js'
+
+export type SnipCompactResult = {
+  messages: Message[]
+  tokensFreed: number
+  boundaryMessage?: SystemMessage
+}
+
+export function isSnipRuntimeEnabled(): boolean {
+  return false
+}
+
+export function isSnipMarkerMessage(_message: Message): boolean {
+  return false
+}
+
+export function snipCompactIfNeeded(
+  messages: Message[],
+  _options?: { force?: boolean },
+): SnipCompactResult {
+  return {
+    messages,
+    tokensFreed: 0,
+  }
+}

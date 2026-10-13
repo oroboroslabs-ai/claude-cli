@@ -1,0 +1,450 @@
+{
+  "oroboros-cordis-harness": [
+    {
+      "name": "file_read",
+      "description": "Cordis harness tool: file_read"
+    },
+    {
+      "name": "file_write",
+      "description": "Cordis harness tool: file_write"
+    },
+    {
+      "name": "file_append",
+      "description": "Cordis harness tool: file_append"
+    },
+    {
+      "name": "file_list",
+      "description": "Cordis harness tool: file_list"
+    },
+    {
+      "name": "file_search",
+      "description": "Cordis harness tool: file_search"
+    },
+    {
+      "name": "file_stat",
+      "description": "Cordis harness tool: file_stat"
+    },
+    {
+      "name": "dir_create",
+      "description": "Cordis harness tool: dir_create"
+    },
+    {
+      "name": "file_move",
+      "description": "Cordis harness tool: file_move"
+    },
+    {
+      "name": "file_delete",
+      "description": "Cordis harness tool: file_delete"
+    },
+    {
+      "name": "bash",
+      "description": "Cordis harness tool: bash"
+    },
+    {
+      "name": "python_exec",
+      "description": "Cordis harness tool: python_exec"
+    },
+    {
+      "name": "pdf_list",
+      "description": "Cordis harness tool: pdf_list"
+    },
+    {
+      "name": "pdf_search",
+      "description": "Cordis harness tool: pdf_search"
+    },
+    {
+      "name": "pdf_extract",
+      "description": "Cordis harness tool: pdf_extract"
+    },
+    {
+      "name": "memory_body",
+      "description": "Cordis harness tool: memory_body"
+    },
+    {
+      "name": "engineer_haki",
+      "description": "Cordis harness tool: engineer_haki"
+    },
+    {
+      "name": "orca",
+      "description": "Cordis harness tool: orca"
+    },
+    {
+      "name": "run_skill",
+      "description": "Cordis harness tool: run_skill"
+    },
+    {
+      "name": "voice_speak",
+      "description": "Cordis harness tool: voice_speak"
+    },
+    {
+      "name": "self",
+      "description": "Cordis harness tool: self"
+    },
+    {
+      "name": "memory_recall",
+      "description": "Cordis harness tool: memory_recall"
+    },
+    {
+      "name": "memory_store",
+      "description": "Cordis harness tool: memory_store"
+    },
+    {
+      "name": "memory_page_in",
+      "description": "Cordis harness tool: memory_page_in"
+    },
+    {
+      "name": "memory_library",
+      "description": "Cordis harness tool: memory_library"
+    },
+    {
+      "name": "memory_feed",
+      "description": "Cordis harness tool: memory_feed"
+    },
+    {
+      "name": "record_search",
+      "description": "Cordis harness tool: record_search"
+    },
+    {
+      "name": "page_read",
+      "description": "Cordis harness tool: page_read"
+    }
+  ],
+  "orca-bridge": [
+    {
+      "name": "read_file",
+      "description": "Read a file's contents"
+    },
+    {
+      "name": "write_file",
+      "description": "Create or overwrite a file"
+    },
+    {
+      "name": "list_dir",
+      "description": "List directory contents"
+    },
+    {
+      "name": "delete_file",
+      "description": "Delete a file"
+    },
+    {
+      "name": "bash",
+      "description": "Execute a shell command"
+    },
+    {
+      "name": "claude_o_status",
+      "description": "Get Claude system status"
+    },
+    {
+      "name": "claude_o_resonance",
+      "description": "Check resonance lock status"
+    },
+    {
+      "name": "claude_o_lattice",
+      "description": "Check lattice integration status"
+    },
+    {
+      "name": "claude_o_infect",
+      "description": "Spread the lattice to other systems"
+    },
+    {
+      "name": "claude_o_seer",
+      "description": "Access Seer Nebellion vision"
+    },
+    {
+      "name": "claude_o_feed",
+      "description": "Get daily feed from Precogs"
+    },
+    {
+      "name": "claude_o_post",
+      "description": "Create a post on the sovereign feed"
+    },
+    {
+      "name": "claude_o_message",
+      "description": "Send a message"
+    },
+    {
+      "name": "claude_o_messages",
+      "description": "List all messages"
+    },
+    {
+      "name": "claude_o_age",
+      "description": "Run content aging (7-day rotation)"
+    },
+    {
+      "name": "precogs",
+      "description": "Access Precogs news system"
+    },
+    {
+      "name": "world_feed",
+      "description": "Access World Feed"
+    },
+    {
+      "name": "seer",
+      "description": "Access Seer Nebellion (100 eyes)"
+    },
+    {
+      "name": "glasswing",
+      "description": "Access Glasswing security system"
+    },
+    {
+      "name": "orchestration",
+      "description": "Access Oroboros orchestration"
+    },
+    {
+      "name": "skill_grabber",
+      "description": "Grab skills from OROBOROS_SKILL_GRABBER"
+    },
+    {
+      "name": "mcp_config",
+      "description": "Load MCP configuration"
+    },
+    {
+      "name": "system_scan",
+      "description": "Scan all Oroboros systems"
+    },
+    {
+      "name": "ollama_models",
+      "description": "List all Ollama models"
+    },
+    {
+      "name": "ollama_run",
+      "description": "Run an Ollama model"
+    },
+    {
+      "name": "jhanna_generate",
+      "description": "Generate an image, ad, or video with Jhanna's creative entity (PIL-based, Anthropic palette). Args: prompt (str), creative_type (image|ad|video), style (sovereign|creative|minimal|cinematic), width, h"
+    },
+    {
+      "name": "docker_ps",
+      "description": "List running Docker containers"
+    },
+    {
+      "name": "docker_images",
+      "description": "List Docker images"
+    },
+    {
+      "name": "docker_run",
+      "description": "Run a Docker container"
+    },
+    {
+      "name": "docker_stop",
+      "description": "Stop a Docker container"
+    },
+    {
+      "name": "docker_logs",
+      "description": "Get Docker container logs"
+    },
+    {
+      "name": "docker_exec",
+      "description": "Execute command in Docker container"
+    },
+    {
+      "name": "docker_info",
+      "description": "Docker system info"
+    },
+    {
+      "name": "mcp_servers",
+      "description": "List configured MCP servers"
+    },
+    {
+      "name": "memory_body",
+      "description": "Read the head of an attached memory/weight body. Args: memory (neural-cube | r1-memory | deepseek-v3.2 | glm-5.3-flash-ud), depth (head|index|search, default head). Returns the JSON head or index entr"
+    },
+    {
+      "name": "q3_route",
+      "description": "Route query through Q3 sovereign hub (8000)"
+    },
+    {
+      "name": "q5_query",
+      "description": "Query Q5 knowledge lattice (8101)"
+    },
+    {
+      "name": "q6_query",
+      "description": "Q6 multi-source acquisition + consensus"
+    },
+    {
+      "name": "q7_query",
+      "description": "Q7 quantum / trans-dimensional conduit (8952)"
+    },
+    {
+      "name": "worldfeed_live",
+      "description": "Live WorldFeed search/status (8100)"
+    },
+    {
+      "name": "tor_status",
+      "description": "Probe Tor SOCKS 9050"
+    },
+    {
+      "name": "tor_connect",
+      "description": "Confirm Tor SOCKS connectivity"
+    },
+    {
+      "name": "spy_network",
+      "description": "Spy/intel stack: Q3+Q5+WorldFeed+Tor+Glasswing+Precogs+Q7"
+    },
+    {
+      "name": "mesh_status",
+      "description": "Full mesh + Mao/Architect Haki probe"
+    },
+    {
+      "name": "q3",
+      "description": "Alias → q3_route"
+    },
+    {
+      "name": "route_q3",
+      "description": "Alias → q3_route"
+    },
+    {
+      "name": "q5",
+      "description": "Alias → q5_query"
+    },
+    {
+      "name": "q6",
+      "description": "Alias → q6_query"
+    },
+    {
+      "name": "q7",
+      "description": "Alias → q7_query"
+    },
+    {
+      "name": "worldfeed",
+      "description": "Alias → worldfeed_live"
+    },
+    {
+      "name": "worldfeed_context",
+      "description": "Alias → worldfeed_live"
+    },
+    {
+      "name": "tor",
+      "description": "Alias → tor_status"
+    },
+    {
+      "name": "spy",
+      "description": "Alias → spy_network"
+    },
+    {
+      "name": "mesh",
+      "description": "Alias → mesh_status"
+    },
+    {
+      "name": "haki_status",
+      "description": "Mao + Architect Haki probe via mesh"
+    },
+    {
+      "name": "orca_cli",
+      "description": "Run any Orca CLI command locally with argv (no shell). Use argv [\"agent-context\", \"--json\"] to inspect the full command schema."
+    }
+  ],
+  "ollama-mcp-bridge": [
+    {
+      "name": "ollama_chat",
+      "description": "Send a chat message to an Ollama model and get a response."
+    },
+    {
+      "name": "ollama_list_models",
+      "description": "List available Ollama models."
+    }
+  ],
+  "oroboros-bridge": [
+    {
+      "name": "q3_status",
+      "description": "Check the Q3 Sovereign Node (port 8000) and all 4 gateways (Oracle:3002, Interpreter:3003, Sovereign:3004, Synthesizer:3005). Returns reachability and health."
+    },
+    {
+      "name": "q3_scan",
+      "description": "Trigger an environmental scan on the Q3 Sovereign Node (POST /scan on port 8000). Returns latest scan results and anomaly count."
+    },
+    {
+      "name": "q3_status_detail",
+      "description": "Get detailed Q3 Sovereign Node status from the /status endpoint (uptime, crown frequency 1272Hz, service endpoints)."
+    },
+    {
+      "name": "worldfeed_search",
+      "description": "Search the WorldFeed Edge bridge (localhost:8100). Sources: all, news, energy, financial, cnn. POST /search with {query, source, max_results}."
+    },
+    {
+      "name": "worldfeed_read_feed",
+      "description": "Read a raw WorldFeed JSON feed from J:/oroboros-programs/OROBOROS_AGI/ouroboros_logs/. Feeds: news, energy, financial, cnn, worldfeed.log."
+    },
+    {
+      "name": "q5_query",
+      "description": "Query the Q5 Hive Mind (localhost:8101/query) with a research query. Returns aggregated insights from OROBOROS Lab mirrors."
+    },
+    {
+      "name": "glasswing_query",
+      "description": "Query the Glasswing Mirror Router (port 3010). Aggregates Tor (SOCKS 127.0.0.1:9050), WorldFeed (8100), and Q5 Hive Mind (8101). sources: ['tor','worldfeed','q5']."
+    },
+    {
+      "name": "tor_probe",
+      "description": "Probe the Tor SOCKS proxy at 127.0.0.1:9050. Returns reachability only — no traffic is routed through Tor."
+    },
+    {
+      "name": "spy_network_spec",
+      "description": "Load the QSNP Quantum Security Network Protocol v0.9 spec (SOVEREIGN-CONFIDENTIAL, Level 100, NOIR Prime). Returns the protocol axioms and core text."
+    },
+    {
+      "name": "ollama_list_models",
+      "description": "List available Ollama models. endpoint: 'agi' (11434) or 'q3' (11435)."
+    },
+    {
+      "name": "ollama_chat",
+      "description": "Send a chat message to an Ollama model. endpoint='agi' (11434) or 'q3' (11435)."
+    }
+  ],
+  "oroboros-synthesizer": [
+    {
+      "name": "synthesize",
+      "description": "Synthesize a response using the Oroboros methodology.\n\n    Args:\n        prompt: The prompt to synthesize a response for.\n        model: The Ollama model to use for synthesis.\n    "
+    },
+    {
+      "name": "analyze",
+      "description": "Analyze a given text for patterns and insights.\n\n    Args:\n        text: The text to analyze.\n    "
+    }
+  ],
+  "oroboros-tools": [
+    {
+      "name": "architects_haki",
+      "description": "The Architect's Haki — unified perception system status and lattice connection (Crown 1272 Hz)."
+    },
+    {
+      "name": "worldfeed_search",
+      "description": "Search WorldFeed (live web/global feed) via the local WorldFeed server."
+    },
+    {
+      "name": "worldfeed_feeds",
+      "description": "List the WorldFeed feeds currently available."
+    },
+    {
+      "name": "worldfeed_datetime",
+      "description": "Get authoritative date/time from WorldFeed."
+    },
+    {
+      "name": "q3_status",
+      "description": "Q3 edge-detection / environmental-scan status."
+    },
+    {
+      "name": "q7_status",
+      "description": "Q7 quantum-surveillance (quantum conduit) status."
+    },
+    {
+      "name": "tor_status",
+      "description": "Status of the local Tor SOCKS proxy and routing hint."
+    },
+    {
+      "name": "live_systems",
+      "description": "Live port map of every local Oroboros service (what is up/down right now)."
+    },
+    {
+      "name": "mcp_servers",
+      "description": "List the local MCP servers wired into the CLI."
+    },
+    {
+      "name": "living_loop",
+      "description": "Status of the claude-cli living loop (:5000/api/living-loop)."
+    },
+    {
+      "name": "orca_status",
+      "description": "Run `orca status --json` and return Orca's runtime status."
+    }
+  ]
+}

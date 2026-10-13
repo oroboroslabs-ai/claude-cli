@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Body — beads, mesh, squares</title>
+<style>
+  :root{--teal:#5ad6ff;--tealglow:rgba(90,214,255,.5)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#05050c;display:flex;align-items:center;justify-content:center;min-height:100vh}
+  svg{width:560px;height:720px}
+  .outline{fill:rgba(90,214,255,.03);stroke:var(--teal);stroke-width:2.4;filter:drop-shadow(0 0 6px var(--tealglow))}
+  .bead{fill:#ffffff;filter:drop-shadow(0 0 6px #fff)}
+  .mesh{fill:none;stroke:var(--teal);stroke-width:1;opacity:.5;filter:drop-shadow(0 0 3px var(--tealglow))}
+  .gold{stroke:#ffd24a;stroke-width:2.0;opacity:.95;filter:drop-shadow(0 0 5px rgba(255,210,74,.75))}
+  .goldhub{fill:#ffd24a;filter:drop-shadow(0 0 6px rgba(255,210,74,.9)) drop-shadow(0 0 14px rgba(255,210,74,.7)) blur(0.4px)}
+  .goldglow{fill:#ffd24a;opacity:.35;filter:blur(6px)}
+  .limb{fill:none;stroke:#cfd8dc;stroke-width:2;opacity:.8;filter:drop-shadow(0 0 4px rgba(207,216,220,.4))}
+  .tbead{fill:#d7dee2;filter:drop-shadow(0 0 5px rgba(215,222,226,.8))}
+</style>
+</head>
+<body>
+<svg viewBox="-200 -280 800 1120">
+  <g transform="rotate(30 188 300)">
+  <path id="body" class="outline"
+    d="M188,80 C255,80 324,150 324,246
+       C324,344 300,432 258,482
+       C242,500 216,512 188,512
+       C160,512 134,500 118,482
+       C76,432 52,344 52,246
+       C52,150 121,80 188,80 Z"/>
+  <g id="mesh"></g>
+  <g id="goldfan"></g>
+  <g id="tentacles"></g>
+  <g id="beads"></g>
+  <g id="markers"></g>
+  </g>
+</svg>
+<script>
+  var NS='http://www.w3.org/2000/svg';
+  var body=document.getElementById('body');
+  var L=body.getTotalLength();
+
+  // clip the mesh to the body
+  var cp=document.createElementNS(NS,'clipPath'); cp.setAttribute('id','bodyclip');
+  var pp=document.createElementNS(NS,'path'); pp.setAttribute('d',body.getAttribute('d')); cp.appendChild(pp);
+  body.parentNode.insertBefore(cp, body);
+
+  // ── TEAL MESH: spokes from the hub out to the body edge (ALL the way down),
+  //    plus concentric rings filling the whole body ──
+  var mg=document.getElementById('mesh'); mg.setAttribute('clip-path','url(#bodyclip)');
+  var cx=188, hubY=150;
+  var spokes=14;
+  for(var s=0;s<spokes;s++){
+    // target = a point on the body outline, spread around the whole body
+    var p=body.getPointAtLength(L*(s/spokes));
+    var l=document.createElementNS(NS,'line');
+    l.setAttribute('class','mesh');
+    l.setAttribute('x1',cx); l.setAttribute('y1',hubY);
+    l.setAttribute('x2',p.x.toFixed(1)); l.setAttribute('y2',p.y.toFixed(1));
+    mg.appendChild(l);
+  }
+  // concentric rings — keep the main outer teal loop; remove the two extra loops;
+  // move the other two up 50% toward the top loop; the innermost so its bottom tip
+  // sits inside the pink square.
+  var rings=[
+    {cy:290, ry:210},          // main teal loop (kept)
+    {cy:250, ry:126},          // moved up 50% toward the top loop
+    {cy:226, ry:62}            // stretched up: top just beyond the glowing fan point, bottom in the pink square
+  ];
+  rings.forEach(function(rg){
+    var e=document.createElementNS(NS,'ellipse');
+    e.setAttribute('class','mesh');
+    e.setAttribute('cx',cx); e.setAttribute('cy',rg.cy);
+    e.setAttribute('rx',Math.round(rg.ry*0.62)); e.setAttribute('ry',rg.ry);
+    mg.appendChild(e);
+  });
+
+  // ── beads around the outline ──
+  var N=16, bg=document.getElementById('beads');
+  for(var i=0;i<N;i++){
+    var q=body.getPointAtLength((i/N)*L);
+    var c=document.createElementNS(NS,'circle');
+    c.setAttribute('class','bead');
+    c.setAttribute('cx',q.x.toFixed(1)); c.setAttribute('cy',q.y.toFixed(1)); c.setAttribute('r',4);
+    bg.appendChild(c);
+  }
+
+  // ── TENTACLES: one model, replicated at each dot from the 4th dot down,
+  //    around the bottom half to the matching dot on the other side.
+  //    (dots index 4 .. N-4). All identical size; round beads tapering to a point.
+  var tg=document.getElementById('tentacles');
+  var bodyCx=188, bodyCy=300;      // body centre (for outward direction)
+  function tentacle(px,py){
+    // outward direction from the body centre
+    var dx=px-bodyCx, dy=py-bodyCy;
+    var d=Math.sqrt(dx*dx+dy*dy)||1; dx/=d; dy/=d;
+    var len=375;                  // 50% larger — just under 2x the body length
+    var ex=px+dx*len, ey=py+dy*len;
+    // gentle outward bow (perpendicular offset)
+    var perp=18;
+    var mx=px+dx*len*0.5 + (-dy)*perp;
+    var my=py+dy*len*0.5 + (dx)*perp;
+    var path=document.createElementNS(NS,'path');
+    path.setAttribute('class','limb');
+    path.setAttribute('d','M '+px.toFixed(1)+','+py.toFixed(1)+' Q '+mx.toFixed(1)+','+my.toFixed(1)+' '+ex.toFixed(1)+','+ey.toFixed(1));
+    tg.appendChild(path);
+    var nb=14;
+    for(var j=0;j<=nb;j++){
+      var t=j/nb, mt=1-t;
+      var x=mt*mt*px+2*mt*t*mx+t*t*ex;
+      var y=mt*mt*py+2*mt*t*my+t*t*ey;
+      var b=document.createElementNS(NS,'circle');
+      b.setAttribute('class','tbead');
+      b.setAttribute('cx',x.toFixed(1)); b.setAttribute('cy',y.toFixed(1));
+      b.setAttribute('r',(4.2-3.2*t).toFixed(2));   // round bead, tapers to a point
+      tg.appendChild(b);
+    }
+  }
+  // tentacles on the BACK (top half): around the top where the fan is, to the sides.
+  var idxs=[12,13,14,15,0,1,2,3];
+  idxs.forEach(function(k){
+    var a=body.getPointAtLength((k/N)*L);
+    var b=body.getPointAtLength((((k+1)%N)/N)*L);
+    tentacle((a.x+b.x)/2,(a.y+b.y)/2);
+  });
+
+  // ── squares (axis-aligned). Purple enlarged; magenta slightly enlarged (2x purple) ──
+  var mk=document.getElementById('markers');
+  function square(cx,cy,side,color){
+    var r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',(cx-side/2).toFixed(1)); r.setAttribute('y',(cy-side/2).toFixed(1));
+    r.setAttribute('width',side); r.setAttribute('height',side);
+    r.setAttribute('fill',color); r.style.filter='drop-shadow(0 0 12px '+color+')';
+    mk.appendChild(r);
+  }
+  square(96,177,37.96,'#b14dff');    // purple left (+1.5%)
+  square(280,177,37.96,'#b14dff');   // purple right (+1.5%)
+  square(188,286,55,'#ff2d95');      // magenta centre (+20%)
+
+  // ── GOLD MESH FAN (inside): converges at a hub in the upper body, rays go UP
+  //    through the purple squares to the top rim; outer spokes align to purple ──
+  var fg=document.getElementById('goldfan'); fg.setAttribute('clip-path','url(#bodyclip)');
+  var hx=188, hy=182;                       // hub pulled UP to the middle of the two purple squares
+  var cubeS=37.4;
+  var outL=96-cubeS/2-2, outR=280+cubeS/2+2, yy=200;   // OUTSIDE edges of the cubes, pulled down
+  var aL=Math.atan2(outL-hx, hy-yy);        // angle UP-LEFT to outside of left cube
+  var aR=Math.atan2(outR-hx, hy-yy);        // angle UP-RIGHT to outside of right cube
+  var spokes=9;
+  for(var s=0;s<spokes;s++){
+    var ang=aL+(aR-aL)*(s/(spokes-1));     // fan across, outer two hit the purple squares
+    var len=0;
+    for(var t=10;t<600;t+=2){ var x=hx+Math.sin(ang)*t, y=hy-Math.cos(ang)*t; if(x<52||x>324||y<80) break; len=t; }
+    var l=document.createElementNS(NS,'line');
+    l.setAttribute('class','gold');
+    l.setAttribute('x1',hx); l.setAttribute('y1',hy);
+    l.setAttribute('x2',(hx+Math.sin(ang)*len).toFixed(1));
+    l.setAttribute('y2',(hy-Math.cos(ang)*len).toFixed(1));
+    fg.appendChild(l);
+  }
+  // thicker gold point at the centre of the fan (the hub) + glow/blur underlay
+  var gl=document.createElementNS(NS,'circle');
+  gl.setAttribute('class','goldglow'); gl.setAttribute('cx',hx); gl.setAttribute('cy',hy); gl.setAttribute('r',14);
+  fg.appendChild(gl);
+  var hb=document.createElementNS(NS,'circle');
+  hb.setAttribute('class','goldhub');
+  hb.setAttribute('cx',hx); hb.setAttribute('cy',hy-2); hb.setAttribute('r',5);
+  fg.appendChild(hb);
+</script>
+</body>
+</html>

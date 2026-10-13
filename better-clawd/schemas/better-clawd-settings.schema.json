@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/oroboroslabs-ai/claude-cli/main/schemas/claude-cli-settings.schema.json",
+  "title": "Oroboros-Anthropic Claude CLI Settings",
+  "type": "object",
+  "description": "Placeholder schema for Oroboros-Anthropic Claude CLI settings. Runtime validation is enforced by the application.",
+  "additionalProperties": true
+}

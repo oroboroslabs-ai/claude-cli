@@ -1,0 +1,17 @@
+node_modules/
+dist/
+
+.env
+.env.*
+.npmrc
+
+*.log
+npm-debug.log*
+bun-debug.log*
+
+*.tgz
+package-lock.json
+*.tsbuildinfo
+
+.DS_Store
+Thumbs.db

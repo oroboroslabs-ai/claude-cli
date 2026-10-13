@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Oroboros Data-Spider — 3 designs</title>
+<style>
+  :root{--bead:#ffe86a;--beadglow:rgba(255,232,106,.75);--web:#5ad6ff;--webglow:rgba(90,214,255,.55);
+        --purple:#b14dff;--magenta:#ff2d95}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#04040a;color:#dfe7ef;font-family:Inter,Arial,sans-serif;padding:16px}
+  h1{font-size:16px;font-weight:600;letter-spacing:.5px}
+  .sub{opacity:.5;font-size:12px;margin:4px 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+  .panel{position:relative;height:640px;border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;background:#05050c}
+  .phead{position:absolute;top:8px;left:12px;font-size:11px;letter-spacing:1px;opacity:.7;text-transform:uppercase;z-index:6}
+
+  /* right-side hanging thread */
+  .thread{position:absolute;top:0;width:1px;background:linear-gradient(to bottom,var(--webglow),transparent);opacity:.6;z-index:2}
+
+  /* bibliography text lines that scroll while the spider descends */
+  .doc{position:absolute;inset:0;padding:36px 40px 20px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.9;color:#7f8ea3;z-index:1;overflow:hidden}
+  .doc .ln{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;transition:background .25s,box-shadow .25s,color .25s}
+  .doc .ln.hit-cyan{background:rgba(90,214,255,.28);box-shadow:0 0 8px rgba(90,214,255,.5);color:#eaf6ff;border-radius:2px}
+  .doc .ln.hit-yel{background:rgba(255,232,106,.30);box-shadow:0 0 8px rgba(255,232,106,.55);color:#fffbe6;border-radius:2px}
+  .doc .ln.hit-mag{background:rgba(255,45,149,.30);box-shadow:0 0 8px rgba(255,45,149,.55);color:#ffe6f2;border-radius:2px}
+
+  /* the spider: hangs right, descends the page */
+  .rig{position:absolute;right:8%;top:4%;width:520px;height:520px;animation:descend 16s ease-in-out infinite;z-index:5}
+  @keyframes descend{0%{top:4%}46%{top:62%}50%{top:62%;transform:scaleX(-1)}96%{top:4%;transform:scaleX(-1)}100%{top:4%;transform:scaleX(1)}}
+  .spider{width:100%;height:100%;overflow:visible}
+  .bead{filter:drop-shadow(0 0 4px var(--beadglow))}
+  .webline{stroke:var(--web);stroke-width:1;fill:none;filter:drop-shadow(0 0 3px var(--webglow))}
+  .webring{stroke:var(--web);stroke-width:2;fill:rgba(90,214,255,.05);filter:drop-shadow(0 0 7px var(--webglow))}
+  .orb{animation:flick 2.6s ease-in-out infinite}
+  @keyframes flick{0%,100%{opacity:1}50%{opacity:.5}}
+  .fan{stroke:rgba(255,232,106,.8);stroke-width:1}
+  .legend{position:absolute;bottom:6px;left:12px;font-size:10px;opacity:.45;z-index:6}
+</style>
+</head>
+<body>
+<h1>Oroboros Data-Spider — pick a design</h1>
+<div class="sub">right-side hang · tall oval body · long bead legs · descends the page · highlights text as it searches · web = same cyan as the body</div>
+<div class="grid" id="grid"></div>
+
+<script>
+var NS='http://www.w3.org/2000/svg';
+// three variants: all correct position (right) + proportions (tall body, long legs, descending)
+var VARIANTS=[
+  {name:'A · Orb-weaver',  legs:8,  beads:16, legLen:300, bend:18, rx:46, ry:150, style:'oval'},
+  {name:'B · Wide hunter', legs:8,  beads:18, legLen:360, bend:30, rx:52, ry:150, style:'oval'},
+  {name:'C · Tight web',   legs:8,  beads:14, legLen:250, bend:10, rx:40, ry:140, style:'oval'}
+];
+var CITE=[
+ 'Fiorito, G.; Scotto, P. (1992). Observational learning in Octopus vulgaris.',
+ 'Godfrey-Smith, P. (2013). Cephalopod Behaviour. Nature 459.',
+ 'Mather, J. A. (2012). Cephalopod consciousness. J. Comp. Psych.',
+ 'Zullo, L.; Hochner, B. (2013). The octopus: distributed control.',
+ 'Nixon, M. (2011). The brains of cephalopods. Oxford University Press.',
+ 'Birk, M. A.; Bockmann, S. (2011). Sensory systems of Octopus.',
+ 'Kuba, M. J. (2006). Skin patterns and dynamic camouflage.',
+ 'Hanlon, R.; Messenger, J. (2018). Cephalopod Behaviour, 2nd ed.',
+ 'Packard, A. (1972). Cephalopods and fish: the limits of convergence.',
+ 'Young, J. Z. (1963). The number and sizes of nerve cells in Octopus.',
+ 'Wells, M. J. (1978). Octopus: Physiology and behaviour.',
+ 'Budelmann, B. U. (1996). Active marine predators: statocyst.',
+ 'Sumbre, G. (2001). Control of octopus arm by a stereotyped command.',
+ 'Gutfreund, Y. (2006). Organization of octopus arm movements.',
+ 'Matzner, H. (2000). Neuromuscular system of the flexible arm.'
+];
+
+function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+function buildDoc(panel){
+  var doc=document.createElement('div'); doc.className='doc';
+  for(var rep=0;rep<3;rep++) CITE.forEach(function(line,i){
+    var s=document.createElement('span'); s.className='ln'; s.textContent=(rep*CITE.length+i+1)+'. '+line;
+    doc.appendChild(s);
+  });
+  panel.appendChild(doc);
+  return doc;
+}
+
+function build(v){
+  var panel=document.createElement('div'); panel.className='panel';
+  panel.appendChild(Object.assign(document.createElement('div'),{className:'phead',textContent:v.name}));
+  var th=document.createElement('div'); th.className='thread'; th.style.left='calc(100% - 8% - 260px)'; th.style.height='70%'; panel.appendChild(th);
+  buildDoc(panel);
+
+  var rig=document.createElement('div'); rig.className='rig'; panel.appendChild(rig);
+  var svg=el('svg',{viewBox:'0 0 520 520',class:'spider'});
+  var cx=260, cy=250;
+  svg.style.filter='drop-shadow(0 0 10px rgba(90,214,255,.45))';
+  rig.appendChild(svg);
+
+  // 8 long bead legs — angled mostly downward/outward like the reference
+  var g=el('g',{}); svg.appendChild(g);
+  var angs=[-150,-112,-70,-32,32,70,112,150];
+  angs.forEach(function(deg,L){
+    var a=deg*Math.PI/180, len=v.legLen+(L%2)*60;
+    for(var i=0;i<v.beads;i++){
+      var t=i/(v.beads-1), r=len*t;
+      var bend=Math.sin(t*Math.PI)*v.bend*(L<4?-1:1);
+      var x=cx+Math.cos(a)*r+bend*Math.cos(a+Math.PI/2);
+      var y=cy+Math.sin(a)*r+bend*Math.sin(a+Math.PI/2);
+      var c=el('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:(i%2===0?2.9:1.6),fill:'#ffe86a'});
+      c.setAttribute('class','bead'); g.appendChild(c);
+    }
+  });
+
+  // tall oval web body
+  svg.appendChild(el('ellipse',{cx:cx,cy:cy,rx:v.rx,ry:v.ry,class:'webring'}));
+  svg.appendChild(el('ellipse',{cx:cx,cy:cy,rx:(v.rx*0.62).toFixed(0),ry:(v.ry*0.62).toFixed(0),class:'webline',opacity:.5}));
+  // spokes
+  for(var s=0;s<10;s++){
+    var sa=(s*36)*Math.PI/180;
+    svg.appendChild(el('line',{x1:cx,y1:cy,x2:(cx+Math.cos(sa)*v.rx).toFixed(1),y2:(cy+Math.sin(sa)*v.ry).toFixed(1),class:'webline',opacity:.5}));
+  }
+  svg.appendChild(el('line',{x1:cx,y1:cy-v.ry,x2:cx,y2:cy+v.ry,class:'webline',opacity:.6}));
+  // glowing fan at the head
+  for(var f=-4;f<=4;f++){
+    svg.appendChild(el('line',{x1:cx,y1:cy-v.ry+2,x2:(cx+f*9).toFixed(1),y2:(cy-v.ry-26).toFixed(1),class:'fan'}));
+  }
+  // head orb
+  var orb=el('circle',{cx:cx,cy:cy-v.ry+4,r:13,fill:'rgba(177,77,255,.25)',stroke:'#b14dff','stroke-width':1});
+  orb.setAttribute('class','orb'); orb.style.filter='drop-shadow(0 0 12px #b14dff)'; svg.appendChild(orb);
+  // purple diamonds (sides) + magenta (below centre)
+  function dia(x,y,col,glow){var r=el('rect',{x:x-9,y:y-9,width:18,height:18,fill:col,transform:'rotate(45 '+x+' '+y+')'}); if(glow)r.style.filter='drop-shadow(0 0 10px '+glow+')'; svg.appendChild(r);}
+  dia(cx-v.rx*0.7, cy-10, '#b14dff', '#b14dff');
+  dia(cx+v.rx*0.7, cy-10, '#b14dff', '#b14dff');
+  dia(cx, cy+v.ry*0.34, '#ff2d95', '#ff2d95');
+
+  document.getElementById('grid').appendChild(panel);
+
+  // search: highlight text lines progressively as the spider descends
+  var lines=panel.querySelectorAll('.ln');
+  var cls=['hit-cyan','hit-yel','hit-mag'];
+  var idx=0;
+  function step(){
+    lines.forEach(function(l){l.classList.remove('hit-cyan','hit-yel','hit-mag')});
+    for(var k=0;k<3;k++){
+      var li=(idx+k*7)%lines.length;
+      lines[li].classList.add(cls[k]);
+    }
+    idx=(idx+3)%lines.length;
+  }
+  setInterval(step, 1400);
+  step();
+}
+VARIANTS.forEach(build);
+</script>
+</body>
+</html>
