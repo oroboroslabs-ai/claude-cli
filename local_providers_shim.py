@@ -23,6 +23,7 @@ import io
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -331,6 +332,49 @@ def _text_tool_blocks(text: str) -> list:
             for nm, inp in _extract_text_tool_calls(text)]
 
 
+def _content_str(content) -> str:
+    """Flatten OpenAI message content (string or block list) to plain text."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for b in content:
+            if isinstance(b, str):
+                parts.append(b)
+            elif isinstance(b, dict):
+                if "text" in b:
+                    parts.append(b["text"])
+                elif b.get("type") in ("output_text", "input_text", "refusal"):
+                    parts.append(b.get("text", ""))
+                elif b.get("type") == "tool_result":
+                    parts.append(_content_str(b.get("content")))
+        return "".join(parts)
+    return str(content)
+
+
+def _output_text(output: list) -> str:
+    parts = []
+    for item in output or []:
+        if isinstance(item, dict) and item.get("type") == "message":
+            for c in item.get("content") or []:
+                if isinstance(c, dict) and c.get("type") == "output_text":
+                    parts.append(c.get("text", ""))
+    return "".join(parts)
+
+
+def _strip_embedded_calls(text: str) -> str:
+    """Remove tool-call JSON emitted as prose (tool_call tag blocks and fenced json blocks)
+    so an answer does not repeat a call it already made in-band."""
+    import re as _re
+    text = text or ""
+    text = _re.sub("<tool_call>.*?</tool_call>", "", text, flags=_re.S)
+    text = _re.sub("```(?:json)?\\s*\\{.*?\\}\\s*```", "", text, flags=_re.S)
+    return text.strip()
+
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -467,59 +511,274 @@ class Handler(BaseHTTPRequestHandler):
     # ---- OpenAI chat completions ----
     def openai_chat(self):
         body = self._read()
-        body["_messages"] = to_ollama_messages(body.get("system"), body.get("messages"))
+        omsg = body.get("messages") or []
+        conv = []
+        for m in omsg:
+            if not isinstance(m, dict):
+                continue
+            if m.get("role") == "tool":
+                conv.append({"role": "tool",
+                             "content": _content_str(m.get("content")),
+                             "tool_name": m.get("name", m.get("tool_call_id", ""))})
+            elif m.get("role") == "assistant" and m.get("tool_calls"):
+                calls = []
+                for tc in m["tool_calls"]:
+                    fn = tc.get("function", {}) or {}
+                    args = fn.get("arguments", {})
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except Exception:
+                            args = {"raw": args}
+                    calls.append({"function": {"name": fn.get("name", ""), "arguments": args}})
+                msg = {"role": "assistant", "content": m.get("content") or ""}
+                msg["tool_calls"] = calls
+                conv.append(msg)
+            else:
+                conv.append({"role": m.get("role", "user"),
+                             "content": _content_str(m.get("content"))})
+        body["_messages"] = conv
         body["_tools"] = [{"type": "function", "function": t.get("function", t)}
-                          for t in (body.get("tools") or [])]
+                          for t in (body.get("tools") or []) if isinstance(t, dict)]
+        stream = bool(body.get("stream"))
         try:
-            resp = ollama_chat(body, False)
+            resp = ollama_chat(body, stream)
         except Exception as e:  # noqa: BLE001
             self.send_error(502, str(e))
             return
-        data = json.loads(resp.read().decode())
-        self._send_json(200, {
-            "id": "chatcmpl-" + uuid.uuid4().hex[:16], "object": "chat.completion",
-            "model": body.get("model", DEFAULT_MODEL),
-            "choices": [{"index": 0, "message": data.get("message", {}),
-                         "finish_reason": "tool_calls" if (data.get("message", {}) or {}).get("tool_calls") else "stop"}],
-        })
+
+        cid = "chatcmpl-" + uuid.uuid4().hex[:16]
+        if not stream:
+            data = json.loads(resp.read().decode())
+            msg = data.get("message", {}) or {}
+            raw_mc = msg.get("content") or ""
+            calls = msg.get("tool_calls") or []
+            if not calls and isinstance(raw_mc, str):
+                parsed = _tool_use_blocks(_text_tool_blocks(raw_mc))
+                # text-embedded calls from chat-only templates -> real tool_calls
+                if parsed:
+                    calls = [{"function": {"name": b["name"], "arguments": b["input"]}}
+                             for b in parsed]
+                    raw_mc = _strip_embedded_calls(raw_mc)
+            if calls:
+                msg = dict(msg)
+                msg["tool_calls"] = [{"type": "function",
+                                      "id": "call_" + uuid.uuid4().hex[:16],
+                                      "function": {"name": c.get("function", {}).get("name", ""),
+                                                   "arguments": json.dumps(c.get("function", {}).get("arguments", {}))}}
+                                     for c in calls]
+            self._send_json(200, {
+                "id": cid, "object": "chat.completion",
+                "model": body.get("model", DEFAULT_MODEL),
+                "choices": [{"index": 0, "message": msg,
+                             "finish_reason": "tool_calls" if calls else "stop"}],
+                "usage": {"prompt_tokens": data.get("prompt_eval_count", 0),
+                          "completion_tokens": data.get("eval_count", 0)},
+            })
+            return
+
+        # streaming (OpenAI chat chunk format)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+
+        def sevt(obj):
+            self.wfile.write(f"data: {json.dumps(obj)}\n\n".encode())
+            self.wfile.flush()
+
+        acc = []
+        final_calls = []
+        for line in resp:
+            if not line.strip():
+                continue
+            try:
+                chunk = json.loads(line.decode())
+            except Exception:
+                continue
+            msg = chunk.get("message", {}) or {}
+            piece = msg.get("content") or msg.get("thinking") or ""
+            if piece:
+                acc.append(piece)
+                sevt({"id": cid, "object": "chat.completion.chunk",
+                      "model": body.get("model", DEFAULT_MODEL),
+                      "choices": [{"index": 0, "delta": {"content": piece}, "finish_reason": None}]})
+            if msg.get("tool_calls"):
+                final_calls = msg["tool_calls"]
+            if chunk.get("done"):
+                break
+        fr = "tool_calls" if final_calls else "stop"
+        sevt({"id": cid, "object": "chat.completion.chunk",
+              "model": body.get("model", DEFAULT_MODEL),
+              "choices": [{"index": 0, "delta": {}, "finish_reason": fr}]})
+        sevt("[DONE]")
+        if final_calls:
+            _ = _strip_embedded_calls  # streaming tool path uses native tool_calls
+        _ = acc
 
     # ---- OpenAI Responses API ----
     def openai_responses(self):
         body = self._read()
         sysmsg = body.get("instructions", "")
-        msgs = body.get("input")
-        if isinstance(msgs, str):
-            msgs = [{"role": "user", "content": msgs}]
-        body["_messages"] = to_ollama_messages(sysmsg, msgs)
+        raw_items = body.get("input")
+        if isinstance(raw_items, str):
+            items = [{"role": "user", "content": raw_items}]
+        else:
+            items = raw_items or []
+        conv, call_names = [], {}
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            t = it.get("type")
+            if t == "function_call" or (t is None and it.get("call_id") and it.get("name")):
+                args = it.get("arguments", "{}")
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except Exception:
+                        args = {"raw": args}
+                cid = it.get("call_id") or ("call_" + uuid.uuid4().hex[:16])
+                call_names[cid] = it.get("name", "")
+                m = {"role": "assistant", "content": it.get("content") or ""}
+                m["tool_calls"] = [{"function": {"name": it.get("name", ""), "arguments": args}}]
+                conv.append(m)
+            elif t == "function_call_output":
+                cid = it.get("call_id", "")
+                conv.append({"role": "tool",
+                             "content": _content_str(it.get("output")),
+                             "tool_name": call_names.get(cid, "")})
+            elif t == "message" or t is None:
+                conv.append({"role": it.get("role", "user"),
+                             "content": _content_str(it.get("content"))})
+            elif t in ("reasoning", "reasoning_item", "web_search_call", "local_shell_call"):
+                continue
+        body["_messages"] = conv
         body["_tools"] = to_ollama_tools([
             {"name": t.get("name"), "description": t.get("description", ""),
              "input_schema": t.get("parameters", {"type": "object", "properties": {}})}
-            for t in (body.get("tools") or [])
+            for t in (body.get("tools") or []) if isinstance(t, dict)
         ])
+        stream = bool(body.get("stream"))
         try:
-            resp = ollama_chat(body, False)
+            resp = ollama_chat(body, stream)
         except Exception as e:  # noqa: BLE001
             self.send_error(502, str(e))
             return
-        data = json.loads(resp.read().decode())
-        msg = data.get("message", {}) or {}
-        output = []
-        text = msg.get("content") or msg.get("thinking") or ""
+
+        rid = "resp_" + uuid.uuid4().hex[:16]
+
+        def build_output(msg):
+            out = []
+            text = msg.get("content") or msg.get("thinking") or ""
+            parsed_ai = _tool_use_blocks(_text_tool_blocks(text)) if isinstance(text, str) else []
+            text = _strip_embedded_calls(text)
+            calls = msg.get("tool_calls") or []
+            if text:
+                out.append({"type": "message", "role": "assistant",
+                            "id": "msg_" + uuid.uuid4().hex[:16],
+                            "status": "completed",
+                            "content": [{"type": "output_text", "annotations": [],
+                                         "text": text}]})
+            out.extend({"type": "function_call", "id": "fc_" + uuid.uuid4().hex[:16],
+                        "call_id": "call_" + uuid.uuid4().hex[:16],
+                        "name": c.get("function", {}).get("name", ""),
+                        "arguments": json.dumps(c.get("function", {}).get("arguments", {})),
+                        "status": "completed"}
+                       for c in calls)
+            if parsed_ai and not calls:
+                out.extend({"type": "function_call", "id": "fc_" + uuid.uuid4().hex[:16],
+                            "call_id": "call_" + uuid.uuid4().hex[:16],
+                            "name": b["name"], "arguments": json.dumps(b["input"]),
+                            "status": "completed"}
+                           for b in parsed_ai)
+            return out
+
+        if not stream:
+            data = json.loads(resp.read().decode())
+            output = build_output(data.get("message", {}) or {})
+            self._send_json(200, {
+                "id": rid, "object": "response", "created_at": int(time.time()),
+                "model": body.get("model", DEFAULT_MODEL), "status": "completed",
+                "output": output, "output_text": _output_text(output), "parallel_tool_calls": True,
+                "usage": {"input_tokens": data.get("prompt_eval_count", 0),
+                          "output_tokens": data.get("eval_count", 0)},
+            })
+            return
+
+        # streaming (OpenAI Responses event stream)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+
+        def revt(name, obj):
+            self.wfile.write(f"event: {name}\ndata: {json.dumps(obj)}\n\n".encode())
+            self.wfile.flush()
+
+        revt("response.created", {"type": "response.created",
+                                  "response": {"id": rid, "object": "response", "status": "in_progress",
+                                               "model": body.get("model", DEFAULT_MODEL), "output": []}})
+        acc, final_calls = [], []
+        for line in resp:
+            if not line.strip():
+                continue
+            try:
+                chunk = json.loads(line.decode())
+            except Exception:
+                continue
+            msg = chunk.get("message", {}) or {}
+            piece = msg.get("content") or msg.get("thinking") or ""
+            if piece:
+                acc.append(piece)
+                revt("response.output_text.delta", {"type": "response.output_text.delta",
+                                                    "delta": piece})
+            if msg.get("tool_calls"):
+                final_calls = msg["tool_calls"]
+            if chunk.get("done"):
+                break
+        text = "".join(acc)
+        parsed_ai = _tool_use_blocks(_text_tool_blocks(text)) if not final_calls else []
+        if _text_tool_blocks(text) and not final_calls:
+            text = _strip_embedded_calls(text)
+            revt("response.output_text.delta", {"type": "response.output_text.delta", "delta": ""})
+        seq = int(time.time())
+        output, oi = [], 0
         if text:
-            output.append({"type": "message", "role": "assistant", "id": "msg_0",
-                           "content": [{"type": "output_text", "text": text}]})
-        for tc in msg.get("tool_calls") or []:
-            fn = tc.get("function", {})
-            output.append({"type": "function_call", "name": fn.get("name"),
-                           "arguments": json.dumps(fn.get("arguments", {})),
-                           "call_id": "call_" + uuid.uuid4().hex[:16]})
-        self._send_json(200, {
-            "id": "resp_" + uuid.uuid4().hex[:16], "object": "response",
-            "model": body.get("model", DEFAULT_MODEL), "status": "completed",
-            "output": output,
-            "usage": {"input_tokens": data.get("prompt_eval_count", 0),
-                      "output_tokens": data.get("eval_count", 0)},
-        })
+            output.append({"type": "message", "role": "assistant",
+                           "id": "msg_" + uuid.uuid4().hex[:16], "status": "completed",
+                           "content": [{"type": "output_text", "annotations": [], "text": text}]})
+            revt("response.output_item.done", {"type": "response.output_item.done",
+                                               "output_index": oi, "item": output[-1]})
+            oi += 1
+        for c in final_calls or []:
+            fn = c.get("function", {}) or {}
+            args = fn.get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {"raw": args}
+            item = {"type": "function_call", "id": "fc_" + uuid.uuid4().hex[:16],
+                    "call_id": "call_" + uuid.uuid4().hex[:16], "name": fn.get("name", ""),
+                    "arguments": json.dumps(args), "status": "completed"}
+            output.append(item)
+            revt("response.output_item.added", {"type": "response.output_item.added",
+                                                "output_index": oi, "item": item})
+            revt("response.output_item.done", {"type": "response.output_item.done",
+                                               "output_index": oi, "item": item})
+            oi += 1
+        for b in parsed_ai if (parsed_ai and not final_calls) else []:
+            item = {"type": "function_call", "id": "fc_" + uuid.uuid4().hex[:16],
+                    "call_id": "call_" + uuid.uuid4().hex[:16], "name": b["name"],
+                    "arguments": json.dumps(b["input"]), "status": "completed"}
+            output.append(item)
+            oi += 1
+        revt("response.completed", {"type": "response.completed",
+                                    "response": {"id": rid, "object": "response", "status": "completed",
+                                                 "model": body.get("model", DEFAULT_MODEL),
+                                                 "output": output, "output_text": _output_text(output),
+                                                 "usage": {"input_tokens": 0, "output_tokens": 0}},
+                                    "sequence_number": seq})
 
     def do_GET(self):
         if self.path.rstrip("/").endswith("/v1/models"):
