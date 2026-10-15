@@ -1,0 +1,192 @@
+/**
+ * Living Loop Process Display — 20-ring Complete Loop, one step at a time.
+ */
+(function (global) {
+  const PHASES = ['DISCOVER', 'PLAN', 'EXECUTE', 'VERIFY', 'LOOP'];
+  const STEP_MS = 550;
+  const RING_MS = 480;
+  const LOOP_URLS = [
+    'http://127.0.0.1:5000/api/living-loop',
+    'http://127.0.0.1:8788/api/living-loop',
+    'http://127.0.0.1:8787/api/living-loop'
+  ];
+  const COMPLETE_RUN = 'http://127.0.0.1:5000/api/complete-loop/run';
+
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  async function fetchLoopStatus() {
+    for (const url of LOOP_URLS) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(2500) });
+        if (!r.ok) continue;
+        const d = await r.json();
+        if (d && (d.living || d.supervisor || d.complete_20 || d.phase)) return d;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  async function runCompleteLoop(task) {
+    const r = await fetch(COMPLETE_RUN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: task }),
+      signal: AbortSignal.timeout(60000)
+    });
+    const d = await r.json().catch(() => ({ ok: false, error: 'bad json' }));
+    if (!r.ok) return { ok: false, error: d.error || ('HTTP ' + r.status), rings: [] };
+    return d;
+  }
+
+  function buildRingCard() {
+    const el = document.createElement('div');
+    el.className = 'message process-message process-20ring';
+    el.setAttribute('data-process', '20');
+    el.innerHTML =
+      '<div class="message-avatar process-avatar" aria-hidden="true">◎</div>' +
+      '<div class="message-content process-content">' +
+      '<div class="message-sender">Complete Living Loop · 20 Rings</div>' +
+      '<div class="process-meta"></div>' +
+      '<ol class="process-rings"></ol>' +
+      '<div class="process-detail"></div></div>';
+    return el;
+  }
+
+  /**
+   * Run real 20-ring engine, then reveal each ring one at a time in chat.
+   */
+  async function runTwentyRingProcess(container, opts) {
+    const options = opts || {};
+    const model = options.model || 'model';
+    const userText = (options.userText || '').slice(0, 240);
+    const ringMs = options.ringMs != null ? options.ringMs : RING_MS;
+    const scrollFn = options.scrollFn || function () {};
+
+    const card = buildRingCard();
+    container.appendChild(card);
+    scrollFn();
+
+    const meta = card.querySelector('.process-meta');
+    const detail = card.querySelector('.process-detail');
+    const ol = card.querySelector('.process-rings');
+    if (meta) meta.textContent = 'Model: ' + model + ' · arming 20-ring cycle…';
+    if (detail) detail.textContent = '[…] Calling Complete Living Loop engine';
+
+    let result;
+    try {
+      result = await runCompleteLoop(userText || 'status check');
+    } catch (e) {
+      if (detail) detail.textContent = '[ERROR] ' + e.message;
+      if (meta) meta.textContent = '20-ring engine unreachable — is local_api on :5000?';
+      card.classList.add('process-failed');
+      return { card: card, result: { ok: false, error: String(e), rings: [] } };
+    }
+
+    if (result.error && !(result.rings && result.rings.length)) {
+      if (detail) detail.textContent = '[REFUSED/ERROR] ' + result.error;
+      if (meta) meta.textContent = '20-ring did not run';
+      card.classList.add('process-failed');
+      scrollFn();
+      return { card: card, result: result };
+    }
+
+    const rings = result.rings || [];
+    const st = result.state || {};
+    if (meta) {
+      meta.textContent =
+        'Model: ' + model +
+        ' · score=' + (result.score != null ? Number(result.score).toFixed(2) : '—') +
+        ' · passed=' + result.passed +
+        ' · iter=' + (st.iteration != null ? st.iteration : '—') +
+        ' · rings=' + rings.length;
+    }
+
+    // Reveal one ring at a time (never dump all at once)
+    for (let i = 0; i < rings.length; i++) {
+      const ring = rings[i];
+      const li = document.createElement('li');
+      li.className = 'process-ring active';
+      li.innerHTML =
+        '<span class="pr-num">R' + esc(ring.ring) + '</span>' +
+        '<span class="pr-name">' + esc(ring.name) + '</span>' +
+        '<span class="pr-phase">[' + esc(ring.phase) + ']</span>' +
+        '<span class="pr-detail">' + esc(ring.detail) + '</span>';
+      ol.appendChild(li);
+      if (detail) {
+        detail.textContent = '[R' + ring.ring + ' · ' + ring.phase + '] ' + ring.detail;
+      }
+      scrollFn();
+      await sleep(ringMs);
+      li.classList.remove('active');
+      li.classList.add('done');
+      const mark = document.createElement('span');
+      mark.className = 'pr-ok';
+      mark.textContent = ' ✓';
+      li.querySelector('.pr-num').appendChild(mark);
+      scrollFn();
+      await sleep(Math.min(160, ringMs * 0.3));
+    }
+
+    if (detail) {
+      detail.textContent =
+        '[LOOP] 20-ring cycle complete · score=' +
+        (result.score != null ? Number(result.score).toFixed(2) : '—') +
+        ' · model response follows.';
+    }
+    card.classList.add('process-complete');
+    scrollFn();
+    return { card: card, result: result };
+  }
+
+  /** Legacy 5-phase cosmetic (kept for fallback). */
+  async function runSequentialProcess(container, opts) {
+    return runTwentyRingProcess(container, opts);
+  }
+
+  async function appendActionStep(container, title, body, opts) {
+    const options = opts || {};
+    const stepMs = options.stepMs != null ? options.stepMs : 400;
+    const scrollFn = options.scrollFn || function () {};
+    const el = document.createElement('div');
+    el.className = 'message process-message process-action';
+    el.innerHTML =
+      '<div class="message-avatar process-avatar">⚙</div>' +
+      '<div class="message-content process-content">' +
+      '<div class="message-sender">Model action</div>' +
+      '<div class="process-detail"><strong>' +
+      esc(title) +
+      '</strong>' +
+      (body ? ' — ' + esc(body) : '') +
+      '</div></div>';
+    el.style.opacity = '0';
+    container.appendChild(el);
+    scrollFn();
+    await sleep(40);
+    el.style.transition = 'opacity 0.25s ease';
+    el.style.opacity = '1';
+    scrollFn();
+    await sleep(stepMs);
+    return el;
+  }
+
+  global.LoopProcessDisplay = {
+    PHASES: PHASES,
+    STEP_MS: STEP_MS,
+    RING_MS: RING_MS,
+    fetchLoopStatus: fetchLoopStatus,
+    runCompleteLoop: runCompleteLoop,
+    runTwentyRingProcess: runTwentyRingProcess,
+    runSequentialProcess: runSequentialProcess,
+    appendActionStep: appendActionStep,
+    sleep: sleep
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

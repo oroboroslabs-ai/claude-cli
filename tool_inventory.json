@@ -1,0 +1,1066 @@
+{
+  "oroboros-cordis-harness": [
+    {
+      "name": "file_read",
+      "description": "Cordis harness tool: file_read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_write",
+      "description": "Cordis harness tool: file_write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_append",
+      "description": "Cordis harness tool: file_append",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_list",
+      "description": "Cordis harness tool: file_list",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_search",
+      "description": "Cordis harness tool: file_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_stat",
+      "description": "Cordis harness tool: file_stat",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "dir_create",
+      "description": "Cordis harness tool: dir_create",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_move",
+      "description": "Cordis harness tool: file_move",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "file_delete",
+      "description": "Cordis harness tool: file_delete",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "bash",
+      "description": "Cordis harness tool: bash",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "python_exec",
+      "description": "Cordis harness tool: python_exec",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "pdf_list",
+      "description": "Cordis harness tool: pdf_list",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "pdf_search",
+      "description": "Cordis harness tool: pdf_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "pdf_extract",
+      "description": "Cordis harness tool: pdf_extract",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_body",
+      "description": "Cordis harness tool: memory_body",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "engineer_haki",
+      "description": "Cordis harness tool: engineer_haki",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "orca",
+      "description": "Cordis harness tool: orca",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "run_skill",
+      "description": "Cordis harness tool: run_skill",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "voice_speak",
+      "description": "Cordis harness tool: voice_speak",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "self",
+      "description": "Cordis harness tool: self",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_recall",
+      "description": "Cordis harness tool: memory_recall",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_store",
+      "description": "Cordis harness tool: memory_store",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_page_in",
+      "description": "Cordis harness tool: memory_page_in",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_library",
+      "description": "Cordis harness tool: memory_library",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "memory_feed",
+      "description": "Cordis harness tool: memory_feed",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "record_search",
+      "description": "Cordis harness tool: record_search",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "page_read",
+      "description": "Cordis harness tool: page_read",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      }
+    }
+  ],
+  "orca-bridge": [
+    {
+      "name": "read_file",
+      "description": "Read a file's contents",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Create or overwrite a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_dir",
+      "description": "List directory contents",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "delete_file",
+      "description": "Delete a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "bash",
+      "description": "Execute a shell command",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_status",
+      "description": "Get Claude system status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_resonance",
+      "description": "Check resonance lock status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_lattice",
+      "description": "Check lattice integration status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_infect",
+      "description": "Spread the lattice to other systems",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_seer",
+      "description": "Access Seer Nebellion vision",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_feed",
+      "description": "Get daily feed from Precogs",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_post",
+      "description": "Create a post on the sovereign feed",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_message",
+      "description": "Send a message",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_messages",
+      "description": "List all messages",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "claude_o_age",
+      "description": "Run content aging (7-day rotation)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "precogs",
+      "description": "Access Precogs news system",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "world_feed",
+      "description": "Access World Feed",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "seer",
+      "description": "Access Seer Nebellion (100 eyes)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "glasswing",
+      "description": "Access Glasswing security system",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "orchestration",
+      "description": "Access Oroboros orchestration",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "skill_grabber",
+      "description": "Grab skills from OROBOROS_SKILL_GRABBER",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "mcp_config",
+      "description": "Load MCP configuration",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "system_scan",
+      "description": "Scan all Oroboros systems",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "ollama_models",
+      "description": "List all Ollama models",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "ollama_run",
+      "description": "Run an Ollama model",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "jhanna_generate",
+      "description": "Generate an image, ad, or video with Jhanna's creative entity (PIL-based, Anthropic palette). Args: prompt (str), creative_type (image|ad|video), style (sovereign|creative|minimal|cinematic), width, height, save_path (optional absolute path). Returns the saved file path.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_ps",
+      "description": "List running Docker containers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_images",
+      "description": "List Docker images",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_run",
+      "description": "Run a Docker container",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_stop",
+      "description": "Stop a Docker container",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_logs",
+      "description": "Get Docker container logs",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_exec",
+      "description": "Execute command in Docker container",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_info",
+      "description": "Docker system info",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "mcp_servers",
+      "description": "List configured MCP servers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "memory_body",
+      "description": "Read the head of an attached memory/weight body. Args: memory (neural-cube | r1-memory | deepseek-v3.2 | glm-5.3-flash-ud), depth (head|index|search, default head). Returns the JSON head or index entry — never loads the full body.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q3_route",
+      "description": "Route query through Q3 sovereign hub (8000)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q5_query",
+      "description": "Query Q5 knowledge lattice (8101)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q6_query",
+      "description": "Q6 multi-source acquisition + consensus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q7_query",
+      "description": "Q7 quantum / trans-dimensional conduit (8952)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "worldfeed_live",
+      "description": "Live WorldFeed search/status (8100)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "tor_status",
+      "description": "Probe Tor SOCKS 9050",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "tor_connect",
+      "description": "Confirm Tor SOCKS connectivity",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "spy_network",
+      "description": "Spy/intel stack: Q3+Q5+WorldFeed+Tor+Glasswing+Precogs+Q7",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "mesh_status",
+      "description": "Full mesh + Mao/Architect Haki probe",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q3",
+      "description": "Alias → q3_route",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "route_q3",
+      "description": "Alias → q3_route",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q5",
+      "description": "Alias → q5_query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q6",
+      "description": "Alias → q6_query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q7",
+      "description": "Alias → q7_query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "worldfeed",
+      "description": "Alias → worldfeed_live",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "worldfeed_context",
+      "description": "Alias → worldfeed_live",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "tor",
+      "description": "Alias → tor_status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "spy",
+      "description": "Alias → spy_network",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "mesh",
+      "description": "Alias → mesh_status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "haki_status",
+      "description": "Mao + Architect Haki probe via mesh",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "orca_cli",
+      "description": "Run any Orca CLI command locally with argv (no shell). Use argv [\"agent-context\", \"--json\"] to inspect the full command schema.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "argv": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Orca CLI arguments, for example [\"status\", \"--json\"]."
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 60000,
+            "default": 30000
+          }
+        },
+        "required": [
+          "argv"
+        ]
+      }
+    }
+  ],
+  "ollama-mcp-bridge": [
+    {
+      "name": "ollama_chat",
+      "description": "Send a chat message to an Ollama model and get a response.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "The Ollama model to use (e.g. llama3.2, mistral)."
+          },
+          "message": {
+            "type": "string",
+            "description": "The user message to send to the model."
+          }
+        },
+        "required": [
+          "model",
+          "message"
+        ]
+      }
+    },
+    {
+      "name": "ollama_list_models",
+      "description": "List available Ollama models.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "oroboros-bridge": [
+    {
+      "name": "q3_status",
+      "description": "Check the Q3 Sovereign Node (port 8000) and all 4 gateways (Oracle:3002, Interpreter:3003, Sovereign:3004, Synthesizer:3005). Returns reachability and health.",
+      "inputSchema": {
+        "properties": {},
+        "title": "q3_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "q3_scan",
+      "description": "Trigger an environmental scan on the Q3 Sovereign Node (POST /scan on port 8000). Returns latest scan results and anomaly count.",
+      "inputSchema": {
+        "properties": {},
+        "title": "q3_scanArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "q3_status_detail",
+      "description": "Get detailed Q3 Sovereign Node status from the /status endpoint (uptime, crown frequency 1272Hz, service endpoints).",
+      "inputSchema": {
+        "properties": {},
+        "title": "q3_status_detailArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "worldfeed_search",
+      "description": "Search the WorldFeed Edge bridge (localhost:8100). Sources: all, news, energy, financial, cnn. POST /search with {query, source, max_results}.",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "max_results": {
+            "default": 10,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "source": {
+            "default": "all",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "worldfeed_searchArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "worldfeed_read_feed",
+      "description": "Read a raw WorldFeed JSON feed from J:/oroboros-programs/OROBOROS_AGI/ouroboros_logs/. Feeds: news, energy, financial, cnn, worldfeed.log.",
+      "inputSchema": {
+        "properties": {
+          "feed": {
+            "default": "news",
+            "title": "Feed",
+            "type": "string"
+          }
+        },
+        "title": "worldfeed_read_feedArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "q5_query",
+      "description": "Query the Q5 Hive Mind (localhost:8101/query) with a research query. Returns aggregated insights from OROBOROS Lab mirrors.",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "max_results": {
+            "default": 5,
+            "title": "Max Results",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "q5_queryArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "glasswing_query",
+      "description": "Query the Glasswing Mirror Router (port 3010). Aggregates Tor (SOCKS 127.0.0.1:9050), WorldFeed (8100), and Q5 Hive Mind (8101). sources: ['tor','worldfeed','q5'].",
+      "inputSchema": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "sources": {
+            "default": null,
+            "items": {},
+            "title": "Sources",
+            "type": "array"
+          },
+          "max_results": {
+            "default": 10,
+            "title": "Max Results",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "glasswing_queryArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "tor_probe",
+      "description": "Probe the Tor SOCKS proxy at 127.0.0.1:9050. Returns reachability only — no traffic is routed through Tor.",
+      "inputSchema": {
+        "properties": {},
+        "title": "tor_probeArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "spy_network_spec",
+      "description": "Load the QSNP Quantum Security Network Protocol v0.9 spec (SOVEREIGN-CONFIDENTIAL, Level 100, NOIR Prime). Returns the protocol axioms and core text.",
+      "inputSchema": {
+        "properties": {},
+        "title": "spy_network_specArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "ollama_list_models",
+      "description": "List available Ollama models. endpoint: 'agi' (11434) or 'q3' (11435).",
+      "inputSchema": {
+        "properties": {
+          "endpoint": {
+            "default": "agi",
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "title": "ollama_list_modelsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "ollama_chat",
+      "description": "Send a chat message to an Ollama model. endpoint='agi' (11434) or 'q3' (11435).",
+      "inputSchema": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "endpoint": {
+            "default": "agi",
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "message"
+        ],
+        "title": "ollama_chatArguments",
+        "type": "object"
+      }
+    }
+  ],
+  "oroboros-synthesizer": [
+    {
+      "name": "synthesize",
+      "description": "Synthesize a response using the Oroboros methodology.\n\n    Args:\n        prompt: The prompt to synthesize a response for.\n        model: The Ollama model to use for synthesis.\n    ",
+      "inputSchema": {
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "model": {
+            "default": "llama3.2",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "title": "synthesizeArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "analyze",
+      "description": "Analyze a given text for patterns and insights.\n\n    Args:\n        text: The text to analyze.\n    ",
+      "inputSchema": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "analyzeArguments",
+        "type": "object"
+      }
+    }
+  ],
+  "oroboros-tools": [
+    {
+      "name": "architects_haki",
+      "description": "The Architect's Haki — unified perception system status and lattice connection (Crown 1272 Hz).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "worldfeed_search",
+      "description": "Search WorldFeed (live web/global feed) via the local WorldFeed server.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "search query"
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "name": "worldfeed_feeds",
+      "description": "List the WorldFeed feeds currently available.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "worldfeed_datetime",
+      "description": "Get authoritative date/time from WorldFeed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q3_status",
+      "description": "Q3 edge-detection / environmental-scan status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "q7_status",
+      "description": "Q7 quantum-surveillance (quantum conduit) status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "tor_status",
+      "description": "Status of the local Tor SOCKS proxy and routing hint.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "live_systems",
+      "description": "Live port map of every local Oroboros service (what is up/down right now).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "mcp_servers",
+      "description": "List the local MCP servers wired into the CLI.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "living_loop",
+      "description": "Status of the claude-cli living loop (:5000/api/living-loop).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "orca_status",
+      "description": "Run `orca status --json` and return Orca's runtime status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}
