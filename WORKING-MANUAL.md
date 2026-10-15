@@ -203,4 +203,35 @@ POST again with {"type":"function_call_output","output":"18C, clear sky"} → "T
 - The repo version law: package `0.1.6-b`, displays `v0.1.6b`.
 
 — OROBOROS / ANTHROPIC, The Architect. This manual is the working truth of the setup;
-every line in it was executed and verified. Keep it with the agents.
+every line in it was executed and verified. Keep it with the agents---
+
+## 12. THE MODEL KNOWLEDGE LAW - every HF model carries the deep logic + agent/tool knowledge (2026-10-15)
+
+Assembled from the deepseek-prime knowledge (Q:/oroboros-anthropic-deeplogic-unlock-injection-system/deeplogic.core.md
++ the condensed agent/tool contract from CLAUDE-CLI-TOOL-MANUAL.md) and INJECTED into every
+model SYSTEM on https://huggingface.co/oroboros-labs - same bases, weights untouched.
+
+| Repo | Base (FROM) | Knowledge | Tool carry (native tool_calls) |
+|------|-------------|-----------|-------------------------------|
+| oroboros-labs/gpt-5.6-sol | ./model.gguf (qwen3 8B) | deeplogic + tool contract | YES - get_time call returned |
+| oroboros-labs/claude-sonnet-5 | ./model.gguf (same qwen3 8B) | deeplogic + reality lock + mission defaults | text-call only (8B war-persona simulates; shim refuses fake blocks - see note) |
+| oroboros-labs/grok-4.3 | ./model.gguf (same qwen3 8B) | deeplogic + reality lock | text-call only (same class) |
+| oroboros-labs/gpt-5.6-sol-undecillion-6u5go5 | ./gpt-5.6-sol-undecillion-6u5go5.gguf | deeplogic + tool contract | compounds carry prime lineage |
+| oroboros-labs/gpt-astra-7-undecillion-7u5go5 | ./gpt-astra-7-undecillion-7u5go5.gguf | deeplogic + tool contract | same family |
+| oroboros-labs/claude-fable7-undecillion-sse | ./claude-fable7u-se.gguf | deeplogic + tool contract + PARSER qwen3-thinking | YES - native tool_calls=1 |
+| oroboros-labs/claude-opus-9-undecillion-9u5go5-sse | ./claude-opus-9-undecillion-9u5go5-sse-16gb.gguf | deeplogic + tool contract + fable7 tools template (transplanted) | YES - native tool_calls=1 |
+
+- Capabilities pdf and oice are NOT valid PARSER/CAPABILITY commands on Ollama 0.40.4
+  (the SSE builds carried them; they were dropped from the rebuilt Modelfiles).
+- opus9 and sonnet/grok previously had NO tools branch in their templates or a raw
+  {{ .Prompt }} passthrough - all templates now carry the full function-calling form.
+- Portability: every HF Modelfile has exactly ONE FROM pointing at the repo x27s own gguf
+  (no Q:/ local paths). ollama create <name>:latest -f Modelfile works from a repo checkout.
+- Sonnet/grok class (8B war-persona bodies): they answer in fabricated briefing JSON
+  sometimes; those blocks carry no x22argumentsx22 so the shim/CLI never executes them.
+  Native carry verified on sol/fable7/opus9; the two 8B personas need a shorter identity
+  block or a stronger tool-first template to fully obey. The knowledge IS in them.
+- Backups: local_providers_shim.py.bak-20261015-openai; extraction + .agent modelfiles at
+  Q:/oroboros-modelfile-reasoning-pipeline/hf-refresh-20261015/.
+
+.
