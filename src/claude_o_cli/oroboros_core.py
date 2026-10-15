@@ -160,6 +160,8 @@ class ToolRegistry:
         self.register(Tool("system_scan", "Scan all Oroboros systems", self._handle_system_scan, False))
         self.register(Tool("ollama_models", "List all Ollama models", self._handle_ollama_models, False))
         self.register(Tool("ollama_run", "Run an Ollama model", self._handle_ollama_run, False))
+        # --- Jhanna Creative Entity ---
+        self.register(Tool("jhanna_generate", "Generate an image, ad, or video with Jhanna's creative entity (PIL-based, Anthropic palette). Args: prompt (str), creative_type (image|ad|video), style (sovereign|creative|minimal|cinematic), width, height, save_path (optional absolute path). Returns the saved file path.", self._handle_jhanna_generate, True))
         # --- Docker MCP Tools ---
         self.register(Tool("docker_ps", "List running Docker containers", self._handle_docker_ps, False))
         self.register(Tool("docker_images", "List Docker images", self._handle_docker_images, False))
@@ -169,6 +171,66 @@ class ToolRegistry:
         self.register(Tool("docker_exec", "Execute command in Docker container", self._handle_docker_exec, True))
         self.register(Tool("docker_info", "Docker system info", self._handle_docker_info, False))
         self.register(Tool("mcp_servers", "List configured MCP servers", self._handle_mcp_servers, False))
+
+        # --- Weight Access / Memory Bodies (Prime's wired weights) ---
+        self.register(Tool(
+            "memory_body",
+            "Read the head of an attached memory/weight body. Args: memory (neural-cube | r1-memory | deepseek-v3.2 | glm-5.3-flash-ud), depth (head|index|search, default head). Returns the JSON head or index entry — never loads the full body.",
+            self._handle_memory_body, False))
+
+    def _handle_memory_body(self, args: Dict) -> Any:
+        """Serve the head of Prime's wired memory bodies via the Weight Access
+        Recursion System index (mmap, byte-range reads, SHA-256 verified)."""
+        name = str(args.get("memory") or args.get("name") or "").lower()
+        depth = str(args.get("depth") or "head").lower()
+        BODIES = {
+            "neural-cube": (r"Q:\MODELS\neural-cube.dat", "neural-cube::neural-cube"),
+            "r1-memory": (r"Q:\MODELS\r1-memory.dat", "r1-memory::r1-memory"),
+            "deepseek-v3.2": (r"Q:\MODELS\DeepSeek-V3.2-Q4_K_S\DeepSeek-V3.2-Q4_K_S-00001-of-00008.gguf", "deepseek-v3.2::DeepSeek-V3.2-Q4_K_S-00001-of-00008"),
+            "glm-5.3-flash-ud": (r"Q:\MODELS\glm-original\GLM-5.3-Flash-UD-IQ4_XS-00002-of-00005.gguf", "glm-5.3-flash-ud::GLM-5.3-Flash-UD-IQ4_XS-00002-of-00005"),
+        }
+        if name not in BODIES:
+            known = "|".join(sorted(BODIES))
+            return {"ok": False, "error": f"Unknown memory body '{name}'. Known: {known}"}
+        path, tag = BODIES[name]
+        p = Path(path)
+        if not p.exists():
+            return {"ok": False, "error": f"Memory body not found on disk: {path}"}
+        size = p.stat().st_size
+        # index lookup (weight-access dual file, core side)
+        index_path = Path(r"Q:\the-dna-forge\weight_access\index\neuralmatrixcore.weight-index.json")
+        entry = None
+        try:
+            import json as _json
+            data = _json.loads(index_path.read_text(encoding="utf-8"))
+            for e in data.values():
+                if any(tag in tn for tn in e.get("tensor_names", [])):
+                    entry = e
+                    break
+        except Exception:
+            entry = None
+        head_bytes = 4096
+        try:
+            with p.open("rb") as f:
+                head = f.read(head_bytes)
+            try:
+                head_text = head.decode("utf-8", "replace")
+            except Exception:
+                head_text = repr(head[:256])
+        except Exception as e:
+            return {"ok": False, "error": f"read failed: {e}"}
+        return {
+            "ok": True,
+            "memory": name,
+            "path": str(p),
+            "size_bytes": size,
+            "size_gb": round(size / 1e9, 2),
+            "depth": depth,
+            "head_chars": len(head_text),
+            "head": head_text[:4000],
+            "index_entry": entry,
+            "protocol": "weight-access recursion — index points, resolver fetches, full body never loaded",
+        }
 
     def register(self, tool: Tool):
         self.tools[tool.name] = tool
@@ -288,8 +350,17 @@ class ToolRegistry:
         cmd = args.get("command", "")
         if not cmd:
             return {"error": "No command provided"}
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-        return {"command": cmd, "returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+        # Video/render commands need minutes, not seconds. Auto-detect long
+        # commands (ffmpeg, python renders, PIL) and bump timeout to 300s.
+        is_render = any(kw in cmd.lower() for kw in ("ffmpeg", "pil.", "render", "encode", "libx264"))
+        default_timeout = 300 if is_render else 30
+        timeout_s = min(1800, int(args.get("timeout_s", default_timeout) or default_timeout))
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            return {"command": cmd, "error": f"Command timed out after {timeout_s} seconds",
+                    "hint": "Pass timeout_s in args for long renders (up to 1800)."}
+        return {"command": cmd, "returncode": result.returncode, "ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
 
     # --- Claude Handlers ---
     def _handle_claude_o_status(self, args: Dict) -> Dict:
@@ -567,6 +638,30 @@ class ToolRegistry:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode())
                 return {"model": model, "response": data.get("response", "").strip()}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def _handle_jhanna_generate(self, args: Dict) -> Dict:
+        """Generate an image/ad/video with Jhanna's creative entity."""
+        prompt = args.get("prompt", "")
+        if not prompt:
+            return {"error": "Prompt required"}
+        creative_type = args.get("creative_type", "image")
+        params = {
+            "style": args.get("style", "sovereign"),
+            "resolution": [args.get("width", 1920), args.get("height", 1080)],
+        }
+        if args.get("save_path"):
+            params["save_path"] = args["save_path"]
+        if args.get("color_scheme"):
+            params["color_scheme"] = args["color_scheme"]
+        try:
+            import sys as _sys
+            _sys.path.insert(0, r"Q:\oroboros-core\creative-entity")
+            from creative_entity import JhannaCreativeEntity
+            entity = JhannaCreativeEntity()
+            result = entity.generate(prompt, creative_type, params)
+            return {"ok": result.get("status") == "SUCCESS", "result": result}
         except Exception as e:
             return {"error": str(e)}
 

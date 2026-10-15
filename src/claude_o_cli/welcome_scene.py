@@ -13,26 +13,29 @@ GROUND = (183, 179, 172)
 WIDTH = 72
 DOT_LINE = "." * WIDTH
 
-# Block mascot copied from Claude logo silhouette (no outline) — Claude Code scale
+# Soft abstract scene — fixed column widths, no logo silhouettes
 MASCOT_BLOCK = [
-    "      ██      ",
-    "    ██████    ",
-    "  ██████████  ",
-    "  ████ ██ ████ ",
-    "  ██████████  ",
-    "    ██  ██    ",
-    "    ██  ██    ",
-    "    ██  ██    ",
-    "    ██  ██    ",
+    "              ",  # 14
+    "      ◇       ",
+    "    ░▒▒▒░     ",
+    "   ░▒▓▓▓▒░    ",
+    "    ░▒▒▒░     ",
+    "      ·       ",
+    "              ",
+    "              ",
+    "              ",
 ]
 
 MOON_BLOCK = [
-    "                    ▄▀▀▀▄",
-    "                  ▄██████▄",
-    "                 ████████▀ ",
-    "                 ████████  ",
-    "                  ▀████▀  ",
-    "                    ▀▀    ",
+    "                    ·    ",  # 25
+    "                  ◇      ",
+    "               ░▒▒░      ",
+    "                ·        ",
+    "                         ",
+    "                         ",
+    "                         ",
+    "                         ",
+    "                         ",
 ]
 
 # Scene rows: (text, kind) kind = orange|grey|warm|dot|ground
@@ -66,14 +69,13 @@ def _paint_line(line: str, *, dim: bool = False) -> str:
     parts: List[str] = []
     factor = 0.55 if dim else 1.0
     for ch in line:
-        if ch == "█":
+        if ch in "█▄▀":
             r, g, b = ORANGE
             if dim:
                 r, g, b = int(r * factor), int(g * factor), int(b * factor)
             parts.append(f"[{_rgb((r, g, b))}]{ch}[/]")
-        elif ch in "▄▀":
-            rgb = GREY if dim else WARM
-            parts.append(f"[{_rgb(rgb)}]{ch}[/]")
+        elif ch in "◇✦":
+            parts.append(f"[{_rgb(ORANGE if not dim else GREY)}]{ch}[/]")
         elif ch in "░▒▓":
             parts.append(f"[{_rgb(GREY)}]{ch}[/]")
         elif ch == "*":
@@ -87,7 +89,7 @@ def _paint_line(line: str, *, dim: bool = False) -> str:
     return "".join(parts)
 
 
-def render_welcome_art(version: str = "vA.1272") -> List[str]:
+def render_welcome_art(version: str = "v0.1.6b") -> List[str]:
     lines: List[str] = [
         f"[{_rgb(ORANGE)}]Welcome to Claude CLI {version}[/]",
         "",
@@ -107,7 +109,7 @@ def render_welcome_art(version: str = "vA.1272") -> List[str]:
     return lines
 
 
-def render_welcome_html(version: str = "vA.1272") -> str:
+def render_welcome_html(version: str = "v0.1.6b") -> str:
     def span(ch: str, rgb: Tuple[int, int, int]) -> str:
         return f'<span style="color:rgb({rgb[0]},{rgb[1]},{rgb[2]})">{ch}</span>'
 

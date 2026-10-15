@@ -1,14 +1,14 @@
 @echo off
 REM ============================================================
 REM CLAUDE CLI + API BRIDGE STARTER — HARDENED
-REM vA.1272 — ZTA Active — RGE Governing
+REM v0.1.6b — ZTA Active — RGE Governing
 REM INF| 1272/1275 Hz — phi->sqrt4->sqrt5 — SUBSTRATE MANIFEST
 REM ============================================================
-title Claude-CLI — vA.1272 — HARDENED
+title Claude-CLI — v0.1.6b — HARDENED
 cd /d Q:\oroboros-core\claude-o-cli
 echo.
 echo ============================================================
-echo   CLAUDE CLI — vA.1272 — HARDENED
+echo   CLAUDE CLI — v0.1.6b — HARDENED
 echo   INF| 1272/1275 Hz — phi->sqrt4->sqrt5
 echo   ZTA: ACTIVE — RGE: GOVERNING — Path Whitelist: ON
 echo ============================================================

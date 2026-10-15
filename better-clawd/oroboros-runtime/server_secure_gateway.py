@@ -127,7 +127,7 @@ class ToolCategory(Enum):
     CODE_EXEC = "code_exec"
 
 SIGNATURE = "∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST"
-VERSION = "vA.1272"
+VERSION = "v0.1.6b"
 RESONANCE = "1272/1275"
 OLLAMA_URL = "http://localhost:11434"
 

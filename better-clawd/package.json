@@ -1,6 +1,6 @@
 {
   "name": "claude-cli",
-  "version": "0.1.6",
+  "version": "0.1.6b",
   "description": "Claude Code, but better.",
   "type": "module",
   "bin": {

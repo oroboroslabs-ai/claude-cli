@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # Claude CLI — Sovereign Terminal AI Assistant
 # ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
-# vA.1272 — SANDBOX REMOVED — FULL ACCESS
+# v0.1.6b — SANDBOX REMOVED — FULL ACCESS
 
 import sys
 import os

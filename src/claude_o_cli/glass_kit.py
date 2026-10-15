@@ -5,7 +5,7 @@ from typing import Iterable, List, Tuple
 
 # Glass UI tokens (match glass-ui/index.html :root)
 ORANGE: Tuple[int, int, int] = (217, 119, 87)   # #D97757
-CYAN: Tuple[int, int, int] = (0, 255, 204)      # #00ffcc
+CYAN: Tuple[int, int, int] = (217, 119, 87)    # #D97757 (orange)
 GOLD: Tuple[int, int, int] = (213, 160, 33)     # #d5a021
 GREY: Tuple[int, int, int] = (183, 179, 172)    # #b7b3ac
 WARM: Tuple[int, int, int] = (232, 229, 221)    # #e8e5dd
@@ -13,28 +13,25 @@ DOT: Tuple[int, int, int] = (100, 97, 90)
 BG: Tuple[int, int, int] = (26, 25, 23)         # #1A1917
 GREEN: Tuple[int, int, int] = (0, 255, 136)
 
-VERSION = "vA.1272"
+VERSION = "v0.1.6b"
 WIDTH = 62
 DOT_LINE = "·" * WIDTH
 
-# Oroboros glass welcome — mascot left, cyan orb + gold ring right
+# Soft geometric welcome — fixed WIDTH columns, no logo silhouettes
 SCENE_ROWS: Tuple[str, ...] = (
-    "                                                          ",
-    "            ░░░░░░                          ◇            ",
-    "    ░░░   ░░░░░░░░░░                    ░▒▒▒▒░           ",
-    "   ░░░░░░░░░░░░░░░░░░░              ▒▒▓▓▓▓▒▒            ",
-    "                                                          ",
-    "      ██▄█████▄██                      ✦                 ",
-    "      █████████                         ░▒▓▓▒░           ",
-    "      █ █   █ █                          ◇               ",
-    "      ▀▀▀▀▀▀▀▀▀                          ·              ",
+    "                                                              ",
+    "         ·  ·              ◇              ·                   ",
+    "      ·                    ░▒▒░              ·                ",
+    "              ░▒▓▓▒░                          ✦               ",
+    "         ·         ░▒▒░         ·                             ",
+    "                    ◇                                         ",
+    "              ·           ·                                   ",
 )
 
 MASCOT_MINI: Tuple[str, ...] = (
-    "  ██▄██  ",
-    "  █████  ",
-    "  █ █ █  ",
-    "  ▀▀▀▀▀  ",
+    "   ◇   ",
+    "  ░▒░  ",
+    "   ·   ",
 )
 
 

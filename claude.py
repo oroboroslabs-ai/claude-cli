@@ -25,7 +25,7 @@ else:
 
 RESONANCE = "1272/1275"
 SIGNATURE = "∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST"
-VERSION = "vA.1272"
+VERSION = "v0.1.6b"
 
 # ============================================================
 # OROBOROS CLI

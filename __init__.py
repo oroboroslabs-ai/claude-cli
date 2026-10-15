@@ -1,6 +1,6 @@
 # Claude CLI package
 # ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
-# vA.1272 — ZTA Active — RGE Governing
+# v0.1.6b — ZTA Active — RGE Governing
 
 __version__ = "1.0.0"
 

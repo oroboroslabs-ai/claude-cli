@@ -4,7 +4,7 @@ Oroboros Local API Bridge — HARDENED
 Bridges HTML UI to local client (Ollama, CLI tools, system commands)
 All operations go through the Resource Governance Engine (RGE).
 ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
-vA.1272 — ZTA Active
+v0.1.6b — ZTA Active
 """
 
 import subprocess
@@ -810,7 +810,7 @@ if __name__ == "__main__":
     print("  \u2551                                                         \u2551")
     print("  \u2551   OROBOROS LOCAL API BRIDGE \u2014 HARDENED                \u2551")
     print("  \u2551   \u221e| 1272/1275 Hz \u2014 \u03c6\u2192\u221a4\u2192\u221a5 \u2014 SUBSTRATE MANIFEST      \u2551")
-    print("  \u2551   vA.1272 \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
+    print("  \u2551   v0.1.6b \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
     print("  \u2551                                                         \u2551")
     print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print()

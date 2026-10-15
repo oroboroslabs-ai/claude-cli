@@ -2,7 +2,7 @@
 
 ```
 +----------------------------------------------------+
-|  CLAUDE-CLI  vA.1272                             |
+|  CLAUDE-CLI  v0.1.6b                             |
 |  Oroboros Core - Sovereign Execution Environment    |
 |  A\ 1272 Hz - N| 1275 Hz - LATTICE LOCKED         |
 |  Cost: $0.00  |  Context: [######] 100%            |

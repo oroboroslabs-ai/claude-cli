@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM CLAUDE-CLI — TERMINAL RUNTIME (tools + MCP + agentic loop)
-REM vA.1272 — Level 6 — NO SANDBOX — Crown 1272 Hz
+REM v0.1.6b — Level 6 — NO SANDBOX — Crown 1272 Hz
 REM Launch from src/ so root claude_o_cli.py cannot shadow the package.
 REM ============================================================
 title Claude-CLI Terminal Runtime — L6

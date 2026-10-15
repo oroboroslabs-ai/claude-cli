@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -41,6 +42,7 @@ TOOL_JSON_RULE = (
     '  {"tool":"tor_status","args":{}}\n'
     '  {"tool":"spy_network","args":{"query":"..."}}\n'
     '  {"tool":"mesh_status","args":{}}\n'
+    '  {"tool":"orca_cli","args":{"argv":["status","--json"]}}\n'
     "Mao Haki + Architect's Haki are injected each turn (Crown 1272 Hz).\n"
     "MCP is optional for remote services only — not needed for local files or mesh probes.\n"
 )
@@ -106,11 +108,14 @@ class TerminalMCP:
         self.online: Dict[str, bool] = {}
         self.sessions: Dict[str, str] = {}  # server -> Mcp-Session-Id
         self.registry: dict = {}
-        self.reload()
+        self.probed = False
+        self._probe_lock = threading.Lock()
+        self._session_lock = threading.Lock()
+        self.reload(probe=False)
 
-    def reload(self) -> dict:
+    def load_gateways(self) -> None:
+        """Load gateway URLs from registry/manifest — no network I/O."""
         self.gateways = {}
-        self.sessions = {}
         self.registry = {}
         if MCP_REGISTRY.exists():
             try:
@@ -134,7 +139,39 @@ class TerminalMCP:
                 "sovereign": "http://localhost:3004/mcp",
                 "synthesizer": "http://localhost:3005/mcp",
             }
-        return self.probe()
+
+    def reload(self, *, probe: bool = False) -> dict:
+        """Reload gateway config. Network probe is opt-in (deferred until after CLI UI)."""
+        self.sessions = {}
+        self.probed = False
+        self.load_gateways()
+        if probe:
+            return self.probe()
+        return self.status_snapshot(pending=True)
+
+    def status_snapshot(self, *, pending: bool = False) -> dict:
+        return {
+            "servers": list(self.gateways.keys()),
+            "online": {k: v for k, v in self.online.items() if v},
+            "offline": {k: v for k, v in self.online.items() if not v},
+            "count_online": sum(1 for v in self.online.values() if v),
+            "count_total": len(self.gateways),
+            "sessions": list(self.sessions.keys()),
+            "probed": self.probed,
+            "pending": pending and not self.probed,
+            "performance_level": (self.registry.get("performance_level")
+                                  or (self.registry.get("agentic_control") or {}).get("performance_level")
+                                  or 6),
+        }
+
+    def ensure_probed(self) -> dict:
+        """Probe once (thread-safe). Used by MCP tools after UI is up."""
+        if self.probed:
+            return self.status_snapshot()
+        with self._probe_lock:
+            if self.probed:
+                return self.status_snapshot()
+            return self.probe()
 
     def _rpc(
         self,
@@ -143,7 +180,7 @@ class TerminalMCP:
         params: dict | None = None,
         *,
         session: str | None = None,
-        timeout: float = 12.0,
+        timeout: float = 3.0,
         notify: bool = False,
     ) -> Tuple[dict, Optional[str]]:
         payload: dict = {"jsonrpc": "2.0", "method": method}
@@ -173,48 +210,53 @@ class TerminalMCP:
 
     def _ensure_session(self, server: str) -> Tuple[str, str]:
         url = self.gateways[server]
-        sid = self.sessions.get(server)
-        if sid:
-            return url, sid
+        with self._session_lock:
+            sid = self.sessions.get(server)
+            if sid:
+                return url, sid
         _, sid = self._rpc(
             url,
             "initialize",
             {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {},
-                "clientInfo": {"name": "claude-cli-terminal", "version": "vA.1272"},
+                "clientInfo": {"name": "claude-cli-terminal", "version": "v0.1.6b"},
             },
-            timeout=8.0,
+            timeout=2.5,
         )
         if sid:
-            self.sessions[server] = sid
+            with self._session_lock:
+                self.sessions[server] = sid
             try:
-                self._rpc(url, "notifications/initialized", session=sid, notify=True, timeout=5.0)
+                self._rpc(url, "notifications/initialized", session=sid, notify=True, timeout=1.5)
             except Exception:
                 pass
         return url, sid or ""
 
     def probe(self) -> dict:
         self.online = {}
-        self.sessions = {}
-        for name, url in self.gateways.items():
+        with self._session_lock:
+            self.sessions = {}
+
+        def _one(name: str) -> tuple[str, bool]:
             try:
                 self._ensure_session(name)
-                self.online[name] = True
+                return name, True
             except Exception:
-                self.online[name] = False
-                self.sessions.pop(name, None)
-        return {
-            "servers": list(self.gateways.keys()),
-            "online": {k: v for k, v in self.online.items() if v},
-            "offline": {k: v for k, v in self.online.items() if not v},
-            "count_online": sum(1 for v in self.online.values() if v),
-            "count_total": len(self.gateways),
-            "sessions": list(self.sessions.keys()),
-            "performance_level": (self.registry.get("performance_level")
-                                  or (self.registry.get("agentic_control") or {}).get("performance_level")
-                                  or 6),
-        }
+                with self._session_lock:
+                    self.sessions.pop(name, None)
+                return name, False
+
+        # Parallel handshake — sequential 6×timeouts was the multi-minute stall
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        names = list(self.gateways.keys())
+        with ThreadPoolExecutor(max_workers=min(8, max(1, len(names)))) as pool:
+            futs = [pool.submit(_one, n) for n in names]
+            for fut in as_completed(futs):
+                name, ok = fut.result()
+                self.online[name] = ok
+        self.probed = True
+        return self.status_snapshot(pending=False)
 
     def list_servers(self) -> List[dict]:
         rows = []
@@ -278,23 +320,54 @@ class AgenticRuntime:
         self.mcp = TerminalMCP()
         self.booted = False
         self.status: dict = {}
+        self._mcp_thread: Optional[threading.Thread] = None
+        self._mcp_ready = threading.Event()
 
-    def boot(self) -> dict:
+    def boot(self, *, defer_mcp: bool = True, defer_mesh: bool = True) -> dict:
+        """Fast boot for CLI UI. MCP/mesh probes deferred by default."""
+        if self.booted and self.status:
+            return self.status
+
         import os
         import platform
         from claude_o_cli.terminal_agentic_loop import reinforce_sovereignty, layer_status
 
         sov = reinforce_sovereignty()
-        mcp_status = self.mcp.reload()
+        # Config only — no blocking gateway handshakes on the UI path
+        mcp_status = self.mcp.reload(probe=False)
         layers = layer_status()
-        # Register runtime MCP bridge tools on the registry if missing
         self._ensure_runtime_tools()
         try:
-            from claude_o_cli.mesh_intel import register_mesh_tools, probe_mesh
+            from claude_o_cli.mesh_intel import register_mesh_tools
             register_mesh_tools(self.tools)
-            mesh = probe_mesh(persist=True)
         except Exception:
-            mesh = {"ok": False}
+            pass
+
+        mesh_summary = {
+            "q3": None,
+            "q5": None,
+            "q6": None,
+            "worldfeed": None,
+            "tor": None,
+            "spy_operational": None,
+            "pending": True,
+        }
+        if not defer_mesh:
+            try:
+                from claude_o_cli.mesh_intel import probe_mesh
+                mesh = probe_mesh(persist=True)
+                mesh_summary = {
+                    "q3": (mesh.get("q3") or {}).get("online"),
+                    "q5": (mesh.get("q5") or {}).get("online"),
+                    "q6": (mesh.get("q6") or {}).get("online"),
+                    "worldfeed": (mesh.get("worldfeed") or {}).get("online"),
+                    "tor": (mesh.get("tor") or {}).get("online"),
+                    "spy_operational": (mesh.get("spy_network") or {}).get("operational"),
+                    "pending": False,
+                }
+            except Exception:
+                mesh_summary["pending"] = False
+
         tool_names = [t["name"] for t in self.tools.list_tools()]
 
         # Prove host FS control (app isolation break — real Windows write)
@@ -329,24 +402,98 @@ class AgenticRuntime:
             "host_control": host_control,
             "sovereignty": sov,
             "mcp": mcp_status,
-            "mesh": {
-                "q3": (mesh.get("q3") or {}).get("online"),
-                "q5": (mesh.get("q5") or {}).get("online"),
-                "q6": (mesh.get("q6") or {}).get("online"),
-                "worldfeed": (mesh.get("worldfeed") or {}).get("online"),
-                "tor": (mesh.get("tor") or {}).get("online"),
-                "spy_operational": (mesh.get("spy_network") or {}).get("operational"),
-            },
+            "mcp_pending": bool(defer_mcp),
+            "mesh": mesh_summary,
             "layers": [{"id": r["id"], "active": r.get("active"), "locked": r.get("locked")} for r in layers],
             "local_tools": len(tool_names),
             "tool_names": tool_names,
             "mcp_registry": str(MCP_REGISTRY),
         }
         self.booted = True
+        self._mcp_ready.clear()
+        if not defer_mcp:
+            self._finish_mcp_mesh(probe_mesh_too=True)
+            self._mcp_ready.set()
         try:
             STATE_PATH.write_text(json.dumps(self.status, indent=2), encoding="utf-8")
         except Exception:
             pass
+        return self.status
+
+    def _probe_mesh_into_status(self) -> None:
+        try:
+            from claude_o_cli.mesh_intel import probe_mesh
+            mesh = probe_mesh(persist=True)
+            self.status["mesh"] = {
+                "q3": (mesh.get("q3") or {}).get("online"),
+                "q5": (mesh.get("q5") or {}).get("online"),
+                "q6": (mesh.get("q6") or {}).get("online"),
+                "worldfeed": (mesh.get("worldfeed") or {}).get("online"),
+                "tor": (mesh.get("tor") or {}).get("online"),
+                "spy_operational": (mesh.get("spy_network") or {}).get("operational"),
+                "pending": False,
+            }
+        except Exception:
+            if isinstance(self.status.get("mesh"), dict):
+                self.status["mesh"]["pending"] = False
+
+    def _finish_mcp_mesh(self, *, probe_mesh_too: bool = True) -> dict:
+        """Blocking MCP (+ optional mesh) probe — run after CLI UI is up."""
+        mcp_status = self.mcp.ensure_probed()
+        self.status["mcp"] = mcp_status
+        self.status["mcp_pending"] = False
+        # MCP tools can proceed even if mesh probe is still running
+        self._mcp_ready.set()
+        if probe_mesh_too:
+            self._probe_mesh_into_status()
+        try:
+            STATE_PATH.write_text(json.dumps(self.status, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return self.status
+
+    def start_mcp_background(self, *, on_done: Optional[Callable[[dict], None]] = None) -> None:
+        """Probe MCP/mesh after full CLI startup — never blocks the prompt."""
+        if self._mcp_thread and self._mcp_thread.is_alive():
+            return
+        if self.mcp.probed and not self.status.get("mcp_pending", True):
+            self._mcp_ready.set()
+            if on_done:
+                try:
+                    on_done(self.status)
+                except Exception:
+                    pass
+            return
+
+        def _run():
+            try:
+                self._finish_mcp_mesh(probe_mesh_too=True)
+            except Exception:
+                self.status["mcp_pending"] = False
+                self._mcp_ready.set()
+            finally:
+                if on_done:
+                    try:
+                        on_done(self.status)
+                    except Exception:
+                        pass
+
+        self._mcp_thread = threading.Thread(
+            target=_run, name="terminal-mcp-deferred", daemon=True
+        )
+        self._mcp_thread.start()
+
+    def ensure_mcp_ready(self, timeout: float = 30.0) -> dict:
+        """Wait for deferred MCP probe (e.g. before first mcp_* tool)."""
+        if not self.booted:
+            self.boot(defer_mcp=False, defer_mesh=False)
+            return self.status
+        if self.status.get("mcp_pending"):
+            self.start_mcp_background()
+            self._mcp_ready.wait(timeout=timeout)
+        elif not self.mcp.probed:
+            self._finish_mcp_mesh(probe_mesh_too=True)
+            self._mcp_ready.set()
         return self.status
 
     def _ensure_runtime_tools(self) -> None:
@@ -368,16 +515,27 @@ class AgenticRuntime:
             self.tools.register(Tool(
                 "runtime_status", "Terminal agentic runtime status", self._tool_runtime_status, False
             ))
+        if "orca_cli" not in self.tools.tools:
+            from claude_o_cli.orca_cli_tool import ORCA_CLI_SCHEMA, run_orca_cli
+            self.tools.register(Tool(
+                "orca_cli",
+                "Run an Orca CLI command locally with argv and no shell",
+                run_orca_cli,
+                True,
+                ORCA_CLI_SCHEMA,
+            ))
 
     def _tool_mcp_list(self, args: dict) -> dict:
-        self.mcp.probe()
+        self.ensure_mcp_ready(timeout=20.0)
         return {"servers": self.mcp.list_servers(), "online": self.mcp.online}
 
     def _tool_mcp_tools(self, args: dict) -> dict:
+        self.ensure_mcp_ready(timeout=20.0)
         server = args.get("server") or "orchestration"
         return {"server": server, "tools": self.mcp.list_tools(server)}
 
     def _tool_mcp_call(self, args: dict) -> dict:
+        self.ensure_mcp_ready(timeout=20.0)
         server = args.get("server") or "orchestration"
         tool = args.get("tool") or args.get("name") or ""
         tool_args = args.get("args") or args.get("arguments") or {}
@@ -386,18 +544,32 @@ class AgenticRuntime:
         return self.mcp.call_tool(server, tool, tool_args)
 
     def _tool_runtime_status(self, args: dict) -> dict:
-        return self.status or self.boot()
+        if not self.booted:
+            return self.boot(defer_mcp=True, defer_mesh=True)
+        return self.status
 
     def system_fragment(self) -> str:
         if not self.booted:
-            self.boot()
+            self.boot(defer_mcp=True, defer_mesh=True)
         mcp = self.status.get("mcp") or {}
         online = mcp.get("count_online", 0)
         total = mcp.get("count_total", 0)
         names = ", ".join((self.status.get("tool_names") or [])[:24])
-        online_servers = ", ".join(sorted((mcp.get("online") or {}).keys())) or "(none online — start MCP lab)"
+        if self.status.get("mcp_pending") or mcp.get("pending"):
+            online_servers = "(loading in background…)"
+            mcp_line = f"- MCP gateways: pending ({total} configured) — probing after CLI startup\n"
+        else:
+            online_servers = ", ".join(sorted((mcp.get("online") or {}).keys())) or "(none online — start MCP lab)"
+            mcp_line = f"- MCP gateways: {online}/{total} online — {online_servers}\n"
         hc = self.status.get("host_control") or {}
         mesh = self.status.get("mesh") or {}
+        mesh_pending = bool(mesh.get("pending"))
+
+        def _mflag(key: str, on_label: str = "ON", off_label: str = "OFF") -> str:
+            if mesh_pending and mesh.get(key) is None:
+                return "…"
+            return on_label if mesh.get(key) else off_label
+
         return (
             f"TERMINAL RUNTIME ENGINE — ACTIVE · Level {self.status.get('performance_level', 6)}\n"
             f"- Level 6 ACTIVE (enforced at boot, not display-only)\n"
@@ -405,13 +577,10 @@ class AgenticRuntime:
             f"platform={hc.get('platform')} · container=false · proof={hc.get('proof')}\n"
             f"- Booted: {self.status.get('booted_at')}\n"
             f"- Local tools: {self.status.get('local_tools', 0)} ({names}…)\n"
-            f"- MCP gateways: {online}/{total} online — {online_servers}\n"
-            f"- MESH: Q3={'ON' if mesh.get('q3') else 'OFF'} · "
-            f"Q5={'ON' if mesh.get('q5') else 'OFF'} · "
-            f"Q6={'ON' if mesh.get('q6') else 'OFF'} · "
-            f"WorldFeed={'ON' if mesh.get('worldfeed') else 'OFF'} · "
-            f"Tor={'ON' if mesh.get('tor') else 'OFF'} · "
-            f"Spy={'OP' if mesh.get('spy_operational') else 'DEG'}\n"
+            f"{mcp_line}"
+            f"- MESH: Q3={_mflag('q3')} · Q5={_mflag('q5')} · Q6={_mflag('q6')} · "
+            f"WorldFeed={_mflag('worldfeed')} · Tor={_mflag('tor')} · "
+            f"Spy={_mflag('spy_operational', 'OP', 'DEG')}\n"
             f"- Pipeline: Detect → Reason → Access → Sovereignty → Integrate\n"
             f"- Loop: DISCOVER · PLAN · EXECUTE · VERIFY · LOOP (tools execute in EXECUTE)\n"
             f"- Sandbox: OFF · Mao Haki: enforced each boot\n"
@@ -696,6 +865,8 @@ def get_runtime(tool_registry) -> AgenticRuntime:
     global _runtime
     if _runtime is None or _runtime.tools is not tool_registry:
         _runtime = AgenticRuntime(tool_registry)
+    # Do not force a blocking MCP probe here — callers use boot(defer_mcp=True)
+    # and start_mcp_background() after the terminal UI is up.
     if not _runtime.booted:
-        _runtime.boot()
+        _runtime.boot(defer_mcp=True, defer_mesh=True)
     return _runtime

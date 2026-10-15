@@ -17,15 +17,15 @@ class LLMAdapter:
     def __init__(self):
         self.is_active = False
         self.current_provider = None
-        self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.ollama_model = os.getenv("OLLAMA_MODEL", "llama3.2")
+        self.ollama_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+        self.ollama_model = os.getenv("OLLAMA_MODEL", "deepseek-prime-cl-1q5duo5:fast")
         self.ollama_available = self._check_ollama()
 
     def _check_ollama(self) -> bool:
         """Check if Ollama is running locally."""
         try:
             req = urllib.request.Request(f"{self.ollama_url}/api/tags", method="GET")
-            with urllib.request.urlopen(req, timeout=3) as resp:
+            with urllib.request.urlopen(req, timeout=20) as resp:
                 if resp.status == 200:
                     return True
         except Exception:
@@ -38,7 +38,8 @@ class LLMAdapter:
         payload = json.dumps({
             "model": model,
             "prompt": prompt,
-            "stream": stream
+            "stream": stream,
+            "options": {"num_predict": 1024},
         }).encode()
 
         req = urllib.request.Request(
@@ -96,7 +97,8 @@ class LLMAdapter:
         payload = json.dumps({
             "model": model,
             "messages": messages,
-            "stream": stream
+            "stream": stream,
+            "options": {"num_predict": 1024},
         }).encode()
 
         req = urllib.request.Request(

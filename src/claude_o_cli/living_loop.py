@@ -297,15 +297,18 @@ class LivingLoop:
             self.state["phase"] = "DISCOVER"
 
         # DISCOVER + PLAN + EXECUTE(perception) + VERIFY scaffolding
-        # Mesh intel rides DISCOVER for every living-loop cycle
+        # Mesh intel rides DISCOVER for every living-loop cycle (skippable for API speed)
         mesh_discover = None
-        try:
-            from claude_o_cli.mesh_intel import living_loop_discover
-            mesh_discover = living_loop_discover(input_data)
-            ctx["mesh"] = mesh_discover.get("mesh")
-            ctx["mesh_fragment"] = mesh_discover.get("fragment")
-        except Exception as e:
-            mesh_discover = {"error": str(e)}
+        if not ctx.get("skip_mesh"):
+            try:
+                from claude_o_cli.mesh_intel import living_loop_discover
+                mesh_discover = living_loop_discover(input_data)
+                ctx["mesh"] = mesh_discover.get("mesh")
+                ctx["mesh_fragment"] = mesh_discover.get("fragment")
+            except Exception as e:
+                mesh_discover = {"error": str(e)}
+        else:
+            mesh_discover = {"skipped": True}
 
         if mode == "loop":
             cycle_result = run_dpev_cycle(goal, ctx)
