@@ -277,4 +277,11 @@ model SYSTEM on https://huggingface.co/oroboros-labs - same bases, weights untou
 - LAUNCH LAW: services boot through the harness registry (total_svc) — one way, always
   the same commands; the scape chips call the same door.
 
+### THE ONE-CLICK LAUNCHER
+
+- **J:/start-systemscape.bat** = THE EYE + THE HANDS + the shim + the null-frame node
+  in one click (it frees each port and boots the registered way, then opens the Eye).
+- The null-frame node also has its own starter: J:/Assimilation Architecture
+  Null Frame/nullframe/nullframe-node.bat.
+
 .
