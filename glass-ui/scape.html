@@ -111,7 +111,7 @@ body.dark #chipout{color:#cfcfc8}
 body.dark #q::placeholder, #q{color:#d9d9d2}
 body.dark .hud .sub, body.dark #livebar{color:#9a9a93}
   /* THE CHAT PANEL + EQ */
-#chat{position:fixed; right:16px; top:388px; width:316px; max-height:calc(100vh - 404px); z-index:6; display:flex; flex-direction:column}
+#chat{position:fixed; right:16px; top:435px; width:316px; max-height:calc(100vh - 450px); z-index:6; display:flex; flex-direction:column}
 #msgs{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px 2px}
 .msg{border:1px solid rgba(23,23,22,.14); border-radius:10px; padding:8px 11px; font-size:11px; line-height:1.75; background:rgba(255,255,255,.5); color:#171716; white-space:pre-wrap; word-break:break-word}
 .msg.me{background:rgba(23,23,22,.78); color:#f2f2ee; align-self:flex-end; border-color:rgba(0,0,0,.2)}
@@ -172,7 +172,6 @@ body.dark #chat{background:var(--panel)}
 
 <div class="p" id="card"><div class="k" id="c-k"></div><div class="name" id="c-name"></div><div id="c-desc" style="color:var(--teal8); line-height:1.7"></div><div class="chiprow" id="c-chips"></div><div id="chipout"></div></div>
 <div class="p" id="chat">  <div style="display:flex; justify-content:space-between; align-items:center">    <div style="font-size:9px; letter-spacing:.3em; color:#44443f; font-weight:800">VOICE CHAT — DIGITAL EQ</div>    <div style="font-size:8px; letter-spacing:.18em; color:#8a8a84" id="vst">hands-free: off</div>  </div>  <div id="msgs"></div>  <div id="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>  <div id="vrow">    <button class="vbtn" id="micb">MIC</button>    <input id="vin" placeholder="…or type — hands-free mic rides above">    <button class="vbtn" id="sendb">SEND</button>  </div></div>
-<script>
 <div id="tip"></div>
 <div id="livebar">syncing…</div>
 
@@ -242,12 +241,12 @@ const nds = NODES.map(([id,label,port,kind,r,th,zl,desc])=>({id,label,port,kind,
 const byId={}; nds.forEach(n=>byId[n.id]=n);
 // NODECOLORS - the Q services carry the per-node orb colors
 const NODECOLORS = {
-  q3: [" "#e8c93f"+Q, " "#fff3b0"+Q],        // yellow
-  q5: [" "#8b5cf6" +Q, " "#cbb8ff"+Q],        // purple
-  q7: [" "#ff7a3c" +Q, " "#ffcf9e"+Q],        // orange
-  q8void: [" "#0d0d0d"+Q, " "#1f1f1f"+Q],     // black
-  nullframe: [" "#f472b6"+Q, " "#ffd1e8"+Q],  // pink
-}
+  q3: ["#e8c93f","#fff3b0"],
+  q5: ["#8b5cf6","#cbb8ff"],
+  q7: ["#ff7a3c","#ffcf9e"],
+  q8void: ["#0d0d0d","#1f1f1f"],
+  nullframe: ["#f472b6","#ffd1e8"]
+};
 const ED = EDGES.map(([a,b])=>({a:byId[a],b:byId[b]})).filter(e=>e.a&&e.b);
 PROJ_RESET(); function PROJ_RESET(){}
 const PROJ=new Map();
