@@ -98,7 +98,19 @@ body.dark #q{background:rgba(0,0,0,.5); color:#f2f2ee}
 body.dark .tog.on .sw{background:#7ddccf}
 .tog.on .sw::after{left:16px}
 .tog .v{display:none}
-</style>
+#td .tt{letter-spacing:.18em; color:#111}
+body.dark #td .tt{color:#f2f2ee}
+body.dark #td .fin{color:#cfcfc8}
+body.dark #td .stack span{background:rgba(255,255,255,.10); color:#f2f2ee; border-color:rgba(255,255,255,.2)}
+body.dark .gbtn{background:#e8e8e2; color:#141413}
+body.dark #td .via{background:#e8e8e2; color:#141413}
+body.dark #card {color:#e8e8e2}
+body.dark .k{color:#d8b25a}
+body.dark .name{color:#fff}
+body.dark #chipout{color:#cfcfc8}
+body.dark #q::placeholder, #q{color:#d9d9d2}
+body.dark .hud .sub, body.dark #livebar{color:#9a9a93}
+  </style>
 </head>
 <body>
 <canvas id="scape"></canvas>
@@ -189,7 +201,7 @@ const EDGES = [
 const DARKPAL = {
   core:['#d7d7d2','#fbfbf9'], q:['#d7d7d2','#ffffff'], feed:['#242424','#3d3d3d'],
   prog:['#b9b9b5','#e9e9e5'], ref:['#ffffff','#ffffff'], crown:['#efe4c2','#fffdf4'],
-  void:['#1c1c1c','#2b2b2b'],
+  void:['#333333','#4a4a4a'],
 };
 const PAL = ()=> document.body.classList.contains('dark')? DARKPAL : COLORS;
 const COLORS = {
@@ -417,19 +429,27 @@ function dial(){
   const up=nds.filter(n=>n.up===true).length, tot=nds.length;
   const frac= tot? up/tot : 0;
   const T0=-Math.PI/2;
-  c.lineWidth=7; c.strokeStyle="rgba(23,23,22,.12)";
+  const dark=document.body.classList.contains("dark");
+  const INK=dark? "#f2f2ee":"#171716";
+  c.strokeStyle=dark? "rgba(255,255,255,.12)":"rgba(23,23,22,.12)"; c.lineWidth=7;
   c.beginPath(); c.arc(C,C,120,0,Math.PI*2); c.stroke();
   c.strokeStyle="#5a5a54"; c.lineCap="round";
   c.beginPath(); c.arc(C,C,120,T0,T0+Math.PI*2*frac); c.stroke();
-  c.lineWidth=2; c.strokeStyle="rgba(23,23,22,.4)";
+  c.strokeStyle=dark? "rgba(255,255,255,.35)":"rgba(23,23,22,.4)"; c.lineWidth=2;
   c.beginPath(); c.arc(C,C,96,0,Math.PI*2); c.stroke();
-  for(let i=0;i<48;i++){ const a=T0+i*(Math.PI*2/48); const r0=i%8===0?76:84;
-    c.strokeStyle=i%8===0? "rgba(169,124,47,.85)":"rgba(23,23,22,.35)"; c.lineWidth=i%8===0?2:1;
-    c.beginPath(); c.moveTo(C+Math.cos(a)*r0, C+Math.sin(a)*r0); c.lineTo(C+Math.cos(a)*94, C+Math.sin(a)*94); c.stroke(); }
-  c.fillStyle=document.body.classList.contains("dark")?"#f2f2ee":"#171716"; c.textAlign="center";
+  for(let i=0;i<48;i++){ const a=T0+i*(Math.PI*2/48);
+    const big=i%4===0;
+    const r0=big?72:80, r1=94;
+    c.strokeStyle=big? (dark?"rgba(240,229,196,.9)":"rgba(169,124,47,.85)") : (dark?"rgba(255,255,255,.3)":"rgba(23,23,22,.35)");
+    c.lineWidth=big?2:1;
+    c.beginPath(); c.moveTo(C+Math.cos(a)*r0, C+Math.sin(a)*r0); c.lineTo(C+Math.cos(a)*r1, C+Math.sin(a)*r1); c.stroke(); }
+  for(let i=0;i<60;i++){ const a=T0+i*(Math.PI*2/60);
+    c.strokeStyle=dark? "rgba(255,255,255,.16)":"rgba(23,23,22,.16)"; c.lineWidth=1;
+    c.beginPath(); c.moveTo(C+Math.cos(a)*64, C+Math.sin(a)*64); c.lineTo(C+Math.cos(a)*69, C+Math.sin(a)*69); c.stroke(); }
+  c.fillStyle=INK; c.textAlign="center";
   c.font="700 36px Inter"; c.fillText(String(up), C, C+4);
-  c.font="600 13px Inter"; c.fillStyle=document.body.classList.contains("dark")?"rgba(220,220,214,.8)":"rgba(60,60,57,.8)"; c.fillText("NODES LIVE", C, C+28);
-  c.fillStyle="#6a6a63"; c.font="700 12px Inter"; c.fillText("NEURAL LOCK 1272", C, C+56);
+  c.font="600 13px Inter"; c.fillStyle=dark? "rgba(230,230,224,.8)":"rgba(60,60,57,.8)"; c.fillText("NODES LIVE", C, C+28);
+  c.fillStyle="#a97c2f"; c.font="700 12px Inter"; c.fillText("NEURAL LOCK 1272", C, C+56);
 }
 setInterval(dial, 300); dial();
 </script>
