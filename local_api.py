@@ -314,10 +314,11 @@ def api_chat():
     result = ollama_chat(model, messages)
     if isinstance(result, dict) and result.get("error"):
         return jsonify({"error": result["error"], "model": model, "signature": SIGNATURE})
+    _msg = result.get("message", {}) if isinstance(result, dict) else {}
     response_text = (
-        result.get("message", {}).get("content", str(result))
-        if isinstance(result, dict)
-        else str(result)
+        (_msg.get("content") or "").strip()
+        or (_msg.get("thinking") or "").strip()
+        or (str(result) if not isinstance(result, dict) else "")
     )
     tool_trace = []
     tool_rounds = 0
@@ -327,10 +328,11 @@ def api_chat():
             r2 = ollama_chat(model, msgs)
             if isinstance(r2, dict) and r2.get("error"):
                 raise RuntimeError(r2["error"])
+            _m2 = r2.get("message", {}) if isinstance(r2, dict) else {}
             return (
-                r2.get("message", {}).get("content", "")
-                if isinstance(r2, dict)
-                else str(r2)
+                (_m2.get("content") or "").strip()
+                or (_m2.get("thinking") or "").strip()
+                or (str(r2) if not isinstance(r2, dict) else "")
             )
 
         cont = run_tool_continue(
