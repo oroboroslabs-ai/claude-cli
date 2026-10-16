@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OROBOROS — THE SYSTEM SCAPE — THE EYE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --ink:#141413; --panel:rgba(22,22,21,.88); --line:rgba(255,255,255,.16);
+    --teal:#d9d9d2; --teal4:#b9b9b0; --teal8:#d9d9d2; --pale:#e8e8e2; --white:#ffffff;
+    --crown:#c8a050; --coral:#D97757; --red:#ff4d4d; --up:#D97757;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%; background:var(--ink); color:var(--white); font-family:Inter,Poppins,system-ui,sans-serif; overflow:hidden}
+  #scape{position:fixed; inset:0; cursor:grab}
+  .p{position:fixed; z-index:6; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; backdrop-filter:blur(8px); font-size:11px}
+  .hud{top:12px; left:16px}
+  .lockup{display:flex; align-items:center; gap:10px}
+  .lockup img{width:34px; height:34px; object-fit:contain; display:block; filter:drop-shadow(0 0 10px rgba(255,255,255,.25))}
+  .lockup .words{font-size:13px; letter-spacing:.30em; font-weight:700; color:#fff; text-shadow:0 0 18px rgba(255,255,255,.28)}
+  .lockup .words .amp{color:#D97757; padding:0 .18em}
+.hud h1{font-size:14px; letter-spacing:.36em; font-weight:700; color:#fff; text-shadow:0 0 20px rgba(255,255,255,.25)}
+  .hud .sub{font-size:9.5px; letter-spacing:.24em; color:#8f8f88; margin-top:3px}
+  .hud .n{color:var(--crown); font-weight:700}
+  /* ── INSPECTOR ── */
+  #insp{left:16px; top:74px; width:224px}
+  #insp .hd{font-size:9px; letter-spacing:.3em; color:var(--teal4); margin:10px 0 6px}
+  #insp .hd:first-child{margin-top:0}
+  #q{width:100%; background:rgba(0,0,0,.42); border:1px solid var(--line); border-radius:9px; color:var(--white); font-size:11px; padding:7px 10px; outline:none}
+  #q:focus{border-color:#fff; box-shadow:0 0 16px rgba(255,255,255,.14)}
+  .hint{color:var(--teal8); opacity:.85; font-size:9.5px; line-height:1.7; margin:4px 0}
+  .hubs .h{display:flex; justify-content:space-between; padding:3px 2px; cursor:pointer; border-radius:7px}
+  .hubs .h:hover{background:rgba(255,255,255,.08)}
+  .hubs .h b{color:var(--white); font-weight:600; display:flex; gap:7px; align-items:center}
+  .hubs .dot{width:8px;height:8px;border-radius:50%; display:inline-block}
+  .hubs .n{color:var(--teal8)}
+  .force{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--pale)}
+  .force label{width:70px; font-size:10px; letter-spacing:.08em}
+  .force input[type=range]{flex:1; accent-color:#D97757}
+  /* ── JAR RING + TOGGLES ── */
+  #ring{right:16px; top:12px; width:216px; text-align:center}
+  #ringcv{width:190px; height:190px; margin:4px auto 2px}
+  .ringname{font-size:11px; letter-spacing:.5em; color:#fff; font-weight:700; position:absolute; }
+  .togs{margin-top:8px; display:flex; flex-direction:column; gap:5px}
+  .tog{display:flex; justify-content:space-between; align-items:center; border:1px solid var(--line); border-radius:9px; padding:5px 10px; cursor:pointer; font-size:10px; letter-spacing:.22em; color:var(--pale)}
+  .tog .v{color:var(--teal4)}
+  .tog.on{background:rgba(255,255,255,.10)} .tog.on .v{color:#D97757}
+  .chips{display:flex; gap:5px; justify-content:center; margin-top:7px; flex-wrap:wrap}
+  .chips span{border:1px solid var(--line); border-radius:20px; padding:2px 9px; font-size:8.5px; letter-spacing:.16em; color:var(--teal8)}
+  /* ── TEARDOWN CARD ── */
+  #td{left:600px; top:88px; width:352px; display:none}
+  #td.show{display:block}
+  #td .bar{display:flex; gap:8px; align-items:center; margin-bottom:7px; flex-wrap:wrap}
+  #td .tt{font-size:11px; letter-spacing:.18em; color:#fff; font-weight:700}
+  #td .via{background:#D97757; color:#1a1a19; border-radius:6px; padding:2px 8px; font-size:9px; font-weight:800; letter-spacing:.1em}
+  #td .x{cursor:pointer; color:var(--teal4); margin-left:auto}
+  #td .shot{width:100%; border-radius:9px; border:1px solid var(--line); display:block; max-height:120px; object-fit:cover}
+  #td .stack{margin-top:8px; display:flex; gap:5px; flex-wrap:wrap}
+  #td .stack span{background:rgba(255,255,255,.08); border:1px solid var(--line); border-radius:6px; padding:2px 8px; color:var(--white); font-size:9.5px}
+  #td .fin{margin-top:8px; color:var(--teal8); font-size:9.5px; letter-spacing:.06em}
+  .gbtn{display:block; width:100%; margin-top:10px; background:#D97757; color:#1a1a19; border:0; border-radius:10px; padding:9px; font-weight:800; letter-spacing:.08em; cursor:pointer; font-size:11px}
+  .gbtn:hover{filter:brightness(1.1)}
+  /* ── SPEAKING STRIP ── */
+  #speak{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:6; max-width:min(680px, 60vw);
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:11px 16px; font-size:11.5px; line-height:1.75; color:var(--pale); display:none}
+  #speak.show{display:block}
+  #speak .who{color:var(--crown); letter-spacing:.26em; font-size:9px; font-weight:700}
+  /* ── CARD (node inspector) ── */
+  #card{right:250px; bottom:16px; width:290px; display:none}
+  #card.show{display:block}
+  .k{color:var(--crown); letter-spacing:.2em; font-size:8.5px}
+  .name{font-size:13.5px; color:#fff; font-weight:700; margin:2px 0 4px}
+  .st.up{color:var(--up); font-weight:700} .st.down{color:var(--red); font-weight:700}
+  .chiprow{margin-top:9px; display:flex; gap:5px; flex-wrap:wrap}
+  .chip{background:rgba(64,224,208,.15); border:1px solid var(--line); color:#fff; font-size:9px; letter-spacing:.12em; padding:4px 10px; border-radius:8px; cursor:pointer}
+  .chip:hover{background:rgba(64,224,208,.3)}
+  .chip.hot{border-color:#7a3a3a; color:#ffb0b0}
+  #chipout{margin-top:7px; color:var(--teal8); font-size:9.5px; white-space:pre-wrap; max-height:150px; overflow:auto}
+  #tip{position:fixed; z-index:9; pointer-events:none; background:rgba(10,18,20,.92); border:1px solid var(--line); color:#fff; font-size:9.5px; letter-spacing:.12em; padding:4px 9px; border-radius:8px; display:none; white-space:nowrap}
+  #livebar{position:fixed; left:16px; bottom:0; z-index:3; font-size:9px; letter-spacing:.22em; color:#8f8f88; opacity:.9}
+  #livebar .up{color:var(--up)} #livebar .dn{color:var(--red)}
+</style>
+</head>
+<body>
+<canvas id="scape"></canvas>
+<div class="p hud"><div style="display:flex; align-items:center; gap:11px"><img src="/glass-ui/clawd.png" alt="Oroboros / Anthropic" style="width:36px; height:36px; object-fit:contain; filter:drop-shadow(0 0 12px rgba(255,255,255,.3))"><div><h1 style="font-size:13.5px; letter-spacing:.30em; font-weight:800; color:#fff; margin:0">OROBOROS <span style="color:#D97757">/</span> ANTHROPIC</h1><div class="sub" style="font-size:9px; letter-spacing:.24em; color:#8f8f88; margin-top:3px">THE SYSTEM SCAPE — THE EYE &nbsp;·&nbsp; <span style="color:#D97757">NEURAL LOCK 1272 Hz</span> &nbsp;·&nbsp; drag=orbit · wheel=zoom · click=inspect · shift-click=trace</div></div></div><div class="p" id="insp">
+  <div class="hd">SEARCH THE BRAIN</div>
+  <input id="q" placeholder="search nodes…">
+  <div class="hint" id="mat">Click a node to focus it — only that node and its connections light up. Shift-click to trace the path.</div>
+  <div class="hd">TOP HUBS</div>
+  <div class="hubs" id="hubs"></div>
+  <div class="hd">FORCES</div>
+  <div class="force"><label>REPULSION</label><input id="f-repel" type="range" min="30" max="220" value="120"></div>
+  <div class="force"><label>LINK LENGTH</label><input id="f-link" type="range" min="50" max="180" value="100"></div>
+  <div class="force"><label>DEPTH</label><input id="f-depth" type="range" min="60" max="180" value="100"></div>
+  <div class="hd">LIVE</div>
+  <div class="hint" id="vitals">syncing the mesh…</div>
+</div>
+
+<div class="p" id="ring">
+  <canvas id="ringcv" width="380" height="380"></canvas>
+  <div class="chips"><span>OROBOROS</span><span>ANTHROPIC</span><span>1272</span></div>
+  <div class="togs">
+    <div class="tog" data-t="eyes"><span>EYES</span><span class="v">on</span></div>
+    <div class="tog" data-t="watch"><span>WATCH</span><span class="v">on</span></div>
+    <div class="tog" data-t="hold"><span>HOLD</span><span class="v">off</span></div>
+    <div class="tog" data-t="focus"><span>FOCUS</span><span class="v">off</span></div>
+    <div class="tog" data-t="reflex"><span>REFLEX</span><span class="v">off</span></div>
+  </div>
+</div>
+
+<div class="p" id="td">
+  <div class="bar"><span class="tt" id="td-t">TEARDOWN</span><span class="via">VIA REA</span><span class="x" onclick="document.getElementById('td').classList.remove('show')">Close</span></div>
+  <img class="shot" id="td-img" alt="">
+  <div class="stack" id="td-stack"></div>
+  <div class="fin" id="td-fin"></div>
+  <button class="gbtn" id="td-open">READ THE FULL TEARDOWN</button>
+</div>
+
+<div id="speak"><div class="who" id="s-who">NULL FRAME</div><div id="s-txt"></div></div>
+
+<div class="p" id="card"><div class="k" id="c-k"></div><div class="name" id="c-name"></div><div id="c-desc" style="color:var(--teal8); line-height:1.7"></div><div class="chiprow" id="c-chips"></div><div id="chipout"></div></div>
+<div id="tip"></div>
+<div id="livebar">syncing…</div>
+
+<script>
+"use strict";
+const PHI = 1.618033988749895;
+const T = { eyes:true, watch:true, hold:false, focus:false, reflex:false };
+
+const NODES = [
+  // id, label, port, kind, ring, theta, zlevel, desc
+  ["ollama","OLLAMA RUNTIME",11434,"core",2.6,4.00,0.0,"every local model; the runtime heart"],
+  ["shim","PROVIDER SHIM — OUR API",11499,"core",2.6,0.50,0.30,"one API, two protocols: anthropic /v1/messages + openai /v1/responses,\\nchat, models → Ollama"],
+  ["gate","OLLAMA-GATE",11435,"core",2.4,3.30,0.55,"the Q-line gate"],
+  ["glassui","GLASS UI :5000",5000,"core",2.2,1.75,0.9,"the claude-cli app — hosts this eye"],
+  ["kilo","KILO PROXY",4000,"core",2.0,5.30,0.8,"chat broker"],
+  ["q3","Q3 EDGE",8000,"q",2.4,4.72,1.7,"sovereign node · edge detection"],
+  ["q5","Q5 HIVE",8102,"q",2.4,1.20,1.95,"pattern analysis · knowledge · topics"],
+  ["q7","Q7 CONDUIT",8952,"q",2.3,2.90,1.75,"quantum conduit"],
+  ["q8void","8101 VOID",8101,"void",1.6,3.70,2.1,"retired rotten socket"],
+  ["worldfeed","WORLD FEED",8100,"feed",2.3,2.10,2.6,"real-source multi feed + query feeds"],
+  ["tor","TOR SOCKS",9050,"feed",2.1,0.90,2.85,"fringe transport — genuine exit"],
+  ["glasswing","GLASSWING ROUTER",3010,"feed",2.2,3.45,2.5,"tor+worldfeed+q5 aggregate"],
+  ["nullframe","NULL FRAME",8090,"prog",2.0,5.70,3.05,"assimilation architecture · brain deepseek-prime-pcu:live"],
+  ["totalharness","TOTALHARNESS",8800,"prog",2.1,4.30,3.1,"unlocked control plane — the hands"],
+  ["cordis","CORDIS",8789,"prog",1.8,0.20,3.4,"harness + crawlers + /mcp"],
+  ["oah","OAH",8788,"prog",1.7,1.45,3.45,"tool orchestration"],
+  ["hands","HANDS",8792,"prog",1.6,2.60,3.55,"extension relay"],
+  ["video","VIDEO WORKER",8920,"prog",1.7,0.75,3.7,"diffusion engine"],
+  ["orch","ORCHESTRATOR",8940,"prog",1.6,1.05,3.8,"browser agents → video"],
+  ["voice","NEBILION VOICE",5005,"prog",1.4,4.95,3.9,"voice hub"],
+  ["mcp","MCP GATES","3002-3005","prog",1.3,5.35,4.0,"oracle·interpreter·sovereign·synthesizer"],
+  ["lib","LIBRARY SYSTEMS","FILE-INDEX","ref",2.0,2.60,5.0,"the registry of every system"],
+  ["comms","COMMUNICATIONS","FILE-INDEX","ref",2.0,3.30,5.15,"the registry of every channel"],
+  ["nlock","NEURAL LOCK","1272 Hz","crown",2.3,1.05,5.7,"the 1272 Hz lock above the web"],
+];
+const EDGES = [
+  ["glassui","shim"],["shim","ollama"],["gate","ollama"],["kilo","ollama"],
+  ["q3","q5"],["q3","worldfeed"],["q3","tor"],["q5","ollama"],["q5","q7"],
+  ["glasswing","tor"],["glasswing","worldfeed"],["glasswing","q5"],
+  ["cordis","tor"],["nullframe","ollama"],["nullframe","q5"],["nullframe","q3"],["nullframe","q7"],["nullframe","shim"],
+  ["totalharness","glassui"],["totalharness","shim"],["totalharness","q3"],["totalharness","q5"],
+  ["totalharness","worldfeed"],["totalharness","glasswing"],["totalharness","video"],["totalharness","nullframe"],
+  ["orch","video"],["video","ollama"],["mcp","ollama"],["oah","ollama"],
+  ["lib","comms"],["lib","nlock"],["comms","nlock"],["q7","nlock"],["glassui","nlock"],
+];
+const COLORS = {
+  core:["#c9a458","#ffdf9e"], q:["#41e8d4","#dffff8"], feed:["#ff7a2f","#ffc39e"],
+  prog:["#2fbfa6","#b6fff2"], ref:["#d8f5f0","#ffffff"], crown:["#f0c575","#fff6d8"],
+  void:["#3a3a3a","#6a1414"],
+};
+const KINDS = {core:"CORE RUNTIME", q:"Q LINE", feed:"FEEDS + HUMANITY", prog:"HARNESS + PROGRAMS", ref:"REFERENCE", crown:"NEURAL LOCK", void:"VOID"};
+
+const cv=document.getElementById("scape"), ctx=cv.getContext("2d"), DPR=Math.min(devicePixelRatio||1,2);
+let W,H; function resize(){ W=cv.width=innerWidth*DPR; H=cv.height=innerHeight*DPR; cv.style.width=innerWidth+"px"; cv.style.height=innerHeight+"px"; }
+addEventListener("resize", resize); resize();
+
+let REPEL=120, LINK=100, DEPTH=100;
+const nds = NODES.map(([id,label,port,kind,r,th,zl,desc])=>({id,label,port,kind,r,ring:r,th,zl:zl,desc,x:0,y:0,z:0,up:null}));
+const byId={}; nds.forEach(n=>byId[n.id]=n);
+const ED = EDGES.map(([a,b])=>({a:byId[a],b:byId[b]})).filter(e=>e.a&&e.b);
+PROJ_RESET(); function PROJ_RESET(){}
+const PROJ=new Map();
+
+const SPREAD = ()=>LINK/100 * 1.28;
+function layout(n, t){
+  const ringR = (n.kind==="void"?70: n.ring*(120 + 40*Math.sin(n.zl*PHI)));
+  const R = ringR * SPREAD() * (0.72 + 0.13*n.zl);
+  const th = n.th + (T.watch? t*0.10 : 0);
+  const px = Math.cos(th)*R;
+  const pz = Math.sin(th)*R;
+  const py = (n.zl - 2.55) * (148 * DEPTH/100) + Math.sin(th*2.3+n.zl)*(6*n.zl);
+  return {x:px, y:py, z:pz};
+}
+function project(o){
+  let x=o.x, y=o.y, z=o.z;
+  const cy=Math.cos(rotY), sy=Math.sin(rotY);
+  const x1 = x*cy - z*sy, zA = x*sy + z*cy;
+  const cz=Math.cos(rotZ), sz=Math.sin(rotZ);
+  const y1 = y*cz - zA*sz, zB = y*sz + zA*cz;
+  const persp = 1 + zB/(900/Math.max(0.5, zoom));
+  return {sx: W/2 + x1*zoom*(0.72+0.5*DPR), sy: H*0.52 + y1*zoom*0.95 + cam.y, depth: zB, persp};
+}
+let rotY=0, rotZ=0.5, zoom=1.05, cam={x:0,y:0}, drag=null, hover=null, sel=null, trace=null;
+
+function drawOrb(n, time){
+  const p = layout(n,time);
+  const P = project(p); PROJ.set(n.id,P);
+  if(!isFinite(P.sx)||!isFinite(P.sy)) return;
+  const base = (n.kind==="void"? 3.2 : 10 + n.ring*6.0)*DPR;
+  const RR = Math.max(5, base * Math.min(1.0, Math.max(0.42, 1.14 - 0.09*P.persp)) * zoom);
+  const c = COLORS[n.kind]||COLORS.core;
+  const pul = (n.up===true? 1+0.32*Math.sin(time*2.6+n.th*5) : n.up===false? 0.62 : 0.8+0.06*Math.sin(time+n.th));
+  const R = RR*(n.id==="nlock"? (1+0.3*Math.sin(time*1.7)) : 1)*pul;
+  // halo
+  let g = ctx.createRadialGradient(P.sx,P.sy,R*0.06, P.sx,P.sy,R*(n.up===true?4.4:2.4));
+  g.addColorStop(0, c[1]); g.addColorStop(0.16, c[0]); g.addColorStop(0.42, FA(c[0],n.up===true?0.55:0.22)); g.addColorStop(1, FA(c[0],0));
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.sx,P.sy,R*(n.up===true?4.4:2.4),0,7); ctx.fill();
+  // body
+  g = ctx.createRadialGradient(P.sx-R*0.35, P.sy-R*0.35, R*0.05, P.sx,P.sy,R);
+  g.addColorStop(0,"#ffffff"); g.addColorStop(0.2, c[1]); g.addColorStop(0.62, c[0]); g.addColorStop(1, FA(c[0],0.95));
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.sx,P.sy,R,0,7); ctx.fill();
+  // lock ring
+  if(n.id==="nlock"){ ctx.strokeStyle="rgba(240,197,117,.95)"; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(P.sx,P.sy,R*1.34,time*0.8,time*0.8+5.3); ctx.stroke(); }
+  if(n===sel){ ctx.strokeStyle="rgba(240,197,117,.95)"; ctx.lineWidth=1.6*DPR; ctx.beginPath(); ctx.arc(P.sx,P.sy,R+7*DPR,0,7); ctx.stroke(); }
+  // label
+  const show = (n===hover||n===sel||n.up===true||zoom>1.6||T.focus===false);
+  if(show && n.kind!=="void"){
+    ctx.font=`600 ${10*DPR}px Inter,system-ui`;
+    ctx.fillStyle = n===sel? "#D97757" : n===hover? "#ffffff" : FA("#e8e8e2",.8);
+    ctx.textAlign="center";
+    ctx.fillText(n.label, P.sx, P.sy - R - 9*DPR);
+  }
+}
+function FA(hex,a){ const v=parseInt(hex.slice(1),16); return `rgba(${v>>16&255},${v>>8&255},${v&255},${a})`; }
+
+let vitals = "";
+function frame(ms){
+  const t=ms/1000;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle="#0b0f11"; ctx.fillRect(0,0,W,H);
+  if(T.hold) {} else if(T.watch){} 
+  if(!T.hold && !T.watch){ rotY += 0.0006; }
+  // floor rays
+  ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1*DPR;
+  const cxp=W/2+cam.x, cyp=H*0.92+cam.y;
+  for(let i=-9;i<=9;i++){ ctx.beginPath(); ctx.moveTo(cxp+i*64*DPR*zoom, cyp); ctx.lineTo(cxp+i*15*DPR*zoom, cyp-260*DPR*Math.min(1.6,zoom)); ctx.stroke(); }
+  // edges
+  for(const e of ED){
+    const A=PROJ.get(e.a.id), B=PROJ.get(e.b.id); if(!A||!B) continue;
+    const on = e.a.up!==false && e.b.up!==false;
+    const dim = (T.focus && sel && e.a!==sel && e.b!==sel);
+    ctx.strokeStyle = FA(on? "#f2f2ee":"#7a2020", dim? 0.07 : on? 0.34 : 0.16);
+    ctx.setLineDash(e.a.kind==="void"||e.b.kind==="void" ? [3,8] : []);
+    ctx.lineWidth=(on?1.2:1)*DPR*(e.a===sel||e.b===sel?1.6:1);
+    ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(B.sx,B.sy); ctx.stroke();
+    ctx.setLineDash([]);
+    if(on&&!dim){ const k=((t*0.5+e.a.th*0.3)%1); const px=A.sx+(B.sx-A.sx)*k, py=A.sy+(B.sy-A.sy)*k;
+      ctx.fillStyle=FA("#ffffff",0.9*Math.sin(k*Math.PI)); ctx.beginPath(); ctx.arc(px,py,1.7*DPR,0,7); ctx.fill(); }
+  }
+  [...nds].sort((a,b)=>(PROJ.get(b.id)?.depth||0)-(PROJ.get(a.id)?.depth||0)).forEach(n=>drawOrb(n,t));
+  // vitals
+  const up=nds.filter(n=>n.up===true).length, dn=nds.filter(n=>n.up===false).length;
+  const line=`MESH ${new Date().toISOString().slice(11,19)} · ${up} UP${dn?` · <span class="dn">${dn} DOWN</span>`:""} · NEURAL LOCK ACTIVE`;
+  if(line!==vitals){ document.getElementById("livebar").innerHTML=line.replace(/UP/g,'<span class="up">UP</span>'); vitals=line; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ── LATERAL SYNC: live mesh via 5000 ── */
+async function sync(){
+  if(!T.eyes) return;
+  try{
+    const r=await fetch("/api/systemscape",{cache:"no-store",signal:AbortSignal.timeout(12000)});
+    const d=await r.json(); const st=d.status||{};
+    st.glassui = true; st.nlock = true; st.lib = true; st.comms = true;
+    for(const n of nds){ n.up = (n.id in st)? st[n.id] : (n.kind==="void"? false : null); }
+    const upn=nds.filter(n=>n.up===true).length, dnn=nds.filter(n=>n.up===false).length;
+    document.getElementById("vitals").innerHTML = `${upn} nodes live · ${dnn} dark · brain <b style="color:#f0c575">deepseek-prime-pcu:live</b>`;
+    hubs();
+  }catch{ document.getElementById("vitals").textContent="mesh sync unavailable — scape on baked map"; }
+}
+setInterval(sync, 8000); sync();
+
+/* ── TOP HUBS ── */
+function hubs(){
+  const groups={};
+  for(const n of nds){ const k=KINDS[n.kind]||n.kind; (groups[k]=groups[k]||[]).push(n); }
+  const el=document.getElementById("hubs"); el.innerHTML="";
+  const cmap={}; for(const [k,v] of Object.entries(COLORS)) cmap[KINDS[k]||k]=v[0];
+  for(const [k,arr] of Object.entries(groups)){
+    const up=arr.filter(x=>x.up===true).length;
+    const row=document.createElement("div"); row.className="h";
+    row.innerHTML=`<b><span class="dot" style="background:${cmap[k]||"#fff"}"></span>${k}</b><span class="n">${up}/${arr.length}</span>`;
+    row.onclick=()=>{ T.focus=true; fbtn(); sel=arr.find(x=>x.up===true)||arr[0]; pick(sel); };
+    el.appendChild(row);
+  }
+}
+
+/* ── SEARCH ── */
+document.getElementById("q").addEventListener("input", e=>{
+  const q=e.target.value.toLowerCase();
+  nds.forEach(n=>{ n.dim = q && !n.label.toLowerCase().includes(q) && !(n.desc||"").toLowerCase().includes(q); });
+  const h=nds.find(n=>q && n.label.toLowerCase().startsWith(q)); if(h){ sel=h; pick(h); }
+});
+
+/* ── TOGGLES ── */
+function fbtn(){ for(const d of document.querySelectorAll(".tog")){ d.classList.toggle("on", T[d.dataset.t]); d.querySelector(".v").textContent=T[d.dataset.t]?"on":"off"; } }
+for(const d of document.querySelectorAll(".tog")) d.onclick=()=>{ const t=d.dataset.t; T[t]=!T[t];
+  if(t==="watch"&&T.watch){T.hold=false;} if(t==="hold"&&T.hold){T.watch=false;} fbtn(); };
+fbtn();
+
+/* ── INTERACTION ── */
+cv.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,ry:rotY,rz:rotZ}; cv.style.cursor="grabbing"; });
+addEventListener("pointerup",()=>{ drag=null; cv.style.cursor="grab"; });
+addEventListener("pointermove",e=>{
+  if(drag){ rotY=drag.ry+(e.clientX-drag.x)*0.006; rotZ=Math.max(0.06,Math.min(1.2,drag.rz+(e.clientY-drag.y)*0.004)); return; }
+  const mx=e.clientX*DPR,my=e.clientY*DPR; let h=null;
+  for(const n of nds){ const P=PROJ.get(n.id); if(!P) continue; if(Math.hypot(P.sx-mx,P.sy-my)<(12+ (n.ring*2.4))*DPR){h=n;break;} }
+  hover=h; const tip=document.getElementById("tip");
+  if(h){ tip.style.display="block"; tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+12)+"px";
+    tip.textContent=`${h.label} · ${h.port} · ${h.up?"UP":h.up===false?"DOWN":"…"}`; }
+  else tip.style.display="none";
+});
+cv.addEventListener("wheel",e=>{ e.preventDefault(); zoom=Math.max(0.4,Math.min(3.2,zoom*(e.deltaY<0?1.09:0.92))); },{passive:false});
+cv.addEventListener("click",e=>{ if(hover){ sel=hover; if(e.shiftKey){ speak(`Tracing ${sel.label} — reading ${sel.desc||"no description"}. Its channels are lit.`); } pick(sel); } else { sel=null; document.getElementById("card").classList.remove("show"); } });
+
+function pick(n){
+  const c=document.getElementById("card");
+  document.getElementById("c-k").textContent=`${KINDS[n.kind]||n.kind} · ${n.port}`;
+  document.getElementById("c-name").textContent=n.label;
+  document.getElementById("c-desc").textContent=n.desc||"";
+  const chips=document.getElementById("c-chips");
+  if(typeof n.port==="number"&&n.port>999&&n.kind!=="void"&&n.id!=="nlock"){
+    chips.innerHTML=`<button class="chip" onclick="svc(${n.port},'status')">CHECK</button>
+      <button class="chip" onclick="svc(${n.port},'start')">START</button>
+      <button class="chip hot" onclick="svc(${n.port},'stop')">STOP</button>
+      <button class="chip" onclick="window.open('http://127.0.0.1:${n.port}','_blank')">OPEN</button>
+      <button class="chip" onclick="askNf(${JSON.stringify(n.label+': '+n.desc)})">ASK NULL FRAME</button>`;
+  } else chips.innerHTML="";
+  c.classList.add("show");
+}
+window.svc=async(port,action)=>{
+  const o=document.getElementById("chipout"); o.textContent="… "+action+" :"+port;
+  try{ const r=await fetch("http://127.0.0.1:8800/api/svc",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({port,action})});
+    const j=await r.json(); o.textContent=JSON.stringify(j).slice(0,400); sync();
+  }catch(x){ o.textContent="harness unreachable: "+x.message; }
+};
+window.askNf=async(q)=>{
+  const o=document.getElementById("chipout"); o.textContent="the null frame thinks…";
+  try{ const r=await fetch("http://127.0.0.1:8090/query",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q+" — how do I use it, and what are the fastest paths?"})});
+    const j=await r.json(); const a=(j.answer||"(no answer)").slice(0,1200); o.textContent=a; speak(a);
+  }catch(x){ o.textContent="null frame unreachable: "+x.message; }
+};
+function speak(txt){ const s=document.getElementById("speak"); document.getElementById("s-txt").textContent=txt; s.classList.add("show"); }
+window.speak=speak;
+
+/* ── TEARDOWN CARD: latest vault capture ── */
+async function teardownCard(){
+  try{
+    const r=await fetch("/api/scape/teardown",{cache:"no-store",signal:AbortSignal.timeout(8000)});
+    const d=await r.json(); if(!d.latest) return;
+    const td=document.getElementById("td");
+    document.getElementById("td-t").textContent="TEARDOWN "+d.target.replace(/^https?:\/\//,"");
+    document.getElementById("td-img").src=d.shot; document.getElementById("td-img").style.display=d.shot?"block":"none";
+    const st=document.getElementById("td-stack"); st.innerHTML="";
+    (d.stack||[]).slice(0,8).forEach(s=>{ const sp=document.createElement("span"); sp.textContent=s; st.appendChild(sp); });
+    document.getElementById("td-fin").textContent=d.fin||"";
+    document.getElementById("td-open").onclick=()=>window.open(d.md||"/api/scape/teardown","_blank");
+    td.classList.add("show");
+    // the null frame speaks the teardown like Jarvis
+    if(!d.spoken){ speak(`Teardown of ${d.target.replace(/^https?:\/\//,"")} complete — ${d.fin||""} Stack: ${(d.stack||[]).join(", ")||"none detected"}.`); d.spoken=1; }
+  }catch{}
+}
+setInterval(teardownCard, 12000); teardownCard();
+</script>
+<script>
+function dial(){
+  const rc=document.getElementById("ringcv"); if(!rc) return;
+  const c=rc.getContext("2d"); const S=380, C=S/2;
+  c.clearRect(0,0,S,S);
+  const up=nds.filter(n=>n.up===true).length, tot=nds.length;
+  const frac= tot? up/tot : 0;
+  const T0=-Math.PI/2;
+  c.lineWidth=7; c.strokeStyle="rgba(255,255,255,.10)";
+  c.beginPath(); c.arc(C,C,120,0,Math.PI*2); c.stroke();
+  c.strokeStyle="#D97757"; c.lineCap="round";
+  c.beginPath(); c.arc(C,C,120,T0,T0+Math.PI*2*frac); c.stroke();
+  c.lineWidth=2; c.strokeStyle="rgba(255,255,255,.22)";
+  c.beginPath(); c.arc(C,C,96,0,Math.PI*2); c.stroke();
+  for(let i=0;i<48;i++){ const a=T0+i*(Math.PI*2/48); const r0=i%8===0?76:84;
+    c.strokeStyle=i%8===0? "rgba(240,197,117,.85)":"rgba(255,255,255,.22)"; c.lineWidth=i%8===0?2:1;
+    c.beginPath(); c.moveTo(C+Math.cos(a)*r0, C+Math.sin(a)*r0); c.lineTo(C+Math.cos(a)*94, C+Math.sin(a)*94); c.stroke(); }
+  c.fillStyle="#fff"; c.textAlign="center";
+  c.font="700 36px Inter"; c.fillText(String(up), C, C+4);
+  c.font="600 13px Inter"; c.fillStyle="rgba(255,255,255,.6)"; c.fillText("NODES LIVE", C, C+28);
+  c.fillStyle="#D97757"; c.font="700 12px Inter"; c.fillText("NEURAL LOCK 1272", C, C+56);
+}
+setInterval(dial, 300); dial();
+</script>
+</body>
+</html>

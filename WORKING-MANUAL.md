@@ -255,4 +255,26 @@ model SYSTEM on https://huggingface.co/oroboros-labs - same bases, weights untou
 - The prime brain: deepseek-prime-pcu:live answers /query on the node from the vault
   index (honest-edge note: the 8B brain can embellish the index; the vault json = source of truth).
 
+---
+
+## 14. THE EYE + THE HANDS (2026-10-16)
+
+- THE EYE = http://127.0.0.1:5000/scape — the virtual scape: the 3D orb web of the
+  whole system, built from the two reference files (library-systems + communications-
+  systems), adapted to the live mesh. Anthropic black/white/charcoal chrome; the hub
+  colors carry the orb classes (gold cores, teal Q, coral feeds, the neural-lock ring).
+  It reads the LIVE mesh (/api/systemscape = fast socket probe), shows the latest null-
+  frame probe teardown (the REA card with the stack chips), and SPEAKS through the
+  null-frame (the speaking strip = the prime brain x27s answer rendered like Jarvis).
+- THE HANDS = TOTALHARNESS CORE http://127.0.0.1:8800 (unlocked, local-only):
+  GET /api/map = the AI fast map (services + live + launch commands + edges);
+  POST /api/svc {port, action=start|stop|status} = control any registered service;
+  POST /api/exec {shell=powershell|cmd|python|node, code} = run code on the host;
+  POST /api/file {op=read|write|append|list, path}. The AI door = the MCP server
+  x27totalharnessx27 (total_map/total_svc/total_exec/total_file) wired in the engine config.
+  TOGGLES: EYES = live sync · WATCH = auto orbit · HOLD = freeze · FOCUS = isolate
+  the selected node x27s web · REFLEX = reserved for the autonomous watch loop.
+- LAUNCH LAW: services boot through the harness registry (total_svc) — one way, always
+  the same commands; the scape chips call the same door.
+
 .

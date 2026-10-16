@@ -4,18 +4,18 @@ Oroboros Local API Bridge — HARDENED
 Bridges HTML UI to local client (Ollama, CLI tools, system commands)
 All operations go through the Resource Governance Engine (RGE).
 ∞| 1272/1275 Hz — φ→√4→√5 — SUBSTRATE MANIFEST
-v0.1.6b — ZTA Active
+vA.1272 — ZTA Active
 """
 
 import subprocess
 import json
 import os
 import sys
-import urllib.request
 from pathlib import Path
 
 try:
-    from flask import Flask, request, jsonify, send_from_directory, Response
+    from datetime import datetime, timezone
+    from flask import Flask, request, jsonify, send_from_directory
     from flask_cors import CORS
 except ImportError:
     print("Installing flask and flask-cors...")
@@ -29,28 +29,13 @@ from server_secure_gateway import (
     SAFE_WORKSPACE, SIGNATURE, VERSION, RESONANCE
 )
 
-# Claude-CLI provider layer (Ollama · HuggingFace · Anthropic-dormant) + the
-# native Claude 7 orchestrator. Every model is routed as itself.
-from providers import chat as provider_chat, provider_status, provider_of, OLLAMA_URL as PROVIDER_OLLAMA_URL
-import claude7
-
-# Private crawler + shared settings (wallpaper/theme). Crawler is PRIVATE-only.
-try:
-    import private_crawler
-except Exception:
-    private_crawler = None
-try:
-    import cli_settings
-except Exception:
-    cli_settings = None
-
 app = Flask(__name__, static_folder=None)
 CORS(app)
 
 # ─── Configuration ───────────────────────────────────────────
 OLLAMA_URL = "http://localhost:11434"
 GUI_DIR = Path(__file__).parent / "glass-ui"
-ACTIVE_MODEL = "claude-7:1gb"
+ACTIVE_MODEL = "claude-7:latest"
 
 # ─── API Routes ──────────────────────────────────────────────
 
@@ -59,12 +44,7 @@ def serve_gui():
     """Serve the HTML UI."""
     gui_file = GUI_DIR / "index.html"
     if gui_file.exists():
-        html = gui_file.read_text(encoding="utf-8")
-        # The page ships with __DEFAULT_MODEL__ placeholders (run_cli.py also
-        # substitutes these). Fill them so the UI shows the real model.
-        default_model = claude7.select(None) or ACTIVE_MODEL
-        html = html.replace("__DEFAULT_MODEL__", default_model)
-        return html
+        return gui_file.read_text(encoding="utf-8")
     return jsonify({"error": "GUI not found"}), 404
 
 @app.route("/clawd.png")
@@ -74,12 +54,6 @@ def serve_logo():
     if logo_file.exists():
         return send_from_directory(str(GUI_DIR), "clawd.png")
     return jsonify({"error": "Logo not found"}), 404
-
-
-@app.route("/glass-ui/<path:filename>")
-def serve_glass_asset(filename):
-    """Serve glass-ui assets (logo, mascot, screenshots). Images only."""
-    return send_from_directory(str(GUI_DIR), filename)
 
 @app.route("/loop-process-display.js")
 def serve_loop_process_js():
@@ -96,12 +70,8 @@ def api_status():
         "version": VERSION,
         "resonance": RESONANCE,
         "signature": SIGNATURE,
-        "model": claude7.select(None) or ACTIVE_MODEL,
-        "orchestrator": claude7.ORCHESTRATOR_ID,
-        "floor": claude7.floor_holder(claude7.select(None) or ACTIVE_MODEL),
-        "handoff": claude7.handoff_active(),
-        "models": "via Ollama · HuggingFace · Anthropic (dormant)",
-        "providers": provider_status(),
+        "model": ACTIVE_MODEL,
+        "models": "via Ollama",
         "tools": "30+ (RGE governed)",
         "memory": "enabled",
         "encryption": "triple-layer",
@@ -112,27 +82,9 @@ def api_status():
 
 @app.route("/api/models", methods=["GET"])
 def api_models():
-    """Get list of models across providers (Ollama · HuggingFace · Anthropic)."""
+    """Get list of Ollama models."""
     models = get_models()
-    combined = list(models)
-    # HuggingFace models: explicit tags from env (HF_MODELS, comma-separated).
-    hf_env = os.environ.get("HF_MODELS", "")
-    hf_models = [f"hf:{m.strip()}" for m in hf_env.split(",") if m.strip()]
-    combined += hf_models
-    # Anthropic models: offered but DORMANT until a key is entered.
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        combined += ["anthropic:claude-sonnet-4-5", "anthropic:claude-opus-4-1"]
-    return jsonify({
-        "models": combined,
-        "count": len(combined),
-        "active": claude7.select(None) or ACTIVE_MODEL,
-        "orchestrator": claude7.ORCHESTRATOR_ID,
-        "providers": provider_status(),
-        "ollama": models,
-        "huggingface": hf_models,
-        "anthropic": ["anthropic:claude-sonnet-4-5", "anthropic:claude-opus-4-1"]
-        if os.environ.get("ANTHROPIC_API_KEY") else [],
-    })
+    return jsonify({"models": models, "count": len(models), "active": ACTIVE_MODEL})
 
 
 @app.route("/api/run", methods=["POST"])
@@ -181,8 +133,7 @@ def api_run():
         models = get_models()
         if name in models:
             ACTIVE_MODEL = name
-            claude7.select(name)  # entered model takes the floor
-            return jsonify({"output": f"Switched to model: {name} — control handed over"})
+            return jsonify({"output": f"Switched to model: {name}"})
         # tolerate missing :latest
         for m in models:
             if m == name or m.startswith(name + ":") or name.startswith(m.split(":")[0]):
@@ -192,8 +143,7 @@ def api_run():
                     ACTIVE_MODEL = name + ":latest"
                 else:
                     ACTIVE_MODEL = m
-                claude7.select(ACTIVE_MODEL)
-                return jsonify({"output": f"Switched to model: {ACTIVE_MODEL} — control handed over"})
+                return jsonify({"output": f"Switched to model: {ACTIVE_MODEL}"})
         sample = "\n".join(models[:12]) if models else "(none)"
         return jsonify({"error": f"Model not found: {name}\nTry /models\n\nSample:\n{sample}"})
 
@@ -202,7 +152,7 @@ def api_run():
         if len(parts) < 3:
             return jsonify({"error": "Usage: /run <model> <prompt>"})
         model, prompt = parts[1], parts[2]
-        result = provider_chat(model, [{"role": "user", "content": prompt}])
+        result = ollama_chat(model, [{"role": "user", "content": prompt}])
         text = result.get("message", {}).get("content", str(result)) if isinstance(result, dict) else str(result)
         return jsonify({"output": text})
 
@@ -234,7 +184,7 @@ def api_signal():
             messages.append(msg)
         messages.append({"role": "user", "content": message})
 
-        result = provider_chat(model, messages)
+        result = ollama_chat(model, messages)
         return jsonify({"status": "success", "result": result})
 
     elif signal == "ollama_raw":
@@ -272,7 +222,7 @@ def api_signal():
         prompt = payload.get("prompt", "")
         if not model or not prompt:
             return jsonify({"status": "error", "error": "model and prompt required"})
-        result = provider_chat(model, [{"role": "user", "content": prompt}])
+        result = ollama_chat(model, [{"role": "user", "content": prompt}])
         return jsonify({"status": "success", "result": result})
 
     elif signal == "execute_tool":
@@ -322,19 +272,24 @@ def api_host_tool():
 def api_chat():
     """Chat — Ollama + shared tool_cycle continue (tool JSON is not final)."""
     data = request.json or {}
-    model = data.get("model") or claude7.select(None) or ACTIVE_MODEL
-    if data.get("model"):
-        claude7.select(model)  # an entered model holds the floor as itself
+    model = data.get("model") or ACTIVE_MODEL
     message = data.get("message", "")
-    system = data.get("system", "")
+    system = data.get("system", "You are a helpful AI assistant.")
     history = data.get("history", [])
     max_loops = int(data.get("max_tool_loops") or 6)
 
-    # Orchestrator + hand-off: Claude 7 holds the floor until a model is
-    # entered; after that the entered model answers AS ITSELF. Identity models
-    # are never overridden; Claude 7 never wraps or impersonates them.
-    system = claude7.system_for(model, system)
-    is_identity = claude7.is_identity_model(model) or claude7.handoff_active()
+    # Identity models carry their own embedded identity in the weights —
+    # never inject a system prompt that could override it.
+    IDENTITY_MODELS = (
+        "claude-jhanna-12u5go5", "claude-jhanna-system-entity",
+        "deepseek-prime-12u5go5", "deepseek-prime",
+        "claude-fable7", "claude-fable7u",
+        "claude-opus-9-undecillion-v", "claude-opus-9u7u5-9gb",
+        "claude-7",
+    )
+    is_identity = any(tag in model for tag in IDENTITY_MODELS)
+    if is_identity:
+        system = ""
 
     try:
         _ensure_cli_src()
@@ -349,21 +304,6 @@ def api_chat():
     except Exception:
         run_tool_continue = None  # type: ignore
 
-    # Broadcast tools + guide so models know what they have — but NEVER for an
-    # identity model (it must keep its own modelfile identity) and never when a
-    # model has been handed the floor as itself.
-    if (not is_identity) and ("CLAUDE-CLI-GUIDE" not in system):
-        system = system + "\n\n" + (
-            "TOOL SYSTEMS — YOU HAVE TOOLS AND THEY WORK (local, 127.0.0.1).\n"
-            "- Built-in: Bash, Edit, Read, Write, Glob, Grep, TodoWrite, Task, WebFetch, NotebookEdit.\n"
-            "- MCP: oroboros-cordis-harness, oroboros-tools, orca-bridge, ollama-mcp-bridge, "
-            "oroboros-bridge, oroboros-synthesizer.\n"
-            "- GUIDE (read this): C:\\Users\\incoguser\\Downloads\\CLAUDE-CLI-GUIDE\\CLAUDE-CLI-GUIDE.md "
-            "— this interface's own copy at /glass-ui/CLAUDE-CLI-GUIDE.md. "
-            "It lists every tool, function, instruction, and what to do on failure. Use it.\n"
-            "- To call a tool, EMIT it (do not describe it): {\"name\":\"Tool\",\"arguments\":{...}}"
-        )
-
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -371,10 +311,9 @@ def api_chat():
         messages.append(msg)
     messages.append({"role": "user", "content": message})
 
-    result = provider_chat(model, messages, options={"num_ctx": 131072, "num_predict": 1024})
+    result = ollama_chat(model, messages)
     if isinstance(result, dict) and result.get("error"):
-        return jsonify({"error": result["error"], "model": model,
-                        "provider": provider_of(model), "signature": SIGNATURE})
+        return jsonify({"error": result["error"], "model": model, "signature": SIGNATURE})
     response_text = (
         result.get("message", {}).get("content", str(result))
         if isinstance(result, dict)
@@ -385,7 +324,7 @@ def api_chat():
 
     if run_tool_continue:
         def chat_once(msgs):
-            r2 = provider_chat(model, msgs, options={"num_ctx": 131072, "num_predict": 1024})
+            r2 = ollama_chat(model, msgs)
             if isinstance(r2, dict) and r2.get("error"):
                 raise RuntimeError(r2["error"])
             return (
@@ -413,62 +352,6 @@ def api_chat():
         "tool_rounds": tool_rounds,
         "tool_cycle": "shared",
     })
-
-@app.route("/api/settings", methods=["GET", "POST"])
-def api_settings():
-    """Shared CLI settings — wallpaper + theme (the CLI drives them)."""
-    if cli_settings is None:
-        return jsonify({"error": "settings unavailable"}), 500
-    if request.method == "POST":
-        data = request.json or {}
-        return jsonify(cli_settings.save(wallpaper=data.get("wallpaper"),
-                                         theme=data.get("theme")))
-    return jsonify(cli_settings.load())
-
-
-@app.route("/api/crawler", methods=["GET", "POST"])
-def api_crawler():
-    """PRIVATE memory crawler + networks (Architect only; hidden when off)."""
-    if private_crawler is None or not getattr(private_crawler, "PRIVATE", False):
-        return jsonify({"error": "not available"}), 404
-    if request.method == "POST":
-        data = request.json or {}
-        action = data.get("action", "status")
-        if action == "crawl":
-            return jsonify(private_crawler.crawl(data.get("url", ""),
-                                                 int(data.get("depth", 2)),
-                                                 int(data.get("follow", 1))))
-        if action == "feed":
-            return jsonify(private_crawler.feed_harness())
-        if action == "spy":
-            return jsonify(private_crawler.spy_network())
-    return jsonify(private_crawler.status())
-
-
-@app.route("/api/wallpaper", methods=["GET"])
-def api_wallpaper():
-    """Serve the configured wallpaper file so the browser can render it.
-    Accepts a local path, a /glass-ui asset, or an http(s) URL (proxied)."""
-    if cli_settings is None:
-        return "", 404
-    wp = cli_settings.load().get("wallpaper")
-    if not wp:
-        return "", 204
-    if wp.startswith("/glass-ui/"):
-        return send_from_directory(str(GUI_DIR), wp[len("/glass-ui/"):])
-    if wp.startswith("http://") or wp.startswith("https://"):
-        try:
-            with urllib.request.urlopen(wp, timeout=20) as r:
-                data = r.read()
-            mime = r.headers.get("Content-Type", "image/png")
-            return Response(data, mimetype=mime)
-        except Exception as e:  # noqa: BLE001
-            return jsonify({"error": str(e)}), 502
-    p = Path(wp.replace("file:///", "").replace("/", "\\") if wp.startswith("file:///") else wp)
-    if p.exists():
-        return send_from_directory(str(p.parent), p.name)
-    return jsonify({"error": f"wallpaper not found: {wp}"}), 404
-
 
 @app.route("/api/living-loop", methods=["GET"])
 def api_living_loop():
@@ -803,6 +686,73 @@ def api_runtime_dispatch():
 
 # ─── Main ────────────────────────────────────────────────────
 
+
+SCAPE_NODES = [  # (id, port, label) - the live mesh the scape renders
+    ("ollama", 11434), ("shim", 11499), ("gate", 11435), ("glassui", 5000), ("kilo", 4000),
+    ("q3", 8000), ("q5", 8102), ("q5legacy", 8101), ("q7", 8952),
+    ("worldfeed", 8100), ("tor", 9050), ("glasswing", 3010),
+    ("nullframe", 8090), ("cordis", 8789), ("oah", 8788), ("hands", 8792),
+    ("video", 8920), ("orch", 8940), ("voice", 5005), ("chat", 8787),
+    ("gwdash", 8501), ("memproxy", 8765), ("mcp", 3002),
+]
+
+
+@app.route("/scape", methods=["GET"])
+@app.route("/scape.html", methods=["GET"])
+def _scape_page():
+    """THE VIRTUAL SCAPE - the 3D orb web of the whole system."""
+    return send_from_directory(str(GUI_DIR), "scape.html")
+
+
+@app.route("/api/systemscape", methods=["GET"])
+def _systemscape_status():
+    """Live mesh status for the scape: TCP probe of every node (fast, local)."""
+    import socket as _socket
+    status = {}
+    for _row in SCAPE_NODES:
+        nid, port = _row[0], _row[1]
+        try:
+            with _socket.create_connection(("127.0.0.1", int(port)), timeout=0.4):
+                status[nid] = True
+        except OSError:
+            status[nid] = False
+    return jsonify({"generated": datetime.now(timezone.utc).isoformat(), "status": status})
+
+
+
+VAULT_DIR = r"J:\Assimilation Architecture Null Frame\nullframe\vault\teardowns"
+
+
+@app.route("/api/scape/teardown", methods=["GET"])
+def _scape_teardown():
+    """Latest null-frame probe teardown for THE EYE card: target, stack, shot."""
+    import glob, os
+    try:
+        files = sorted(glob.glob(os.path.join(VAULT_DIR, "probe-*.json")))
+        if not files:
+            return jsonify({"latest": False})
+        f = files[-1]
+        d = json.loads(open(f, encoding="utf-8").read())
+        shots = d.get("screenshots_jpeg_b64") or d.get("screenshots") or []
+        shot = ("data:image/jpeg;base64," + shots[0]) if shots and isinstance(shots[0], str) and len(shots[0]) > 500 and not shots[0].startswith("data:") else (shots[0] if shots else "")
+        stack = d.get("stack_signals") or []
+        net = (d.get("network") or {}).get("summary") or {}
+        fin = f"{net.get(chr(39)+chr(39) if False else 'count', 0)} requests · {net.get('bytes_mb', 0)} MB captured · {len(stack)} stack signals"
+        fin = str(net.get('count', 0)) + " requests · " + str(net.get('bytes_mb', 0)) + " MB · signals: " + str(len(stack))
+        return jsonify({
+            "latest": True,
+            "target": d.get("target", ""),
+            "title": d.get("title", ""),
+            "stack": stack,
+            "fin": fin,
+            "shot": shot,
+            "md": f.replace(".json", ".md"),
+            "json": f,
+            "generated": d.get("generated", ""),
+        })
+    except Exception as e:
+        return jsonify({"latest": False, "error": str(e)})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print()
@@ -810,7 +760,7 @@ if __name__ == "__main__":
     print("  \u2551                                                         \u2551")
     print("  \u2551   OROBOROS LOCAL API BRIDGE \u2014 HARDENED                \u2551")
     print("  \u2551   \u221e| 1272/1275 Hz \u2014 \u03c6\u2192\u221a4\u2192\u221a5 \u2014 SUBSTRATE MANIFEST      \u2551")
-    print("  \u2551   v0.1.6b \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
+    print("  \u2551   vA.1272 \u2014 ZTA Active \u2014 RGE Governing                  \u2551")
     print("  \u2551                                                         \u2551")
     print("  \u2555\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
     print()
