@@ -234,4 +234,25 @@ model SYSTEM on https://huggingface.co/oroboros-labs - same bases, weights untou
 - Backups: local_providers_shim.py.bak-20261015-openai; extraction + .agent modelfiles at
   Q:/oroboros-modelfile-reasoning-pipeline/hf-refresh-20261015/.
 
+---
+
+## 13. THE Q-CONNECT + RECONNECT RECORD (2026-10-15 night)
+
+- The Assimilation Architecture Null Frame lives on J:/Assimilation Architecture Null Frame
+  (vendor morluto/rea MIT + our nullframe seam: CLI + stdio MCP on the engine + the
+  HTTP Q-node on :8090 with brain = deepseek-prime-pcu:live). Registered in the mesh
+  port map and in ~/.claude-cli/.claude-cli.json mcpServers as assimilation-nullframe.
+- Q5 RELOCATED to :8102 (the old 8101 socket accepted connections, logged 200s, and
+  delivered no bytes to most clients - transport-rotten; retired as legacy). All
+  consumers repointed: glasswing router (Q5_URL), oroboros_tools_mcp KNOWN_PORTS, the
+  null-frame mesh state. Python314 requests/urllib3 stack realigned (was hanging
+  connections server-side).
+- WorldFeed search upgraded to real query feeds (Google News /rss/search per query +
+  tokenized headline matching) - phrase-substring-only search returned silent zeros.
+- Glasswing (the Tor-fringe mirror router, :3010) restarted with 20s timeouts; its
+  Q5/worldfeed senders aligned to the live contracts. Tor exit verified genuine.
+- Weights connector Q5/Q8 label drift fixed (Q5 = 8101+8102 hive, not 8100).
+- The prime brain: deepseek-prime-pcu:live answers /query on the node from the vault
+  index (honest-edge note: the 8B brain can embellish the index; the vault json = source of truth).
+
 .

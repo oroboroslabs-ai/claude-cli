@@ -29,8 +29,9 @@ CLI_CFG = Path.home() / ".claude-cli" / ".claude-cli.json"
 KNOWN_PORTS = {
     5000: "claude-cli glass UI",
     8000: "Q3 edge detection",
+    8090: "Assimilation Null Frame node",
     8100: "WorldFeed",
-    8101: "Q5 pattern analysis",
+    8102: "Q5 pattern analysis (8102; 8101 legacy socket)",
     8787: "Architect's Haki",
     8789: "oroboros-anthropic-core-harness",
     8952: "Q7 quantum surveillance",
