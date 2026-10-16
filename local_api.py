@@ -15,12 +15,12 @@ from pathlib import Path
 
 try:
     from datetime import datetime, timezone
-    from flask import Flask, request, jsonify, send_from_directory
+    from flask import Flask, request, jsonify, send_from_directory, Response
     from flask_cors import CORS
 except ImportError:
     print("Installing flask and flask-cors...")
     subprocess.run([sys.executable, "-m", "pip", "install", "flask", "flask-cors", "-q"])
-    from flask import Flask, request, jsonify, send_from_directory
+    from flask import Flask, request, jsonify, send_from_directory, Response
     from flask_cors import CORS
 
 # Import the hardened secure gateway
@@ -700,23 +700,49 @@ SCAPE_NODES = [  # (id, port, label) - the live mesh the scape renders
 @app.route("/scape", methods=["GET"])
 @app.route("/scape.html", methods=["GET"])
 def _scape_page():
-    """THE VIRTUAL SCAPE - the 3D orb web of the whole system."""
-    return send_from_directory(str(GUI_DIR), "scape.html")
+    """THE VIRTUAL SCAPE - the 3D orb web of the whole system (live state baked in)."""
+    import json as _json
+    import socket as _socket
+    from concurrent.futures import ThreadPoolExecutor
+    status = {}
+    def _probe(row):
+        nid, port = row[0], row[1]
+        try:
+            with _socket.create_connection(("127.0.0.1", int(port)), timeout=0.3):
+                return nid, True
+        except OSError:
+            return nid, False
+    with ThreadPoolExecutor(max_workers=24) as ex:
+        for nid, ok in ex.map(_probe, SCAPE_NODES):
+            status[nid] = ok
+    page = (GUI_DIR / "scape.html").read_text(encoding="utf-8", errors="replace")
+    bake = "<script id='bake'>window.__SCAPE_BAKE__ = " + _json.dumps({"status": status}) + ";</script>"
+    page = page.replace("<body>", "<body>" + bake, 1)
+    resp = Response(page, mimetype="text/html")
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
 
 
 @app.route("/api/systemscape", methods=["GET"])
 def _systemscape_status():
-    """Live mesh status for the scape: TCP probe of every node (fast, local)."""
+    """Live mesh status for the scape: parallel TCP probe of every node (fast, local)."""
     import socket as _socket
+    from concurrent.futures import ThreadPoolExecutor
     status = {}
-    for _row in SCAPE_NODES:
-        nid, port = _row[0], _row[1]
+    def _probe(row):
+        nid, port = row[0], row[1]
         try:
-            with _socket.create_connection(("127.0.0.1", int(port)), timeout=0.4):
-                status[nid] = True
+            with _socket.create_connection(("127.0.0.1", int(port)), timeout=0.35):
+                return nid, True
         except OSError:
-            status[nid] = False
-    return jsonify({"generated": datetime.now(timezone.utc).isoformat(), "status": status})
+            return nid, False
+    with ThreadPoolExecutor(max_workers=24) as ex:
+        for nid, ok in ex.map(_probe, SCAPE_NODES):
+            status[nid] = ok
+    resp = jsonify({"generated": datetime.now(timezone.utc).isoformat(), "status": status})
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 
