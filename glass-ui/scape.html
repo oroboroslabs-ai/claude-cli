@@ -8,12 +8,12 @@
   :root{
     --ink:#f7f7f4; --panel:rgba(255,255,255,.72); --line:rgba(255,255,255,.10);
     --teal:#44443f; --teal4:#55554f; --teal8:#5a5a54; --pale:#3c3c39; --white:#171716;
-    --crown:#a97c2f; --coral:#D97757; --red:#ff4d4d; --up:#D97757;
+    --crown:#a97c2f; --coral:#2b2b28; --red:#ff4d4d; --up:#2b2b28;
   }
   *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%; background:var(--ink); color:var(--white); font-family:Inter,Poppins,system-ui,sans-serif; overflow:hidden}
   #scape{position:fixed; inset:0; cursor:grab}
-  .p{position:fixed; z-index:6; background:rgba(24,24,23,.44); border:1px solid rgba(23,23,22,.16); border-radius:12px; padding:11px 13px; font-size:11px; backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(10px) saturate(.85)}
+  .p{position:fixed; z-index:6; background:var(--panel); border:1px solid rgba(255,255,255,.18); border-radius:12px; padding:11px 13px; font-size:11px; backdrop-filter:blur(14px) saturate(1.15); -webkit-backdrop-filter:blur(14px) saturate(1.15)}
   .hud{top:12px; left:16px; width:auto; min-width:300px; height:auto; border-radius:12px; padding:10px 14px}
   .lockup{display:flex; align-items:center; gap:10px}
   .lockup img{width:34px; height:34px; object-fit:contain; display:block; filter:drop-shadow(0 0 10px rgba(255,255,255,.25))}
@@ -36,7 +36,7 @@
   .hubs .n{color:#6a6a63}
   .force{display:flex; align-items:center; gap:8px; margin:7px 0; color:var(--pale)}
   .force label{width:70px; font-size:10px; letter-spacing:.08em}
-  .force input[type=range]{flex:1; accent-color:#D97757}
+  .force input[type=range]{flex:1; accent-color:#2b2b28}
   /* ── JAR RING + TOGGLES ── */
   #ring{right:16px; top:12px; width:196px; text-align:center}
   #ringcv{width:150px; height:150px; margin:2px auto 0}
@@ -51,14 +51,14 @@
   #td{right:246px; top:12px; width:330px; display:none}
   #td.show{display:block}
   #td .bar{display:flex; gap:8px; align-items:center; margin-bottom:7px; flex-wrap:wrap}
-  #td .tt{letter-spacing:.18em; color:#171716; margin-top:2px; display:inline-block; font-weight:700}
-  #td .via{background:#D97757; color:#141210; border-radius:4px; padding:2px 8px; font-size:9px; font-weight:800; letter-spacing:.1em}
+  #td .tt{letter-spacing:.18em; color:#111; margin-top:2px; display:inline-block; font-weight:700}
+  #td .via{background:#2b2b28; color:#f2f2ee; border-radius:4px; padding:2px 8px; font-size:9px; font-weight:800; letter-spacing:.1em}
   #td .x{cursor:pointer; color:#55554f; margin-left:auto}
   #td .shot{width:100%; border-radius:9px; border:1px solid var(--line); display:block; max-height:120px; object-fit:cover}
   #td .stack{margin-top:8px; display:flex; gap:5px; flex-wrap:wrap}
   #td .stack span{background:rgba(23,23,22,.07); border:1px solid var(--line); border-radius:6px; padding:2px 8px; color:var(--white); font-size:9.5px}
-  #td .fin{margin-top:8px; color:var(--teal8); font-size:9.5px; letter-spacing:.06em}
-  .gbtn{opacity:.94;display:block; width:100%; margin-top:10px; background:#D97757; color:#141210; border:0; border-radius:5px; padding:8px; font-weight:800; letter-spacing:.08em; cursor:pointer; font-size:11px}
+  #td .fin{margin-top:8px; color:#222; font-size:9.5px; letter-spacing:.06em}
+  .gbtn{opacity:.94;display:block; width:100%; margin-top:10px; background:#2b2b28; color:#f2f2ee; border:0; border-radius:5px; padding:8px; font-weight:800; letter-spacing:.08em; cursor:pointer; font-size:11px}
   .gbtn:hover{filter:brightness(1.1)}
   /* ── SPEAKING STRIP ── */
   #speak{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:6; max-width:min(640px, 56vw);
@@ -79,11 +79,30 @@
   #tip{position:fixed; z-index:9; pointer-events:none; background:rgba(255,255,255,.96); border:1px solid rgba(23,23,22,.2); color:#171716; font-size:9.5px; letter-spacing:.12em; padding:4px 9px; border-radius:8px; display:none; white-space:nowrap}
   #livebar{position:fixed; left:16px; bottom:0; z-index:3; font-size:9px; letter-spacing:.22em; color:#6a6a63; opacity:.9}
   #livebar .up{color:var(--up)} #livebar .dn{color:var(--red)}
+
+/* BLACK & WHITE MODES */
+body{background:var(--ink); color:var(--white); transition:background .25s,color .25s}
+body.dark{--ink:#0b0f11; --panel:rgba(18,22,24,.5); --line:rgba(255,255,255,.14);
+  --teal:#d9d9d2; --teal4:#b9b9b0; --teal8:#d9d9d2; --pale:#e8e8e2; --white:#f2f2ee;
+  --crown:#d8b25a; --up:#7ddccf}
+body.dark .p{background:var(--panel)}
+body.dark .hud h1{color:#fff; text-shadow:0 0 18px rgba(255,255,255,.3)}
+body.dark .tog{color:#cfcfc8; background:rgba(0,0,0,.42)}
+body.dark .tog.on{background:rgba(125,220,207,.12)}
+body.dark #q{background:rgba(0,0,0,.5); color:#f2f2ee}
+/* the switch (proper, not pill) */
+.tog{gap:9px}
+.tog .sw{position:relative; width:30px; height:16px; border-radius:9px; background:rgba(23,23,22,.22); flex:none; transition:background .2s}
+.tog .sw::after{content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:left .2s}
+.tog.on .sw{background:#2b2b28}
+body.dark .tog.on .sw{background:#7ddccf}
+.tog.on .sw::after{left:16px}
+.tog .v{display:none}
 </style>
 </head>
 <body>
 <canvas id="scape"></canvas>
-<div class="p hud"><div class="lockup"><span class="words" style="font-size:12.5px; letter-spacing:.28em; font-weight:800; color:#fff;">OROBOROS ANTHROPIC</span></div><div class="sub" style="font-size:9px; letter-spacing:.22em; color:#8f8f88; margin-top:4px">THE SYSTEM SCAPE — THE EYE · <span style="color:#D97757">NEURAL LOCK 1272 Hz</span> · drag=orbit · wheel=zoom · click=inspect</div></div><div class="p" id="insp">
+<div class="p hud"><div class="lockup"><span class="words" style="font-size:12.5px; letter-spacing:.28em; font-weight:800; color:#fff;">OROBOROS ANTHROPIC</span></div><div class="sub" style="font-size:9px; letter-spacing:.22em; color:#8f8f88; margin-top:4px">THE SYSTEM SCAPE — THE EYE · <span class="n">NEURAL LOCK 1272 Hz</span> · drag=orbit · wheel=zoom · click=inspect</div></div><div class="p" id="insp">
   <div class="hd">SEARCH THE BRAIN</div>
   <input id="q" placeholder="search nodes…">
   <div class="hint" id="mat">Click a node to focus it — only that node and its connections light up. Shift-click to trace the path.</div>
@@ -100,11 +119,12 @@
 <div class="p" id="ring">
   <canvas id="ringcv" width="380" height="380"></canvas>
   <div class="togs">
-    <div class="tog" data-t="eyes"><span>EYES</span><span class="v">on</span></div>
-    <div class="tog" data-t="watch"><span>WATCH</span><span class="v">on</span></div>
-    <div class="tog" data-t="hold"><span>HOLD</span><span class="v">off</span></div>
-    <div class="tog" data-t="focus"><span>FOCUS</span><span class="v">off</span></div>
-    <div class="tog" data-t="reflex"><span>REFLEX</span><span class="v">off</span></div>
+    <div class="tog" data-t="mode"><span>BLACK / WHITE</span><span class="sw"></span></div>
+    <div class="tog" data-t="eyes"><span>EYES</span><span class="sw"></span></div>
+    <div class="tog" data-t="watch"><span>WATCH</span><span class="sw"></span></div>
+    <div class="tog" data-t="hold"><span>HOLD</span><span class="sw"></span></div>
+    <div class="tog" data-t="focus"><span>FOCUS</span><span class="sw"></span></div>
+    <div class="tog" data-t="reflex"><span>REFLEX</span><span class="sw"></span></div>
   </div>
 </div>
 
@@ -166,9 +186,15 @@ const EDGES = [
   ["orch","video"],["video","ollama"],["mcp","ollama"],["oah","ollama"],
   ["lib","comms"],["lib","nlock"],["comms","nlock"],["q7","nlock"],["glassui","nlock"],
 ];
+const DARKPAL = {
+  core:['#d7d7d2','#fbfbf9'], q:['#d7d7d2','#ffffff'], feed:['#242424','#3d3d3d'],
+  prog:['#b9b9b5','#e9e9e5'], ref:['#ffffff','#ffffff'], crown:['#efe4c2','#fffdf4'],
+  void:['#1c1c1c','#2b2b2b'],
+};
+const PAL = ()=> document.body.classList.contains('dark')? DARKPAL : COLORS;
 const COLORS = {
-  core:["#1d1d1b","#3a3a37"], q:["#2b4fd8","#8fb4ff"], feed:["#141414","#2a2a2a"],
-  prog:["#d13a3a","#ffb3a6"], ref:["#d8f5f0","#ffffff"], crown:["#f0c575","#fff6d8"],
+  core:["#1d1d1b","#3a3a37"], q:["#e9e9e6","#ffffff"], feed:["#141414","#2a2a2a"],
+  prog:["#c6c9cd","#f4f6f8"], ref:["#d8f5f0","#ffffff"], crown:["#f0c575","#fff6d8"],
   void:["#3a3a3a","#6a1414"],
 };
 const KINDS = {core:"CORE RUNTIME", q:"Q LINE", feed:"FEEDS + HUMANITY", prog:"HARNESS + PROGRAMS", ref:"REFERENCE", crown:"NEURAL LOCK", void:"VOID"};
@@ -211,7 +237,7 @@ function drawOrb(n, time){
   if(!isFinite(P.sx)||!isFinite(P.sy)) return;
   const base = (n.kind==="void"? 3.2 : 10 + n.ring*6.0)*DPR;
   const RR = Math.max(5, base * Math.min(1.0, Math.max(0.42, 1.14 - 0.09*P.persp)) * zoom);
-  const c = COLORS[n.kind]||COLORS.core;
+  const c = PAL()[n.kind]||PAL().core;
   const pul = (n.up===true? 1+0.32*Math.sin(time*2.6+n.th*5) : n.up===false? 0.62 : 0.8+0.06*Math.sin(time+n.th));
   const R = RR*(n.id==="nlock"? (1+0.3*Math.sin(time*1.7)) : 1)*pul;
   // halo
@@ -228,8 +254,8 @@ function drawOrb(n, time){
   // label
   const show = (n===hover||n===sel||n.up===true||zoom>1.6||T.focus===false);
   if(show && n.kind!=="void"){
-    ctx.font=`600 ${10*DPR}px Inter,system-ui`;
-    ctx.fillStyle = n===sel? "#a97c2f" : n===hover? "#171716" : FA("#44443f",.92);
+    ctx.font=`700 ${10.5*DPR}px Inter,system-ui`;
+    ctx.fillStyle = n===sel? "#111" : (n===hover? (document.body.classList.contains("dark")? "#fff":"#000") : FA("#111",.95));
     ctx.textAlign="center";
     ctx.fillText(n.label, P.sx, P.sy - R - 9*DPR);
   }
@@ -240,7 +266,7 @@ let vitals = "";
 function frame(ms){
   const t=ms/1000;
   ctx.setTransform(1,0,0,1,0,0);
-  ctx.fillStyle="#f7f7f4"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=document.body.classList.contains("dark")? "#0b0f11":"#f7f7f4"; ctx.fillRect(0,0,W,H);
   if(T.hold) {} else if(T.watch){} 
   if(!T.hold && !T.watch){ rotY += 0.0006; }
   // (floor rays removed)
@@ -255,7 +281,7 @@ function frame(ms){
     ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(B.sx,B.sy); ctx.stroke();
     ctx.setLineDash([]);
     if(on&&!dim){ const k=((t*0.5+e.a.th*0.3)%1); const px=A.sx+(B.sx-A.sx)*k, py=A.sy+(B.sy-A.sy)*k;
-      ctx.fillStyle=FA("#1a1a19",0.85*Math.sin(k*Math.PI)); ctx.beginPath(); ctx.arc(px,py,1.7*DPR,0,7); ctx.fill(); }
+      ctx.fillStyle=FA(document.body.classList.contains("dark")? "#e8ffe9":"#1a1a19",0.8*Math.sin(k*Math.PI)); ctx.beginPath(); ctx.arc(px,py,1.7*DPR,0,7); ctx.fill(); }
   }
   [...nds].sort((a,b)=>(PROJ.get(b.id)?.depth||0)-(PROJ.get(a.id)?.depth||0)).forEach(n=>drawOrb(n,t));
   // vitals
@@ -267,19 +293,26 @@ function frame(ms){
 requestAnimationFrame(frame);
 
 /* ── LATERAL SYNC: live mesh via 5000 ── */
+function bakeApply(st){
+  st = Object.assign({}, st||{});
+  st.glassui = true; st.nlock = true; st.lib = true; st.comms = true; st.totalharness = true;
+  for(const n of nds){ n.up = (n.id in st)? st[n.id] : (n.kind==="void"? false : null); }
+  const upn=nds.filter(n=>n.up===true).length, dnn=nds.filter(n=>n.up===false).length;
+  document.getElementById("vitals").innerHTML = upn+" nodes live · "+dnn+" dark · brain <b style='color:#6a6a63'>deepseek-prime-pcu:live</b>";
+  hubs();
+  try{ st0=1; }catch{}
+}
+const BAKED = (typeof window!=="undefined" && window.__SCAPE_BAKE__)? window.__SCAPE_BAKE__.status : null;
+if (BAKED) { bakeApply(BAKED); }
 async function sync(){
   if(!T.eyes) return;
   try{
+    if (BAKED) { bakeApply(BAKED); return; }
     const r = await fetch("/api/systemscape", {cache:"no-store"});
     const d = await r.json();
-    const st = d.status||{};
-    st.glassui = true; st.nlock = true; st.lib = true; st.comms = true; st.totalharness = true;
-    for(const n of nds){ n.up = (n.id in st)? st[n.id] : (n.kind==="void"? false : null); }
-    const upn=nds.filter(n=>n.up===true).length, dnn=nds.filter(n=>n.up===false).length;
-    document.getElementById("vitals").innerHTML = upn+" nodes live · "+dnn+" dark · brain <b style='color:#f0c575'>deepseek-prime-pcu:live</b>";
-    hubs();
+    bakeApply(d.status||{});
   }catch(e){
-    document.getElementById("vitals").textContent = "mesh sync unavailable — " + (e && e.message);
+    document.getElementById("vitals").textContent = "mesh sync via reload — " + (e && e.message);
   }
 }
 setInterval(sync, 8000); sync();
@@ -307,8 +340,8 @@ document.getElementById("q").addEventListener("input", e=>{
 });
 
 /* ── TOGGLES ── */
-function fbtn(){ for(const d of document.querySelectorAll(".tog")){ d.classList.toggle("on", T[d.dataset.t]); d.querySelector(".v").textContent=T[d.dataset.t]?"on":"off"; } }
-for(const d of document.querySelectorAll(".tog")) d.onclick=()=>{ const t=d.dataset.t; T[t]=!T[t];
+function fbtn(){ for(const d of document.querySelectorAll(".tog")){ d.classList.toggle("on", T[d.dataset.t]); } }
+for(const d of document.querySelectorAll(".tog")) d.onclick=()=>{ const t=d.dataset.t; if(t==="mode"){ document.body.classList.toggle("dark"); d.classList.toggle("on", document.body.classList.contains("dark")); return; } T[t]=!T[t];
   if(t==="watch"&&T.watch){T.hold=false;} if(t==="hold"&&T.hold){T.watch=false;} fbtn(); };
 fbtn();
 
@@ -386,7 +419,7 @@ function dial(){
   const T0=-Math.PI/2;
   c.lineWidth=7; c.strokeStyle="rgba(23,23,22,.12)";
   c.beginPath(); c.arc(C,C,120,0,Math.PI*2); c.stroke();
-  c.strokeStyle="#b3561f"; c.lineCap="round";
+  c.strokeStyle="#5a5a54"; c.lineCap="round";
   c.beginPath(); c.arc(C,C,120,T0,T0+Math.PI*2*frac); c.stroke();
   c.lineWidth=2; c.strokeStyle="rgba(23,23,22,.4)";
   c.beginPath(); c.arc(C,C,96,0,Math.PI*2); c.stroke();
@@ -396,7 +429,7 @@ function dial(){
   c.fillStyle="#171716"; c.textAlign="center";
   c.font="700 36px Inter"; c.fillText(String(up), C, C+4);
   c.font="600 13px Inter"; c.fillStyle="rgba(60,60,57,.8)"; c.fillText("NODES LIVE", C, C+28);
-  c.fillStyle="#b3561f"; c.font="700 12px Inter"; c.fillText("NEURAL LOCK 1272", C, C+56);
+  c.fillStyle="#6a6a63"; c.font="700 12px Inter"; c.fillText("NEURAL LOCK 1272", C, C+56);
 }
 setInterval(dial, 300); dial();
 </script>
