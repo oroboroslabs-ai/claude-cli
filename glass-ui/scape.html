@@ -6,15 +6,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{
-    --ink:#141413; --panel:rgba(22,22,21,.88); --line:rgba(255,255,255,.16);
+    --ink:#141413; --panel:#161616; --line:rgba(255,255,255,.10);
     --teal:#d9d9d2; --teal4:#b9b9b0; --teal8:#d9d9d2; --pale:#e8e8e2; --white:#ffffff;
     --crown:#c8a050; --coral:#D97757; --red:#ff4d4d; --up:#D97757;
   }
   *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%; background:var(--ink); color:var(--white); font-family:Inter,Poppins,system-ui,sans-serif; overflow:hidden}
   #scape{position:fixed; inset:0; cursor:grab}
-  .p{position:fixed; z-index:6; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; backdrop-filter:blur(8px); font-size:11px}
-  .hud{top:12px; left:16px}
+  .p{position:fixed; z-index:6; background:var(--panel); border:1px solid rgba(255,255,255,.10); border-radius:5px; padding:11px 13px; font-size:11px}
+  .hud{top:0; left:0; width:238px; height:64px; background:#000; border:0; border-radius:0; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08)}
   .lockup{display:flex; align-items:center; gap:10px}
   .lockup img{width:34px; height:34px; object-fit:contain; display:block; filter:drop-shadow(0 0 10px rgba(255,255,255,.25))}
   .lockup .words{font-size:13px; letter-spacing:.30em; font-weight:700; color:#fff; text-shadow:0 0 18px rgba(255,255,255,.28)}
@@ -23,10 +23,10 @@
   .hud .sub{font-size:9.5px; letter-spacing:.24em; color:#8f8f88; margin-top:3px}
   .hud .n{color:var(--crown); font-weight:700}
   /* ── INSPECTOR ── */
-  #insp{left:16px; top:74px; width:224px}
+  #insp{left:0; top:64px; bottom:0; width:238px; background:#000; border:0; border-radius:0; border-right:1px solid rgba(255,255,255,.08); overflow-y:auto}
   #insp .hd{font-size:9px; letter-spacing:.3em; color:var(--teal4); margin:10px 0 6px}
   #insp .hd:first-child{margin-top:0}
-  #q{width:100%; background:rgba(0,0,0,.42); border:1px solid var(--line); border-radius:9px; color:var(--white); font-size:11px; padding:7px 10px; outline:none}
+  #q{width:100%; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.16); border-radius:4px; color:var(--white); font-size:11px; padding:6px 9px; outline:none}
   #q:focus{border-color:#fff; box-shadow:0 0 16px rgba(255,255,255,.14)}
   .hint{color:var(--teal8); opacity:.85; font-size:9.5px; line-height:1.7; margin:4px 0}
   .hubs .h{display:flex; justify-content:space-between; padding:3px 2px; cursor:pointer; border-radius:7px}
@@ -38,41 +38,41 @@
   .force label{width:70px; font-size:10px; letter-spacing:.08em}
   .force input[type=range]{flex:1; accent-color:#D97757}
   /* ── JAR RING + TOGGLES ── */
-  #ring{right:16px; top:12px; width:216px; text-align:center}
-  #ringcv{width:190px; height:190px; margin:4px auto 2px}
+  #ring{right:16px; top:12px; width:196px; text-align:center}
+  #ringcv{width:150px; height:150px; margin:2px auto 0}
   .ringname{font-size:11px; letter-spacing:.5em; color:#fff; font-weight:700; position:absolute; }
   .togs{margin-top:8px; display:flex; flex-direction:column; gap:5px}
-  .tog{display:flex; justify-content:space-between; align-items:center; border:1px solid var(--line); border-radius:9px; padding:5px 10px; cursor:pointer; font-size:10px; letter-spacing:.22em; color:var(--pale)}
+  .tog{display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,.14); border-radius:4px; padding:4px 10px; cursor:pointer; font-size:9.5px; letter-spacing:.22em; color:var(--pale); background:rgba(0,0,0,.5)}
   .tog .v{color:var(--teal4)}
   .tog.on{background:rgba(255,255,255,.10)} .tog.on .v{color:#D97757}
   .chips{display:flex; gap:5px; justify-content:center; margin-top:7px; flex-wrap:wrap}
   .chips span{border:1px solid var(--line); border-radius:20px; padding:2px 9px; font-size:8.5px; letter-spacing:.16em; color:var(--teal8)}
   /* ── TEARDOWN CARD ── */
-  #td{left:600px; top:88px; width:352px; display:none}
+  #td{right:246px; top:12px; width:330px; display:none}
   #td.show{display:block}
   #td .bar{display:flex; gap:8px; align-items:center; margin-bottom:7px; flex-wrap:wrap}
   #td .tt{font-size:11px; letter-spacing:.18em; color:#fff; font-weight:700}
-  #td .via{background:#D97757; color:#1a1a19; border-radius:6px; padding:2px 8px; font-size:9px; font-weight:800; letter-spacing:.1em}
+  #td .via{background:#D97757; color:#141210; border-radius:4px; padding:2px 8px; font-size:9px; font-weight:800; letter-spacing:.1em}
   #td .x{cursor:pointer; color:var(--teal4); margin-left:auto}
   #td .shot{width:100%; border-radius:9px; border:1px solid var(--line); display:block; max-height:120px; object-fit:cover}
   #td .stack{margin-top:8px; display:flex; gap:5px; flex-wrap:wrap}
   #td .stack span{background:rgba(255,255,255,.08); border:1px solid var(--line); border-radius:6px; padding:2px 8px; color:var(--white); font-size:9.5px}
   #td .fin{margin-top:8px; color:var(--teal8); font-size:9.5px; letter-spacing:.06em}
-  .gbtn{display:block; width:100%; margin-top:10px; background:#D97757; color:#1a1a19; border:0; border-radius:10px; padding:9px; font-weight:800; letter-spacing:.08em; cursor:pointer; font-size:11px}
+  .gbtn{display:block; width:100%; margin-top:10px; background:#D97757; color:#141210; border:0; border-radius:5px; padding:8px; font-weight:800; letter-spacing:.08em; cursor:pointer; font-size:11px}
   .gbtn:hover{filter:brightness(1.1)}
   /* ── SPEAKING STRIP ── */
-  #speak{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:6; max-width:min(680px, 60vw);
-    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:11px 16px; font-size:11.5px; line-height:1.75; color:var(--pale); display:none}
+  #speak{position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:6; max-width:min(640px, 56vw);
+    background:var(--panel); border:1px solid rgba(255,255,255,.14); border-radius:5px; padding:11px 16px; font-size:11.5px; line-height:1.75; color:var(--pale); display:none}
   #speak.show{display:block}
   #speak .who{color:var(--crown); letter-spacing:.26em; font-size:9px; font-weight:700}
   /* ── CARD (node inspector) ── */
-  #card{right:250px; bottom:16px; width:290px; display:none}
+  #card{left:252px; bottom:14px; width:290px; display:none}
   #card.show{display:block}
   .k{color:var(--crown); letter-spacing:.2em; font-size:8.5px}
   .name{font-size:13.5px; color:#fff; font-weight:700; margin:2px 0 4px}
   .st.up{color:var(--up); font-weight:700} .st.down{color:var(--red); font-weight:700}
   .chiprow{margin-top:9px; display:flex; gap:5px; flex-wrap:wrap}
-  .chip{background:rgba(64,224,208,.15); border:1px solid var(--line); color:#fff; font-size:9px; letter-spacing:.12em; padding:4px 10px; border-radius:8px; cursor:pointer}
+  .chip{background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16); color:#fff; font-size:9px; letter-spacing:.12em; padding:4px 9px; border-radius:4px; cursor:pointer}
   .chip:hover{background:rgba(64,224,208,.3)}
   .chip.hot{border-color:#7a3a3a; color:#ffb0b0}
   #chipout{margin-top:7px; color:var(--teal8); font-size:9.5px; white-space:pre-wrap; max-height:150px; overflow:auto}
@@ -214,12 +214,12 @@ function drawOrb(n, time){
   const pul = (n.up===true? 1+0.32*Math.sin(time*2.6+n.th*5) : n.up===false? 0.62 : 0.8+0.06*Math.sin(time+n.th));
   const R = RR*(n.id==="nlock"? (1+0.3*Math.sin(time*1.7)) : 1)*pul;
   // halo
-  let g = ctx.createRadialGradient(P.sx,P.sy,R*0.06, P.sx,P.sy,R*(n.up===true?4.4:2.4));
-  g.addColorStop(0, c[1]); g.addColorStop(0.16, c[0]); g.addColorStop(0.42, FA(c[0],n.up===true?0.55:0.22)); g.addColorStop(1, FA(c[0],0));
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.sx,P.sy,R*(n.up===true?4.4:2.4),0,7); ctx.fill();
+  let g = ctx.createRadialGradient(P.sx,P.sy,R*0.55, P.sx,P.sy,R*1.22);
+  g.addColorStop(0, FA(c[0],0.55)); g.addColorStop(0.55, FA(c[0],0.16)); g.addColorStop(1, FA(c[0],0));
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.sx,P.sy,R*1.22,0,7); ctx.fill();
   // body
   g = ctx.createRadialGradient(P.sx-R*0.35, P.sy-R*0.35, R*0.05, P.sx,P.sy,R);
-  g.addColorStop(0,"#ffffff"); g.addColorStop(0.2, c[1]); g.addColorStop(0.62, c[0]); g.addColorStop(1, FA(c[0],0.95));
+  g.addColorStop(0,"#f4f4f2"); g.addColorStop(0.30, c[1]); g.addColorStop(0.85, c[0]); g.addColorStop(1, FA(c[0],1));
   ctx.fillStyle=g; ctx.beginPath(); ctx.arc(P.sx,P.sy,R,0,7); ctx.fill();
   // lock ring
   if(n.id==="nlock"){ ctx.strokeStyle="rgba(240,197,117,.95)"; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(P.sx,P.sy,R*1.34,time*0.8,time*0.8+5.3); ctx.stroke(); }
@@ -251,13 +251,13 @@ function frame(ms){
     const A=PROJ.get(e.a.id), B=PROJ.get(e.b.id); if(!A||!B) continue;
     const on = e.a.up!==false && e.b.up!==false;
     const dim = (T.focus && sel && e.a!==sel && e.b!==sel);
-    ctx.strokeStyle = FA(on? "#f2f2ee":"#7a2020", dim? 0.07 : on? 0.34 : 0.16);
+    ctx.strokeStyle = FA(on? "#e6e6e1":"#7a2020", dim? 0.05 : on? 0.22 : 0.10);
     ctx.setLineDash(e.a.kind==="void"||e.b.kind==="void" ? [3,8] : []);
     ctx.lineWidth=(on?1.2:1)*DPR*(e.a===sel||e.b===sel?1.6:1);
     ctx.beginPath(); ctx.moveTo(A.sx,A.sy); ctx.lineTo(B.sx,B.sy); ctx.stroke();
     ctx.setLineDash([]);
     if(on&&!dim){ const k=((t*0.5+e.a.th*0.3)%1); const px=A.sx+(B.sx-A.sx)*k, py=A.sy+(B.sy-A.sy)*k;
-      ctx.fillStyle=FA("#ffffff",0.9*Math.sin(k*Math.PI)); ctx.beginPath(); ctx.arc(px,py,1.7*DPR,0,7); ctx.fill(); }
+      ctx.fillStyle=FA("#ffffff",0.55*Math.sin(k*Math.PI)); ctx.beginPath(); ctx.arc(px,py,1.2*DPR,0,7); ctx.fill(); }
   }
   [...nds].sort((a,b)=>(PROJ.get(b.id)?.depth||0)-(PROJ.get(a.id)?.depth||0)).forEach(n=>drawOrb(n,t));
   // vitals
