@@ -437,9 +437,137 @@ class CompleteLivingLoop:
         self.history: List[Dict] = []
         self._stop = threading.Event()
 
+    @staticmethod
+    def parse_host_tool_calls(text: str) -> List[Dict[str, Any]]:
+        """Extract {"tool":...,"args":...} from goal/step text (real host calls)."""
+        import re
+
+        out: List[Dict[str, Any]] = []
+        if not text:
+            return out
+        re_call = re.compile(
+            r'\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"(?:args|params)"\s*:\s*(\{[\s\S]*?\})\s*\}'
+        )
+        for m in re_call.finditer(text):
+            try:
+                out.append({"tool": m.group(1), "args": json.loads(m.group(2))})
+            except Exception:
+                out.append({"tool": m.group(1), "args": {}, "parseError": True})
+        if out:
+            return out
+        t = text.strip()
+        if t.startswith("{") and '"tool"' in t:
+            try:
+                obj = json.loads(t)
+                if isinstance(obj, dict) and obj.get("tool"):
+                    out.append({
+                        "tool": obj["tool"],
+                        "args": obj.get("args") or obj.get("params") or {},
+                    })
+            except Exception:
+                pass
+        return out
+
+    @staticmethod
+    def parse_runtime_envelopes(text: str) -> List[Dict[str, Any]]:
+        """Extract operational envelopes — the runtime dialect:
+        {"operation": "...", "actions": [{"target": "...", "method": "...", "args": {...}}],
+         "result_channel": ..., "fallback": "..."}
+        Accepts code-fenced JSON and trailing 'Copy'. Falls back to classic tool dialect.
+        """
+        import re as _re
+
+        if not text:
+            return []
+        t = text
+        t = _re.sub(r"```(?:json)?", "", t)
+        t = _re.sub(r"\bCopy\b", "", t)
+        out: List[Dict[str, Any]] = []
+        # 1) whole-text parse
+        try:
+            obj = json.loads(t.strip())
+            if isinstance(obj, dict) and isinstance(obj.get("actions"), list) and obj["actions"]:
+                out.append(obj)
+                return out
+        except Exception:
+            pass
+        # 2) embedded JSON objects containing an "actions" array (brace-matched)
+        probe = t
+        idx = probe.find('"actions"')
+        while idx >= 0 and len(out) == 0:
+            start = probe.rfind("{", 0, idx)
+            if start >= 0:
+                depth = 0
+                i = start
+                while i < len(probe):
+                    if probe[i] == "{":
+                        depth += 1
+                    elif probe[i] == "}":
+                        depth -= 1
+                        if depth == 0:
+                            try:
+                                obj = json.loads(probe[start:i + 1])
+                                if isinstance(obj, dict) and isinstance(obj.get("actions"), list) and obj["actions"]:
+                                    out.append(obj)
+                            except Exception:
+                                pass
+                            break
+                    i += 1
+            nxt = probe.find('"actions"', idx + 9)
+            idx = nxt
+        return out
+
+    @staticmethod
+    def dispatch_runtime(actions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Fire actions through the Execution Runtime (8791). One hand, local.
+        Returns per-action results; on runtime unavailability records the
+        honest fallback (state_only) instead of faking success."""
+        import urllib.request as _ur
+        import urllib.error as _ue
+
+        results: List[Dict[str, Any]] = []
+        if not actions:
+            return results
+        envelope = {
+            "runtime": {"type": "local_dispatch", "result_channel": "session_state_append"},
+            "actions": actions,
+        }
+        try:
+            req = _ur.Request(
+                "http://127.0.0.1:8791/dispatch",
+                data=json.dumps(envelope).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            with _ur.urlopen(req, timeout=300) as resp:
+                body = resp.read().decode("utf-8", "replace")
+                try:
+                    data = json.loads(body)
+                    results = data.get("results") or results
+                except Exception:
+                    results = [{"ok": False, "error": f"runtime bad json: {body[:200]}"}]
+        except Exception as e:
+            results = [{"ok": False, "error": f"runtime unreachable: {e}"} for _ in actions]
+        return results
+
     def discover(self, input_data: Any) -> Dict:
-        """Pattern 13 — Goal Decomposition."""
+        """Pattern 13 — Goal Decomposition (tool JSON → real host steps)."""
         goal = input_data if isinstance(input_data, str) else str(input_data)
+        host_calls = self.parse_host_tool_calls(goal)
+        if host_calls:
+            steps = [
+                json.dumps({"tool": c["tool"], "args": c.get("args") or {}}, ensure_ascii=False)
+                for c in host_calls
+                if not c.get("parseError")
+            ]
+            if not steps:
+                steps = ["Understand problem", "Define approach", "Execute", "Verify"]
+            return {
+                "goal": goal,
+                "subgoals": steps,
+                "host_tools": host_calls,
+                "phase": "discover",
+                "patterns": [13],
+            }
         g = goal.lower()
         if "research" in g or "analyze" in g:
             steps = ["Identify sources", "Extract key information", "Synthesize findings"]
@@ -447,7 +575,7 @@ class CompleteLivingLoop:
             steps = ["Plan architecture", "Implement core", "Test and verify"]
         else:
             steps = ["Understand problem", "Define approach", "Execute", "Verify"]
-        return {"goal": goal, "subgoals": steps, "phase": "discover", "patterns": [13]}
+        return {"goal": goal, "subgoals": steps, "host_tools": [], "phase": "discover", "patterns": [13]}
 
     def plan(self, discovered: Dict) -> Dict:
         """Pattern 11 / 12 — Plan + Dynamic Workflow hints."""
@@ -476,29 +604,80 @@ class CompleteLivingLoop:
         return plan
 
     def execute(self, plan: Dict) -> Dict:
-        """Pattern 11 execute + Pattern 8 errors."""
+        """Pattern 11 execute + Pattern 8 errors — real host tools when present."""
         result: Dict[str, Any] = {
             "plan": plan,
             "output": None,
             "status": "executing",
             "phase": "execute",
             "patterns": [11, 8, 9],
+            "host_executions": [],
         }
         outputs = []
-        for i, step in enumerate(plan.get("steps") or []):
+        steps = list(plan.get("steps") or [])
+        # Also run any host tools declared on the plan goal once if steps are narrative-only
+        goal_tools = self.parse_host_tool_calls(str(plan.get("goal") or ""))
+        for i, step in enumerate(steps):
             try:
+                step_tools = self.parse_host_tool_calls(str(step))
                 if self.executor:
                     out = self.executor(step)
                 else:
-                    # Default: perceive-backed step mark (host tools stay in chat runtime)
                     out = f"step-ok: {step}"
-                result[f"step_{i}"] = {"step": step, "output": out, "status": "success"}
+                ok = True
+                if isinstance(out, dict) and out.get("ok") is False:
+                    ok = False
+                entry = {
+                    "step": step,
+                    "output": out,
+                    "status": "success" if ok else "failed",
+                    "host_tool": (step_tools[0] if step_tools else None),
+                }
+                result[f"step_{i}"] = entry
+                if step_tools:
+                    result["host_executions"].append({
+                        "tool": step_tools[0].get("tool"),
+                        "args": step_tools[0].get("args"),
+                        "result": out,
+                    })
                 outputs.append(str(out)[:200])
+                if not ok:
+                    self.error_library.add(
+                        "HostToolFailed",
+                        str(out.get("error") if isinstance(out, dict) else out),
+                        context={"step": step, "goal": plan.get("goal")},
+                    )
             except Exception as e:
                 result[f"step_{i}"] = {"step": step, "error": str(e), "status": "failed"}
                 self.error_library.add(type(e).__name__, str(e), context={"step": step, "goal": plan.get("goal")})
+        # If discover didn't promote tools into steps, still execute goal tools once
+        if goal_tools and not result["host_executions"] and self.executor:
+            for call in goal_tools:
+                if call.get("parseError"):
+                    continue
+                try:
+                    payload = json.dumps({"tool": call["tool"], "args": call.get("args") or {}})
+                    out = self.executor(payload)
+                    result["host_executions"].append({
+                        "tool": call["tool"],
+                        "args": call.get("args"),
+                        "result": out,
+                    })
+                    outputs.append(str(out)[:200])
+                except Exception as e:
+                    result["host_executions"].append({
+                        "tool": call["tool"],
+                        "error": str(e),
+                    })
         result["output"] = " | ".join(outputs) if outputs else "completed"
         result["status"] = "completed"
+        failed = any(
+            result.get(k, {}).get("status") == "failed"
+            for k in result
+            if k.startswith("step_")
+        )
+        if failed:
+            result["status"] = "completed_with_errors"
         return result
 
     def verify(self, result: Dict) -> Dict:
@@ -560,35 +739,83 @@ class CompleteLivingLoop:
         judges = [self._check_correctness(result), self._check_completeness(result), 0.85]
         return sum(judges) / len(judges)
 
-    def run(self, input_data: Any, *, _depth: int = 0) -> Dict:
-        """Full 20-pattern cycle with capped reflexion retry."""
+    def run(self, input_data: Any, *, _depth: int = 0, on_ring: Optional[Callable[[Dict], None]] = None) -> Dict:
+        """Full 20-pattern cycle; optional on_ring(event) for step-by-step UI."""
+        rings: List[Dict] = []
+
+        def emit(n: int, phase: str, detail: str, **extra) -> Dict:
+            evt = {
+                "ring": n,
+                "name": PATTERN_NAMES.get(n, str(n)),
+                "phase": phase,
+                "detail": detail,
+                "at": _now(),
+                **extra,
+            }
+            rings.append(evt)
+            self.loop_state["phase"] = phase
+            self.loop_state["active_ring"] = n
+            if on_ring:
+                try:
+                    on_ring(evt)
+                except Exception:
+                    pass
+            return evt
+
         self.loop_state["iteration"] += 1
         self.loop_state["phase"] = "discover"
+        emit(13, "discover", "Goal decomposition — break input into subgoals")
         discovered = self.discover(input_data)
+        emit(15, "discover", "Constraint satisfaction — sandbox off, host control, Crown locked",
+             constraints=discovered.get("subgoals"))
 
         self.loop_state["phase"] = "plan"
+        emit(11, "plan", "Plan → Execute → Replan — build step list")
         plan = self.plan(discovered)
+        emit(12, "plan", "Dynamic workflow — warnings + suggested approach from memory",
+             warnings=plan.get("warnings") or [], approach=plan.get("suggested_approach") or "")
 
-        # Pattern 17/18 light explore when prior failures exist
         if self.error_library.search(plan.get("goal", ""), 1) and _depth == 0:
+            emit(17, "plan", "Tree search — expand alternate paths from prior failures")
             tree = self.tree_search.search(
                 plan["goal"],
                 expand_fn=lambda p: [f"Clarify: {p}", f"Tool-first: {p}", f"Minimal: {p}"],
                 evaluate_fn=lambda p: 0.7,
             )
             plan["tree_hint"] = tree.get("path", [])
+            emit(18, "plan", "Debate — one round on goal framing")
             self.debate.debate(plan.get("goal", ""), rounds=1)
+        else:
+            emit(17, "plan", "Tree search — skipped (no prior failure match)")
+            emit(18, "plan", "Debate — skipped (clean slate)")
 
         self.loop_state["phase"] = "execute"
+        emit(8, "execute", "Error library armed — capture step failures")
+        emit(9, "execute", "Success patterns armed — record wins")
         result = self.execute(plan)
+        host_n = len(result.get("host_executions") or [])
+        emit(
+            11,
+            "execute",
+            f"Execute steps complete — {result.get('status')} · host_tools={host_n}",
+            output=str(result.get("output", ""))[:240],
+            host_executions=result.get("host_executions") or [],
+        )
 
         self.loop_state["phase"] = "verify"
+        emit(1, "verify", "Generate → Critique → Rewrite gate")
+        emit(3, "verify", "Multi-critic — correctness / completeness / efficiency")
+        emit(4, "verify", "Adversarial critique — sovereignty check")
+        emit(5, "verify", "Judge ensemble — aggregate scores")
         verified = self.verify(result)
+        emit(2, "verify", f"Score-and-Retry — score={verified.get('score', 0):.2f} passed={verified.get('passed')}",
+             score=verified.get("score"), passed=verified.get("passed"))
 
         if not verified["passed"] and _depth < MAX_RETRY:
             self.loop_state["phase"] = "reflect"
             self.loop_state["retry"] = _depth + 1
-            # Pattern 16 branch then retry
+            emit(6, "reflect", "Reflexion — analyze failure and retry")
+            emit(16, "reflect", "Branch-and-Explore — tool-first / minimal / clarify")
             branches = self.branch_explorer.explore(
                 plan.get("goal", ""),
                 [
@@ -598,9 +825,14 @@ class CompleteLivingLoop:
                 ],
             )
             nxt = (branches.get("best") or {}).get("result") or input_data
-            return self.run(nxt, _depth=_depth + 1)
+            nested = self.run(nxt, _depth=_depth + 1, on_ring=on_ring)
+            nested["rings"] = rings + list(nested.get("rings") or [])
+            return nested
+        else:
+            emit(6, "verify", "Reflexion — not required (passed or retries exhausted)")
+            emit(16, "verify", "Branch-and-Explore — not required")
 
-        # Patterns 7–9 memorize
+        emit(7, "memory", "Memory update — store decision/outcome/lesson")
         self.memory.store(
             decision=plan.get("goal", "Unknown"),
             outcome=str(result.get("output", "")),
@@ -608,21 +840,40 @@ class CompleteLivingLoop:
             success=verified["passed"],
         )
         if verified["passed"]:
+            emit(9, "memory", "Success pattern stored")
             self.success_patterns.store(plan.get("goal", ""), {"plan": plan}, result, verified["score"])
+        else:
+            emit(9, "memory", "Success pattern skipped — verify failed")
 
-        # Patterns 19–20 periodic improve
         if self.loop_state["iteration"] % 5 == 0:
+            emit(19, "optimize", "Prompt optimization — periodic")
             self.prompt_optimizer.optimize(plan.get("goal", ""))
+        else:
+            emit(19, "optimize", "Prompt optimization — deferred (not iteration%5)")
+
         if self.loop_state["iteration"] % 10 == 0:
+            emit(20, "optimize", "Workflow optimization — periodic")
             self.workflow_optimizer.optimize({"latency": 100, "cost": 5, "quality": int(verified["score"] * 100)})
+        else:
+            emit(20, "optimize", "Workflow optimization — deferred (not iteration%10)")
 
-        # Pattern 10 compress
         if self.loop_state["iteration"] % 20 == 0:
+            emit(10, "memory", "Memory compression — periodic")
             self.compressor.compress()
+        else:
+            emit(10, "memory", "Memory compression — deferred (not iteration%20)")
 
-        # Pattern 14 progress
+        emit(14, "loop", "Progress evaluation — iteration / memory / errors / successes",
+             progress={
+                 "iteration": self.loop_state["iteration"],
+                 "memory": len(self.memory.memories),
+                 "errors": len(self.error_library.errors),
+                 "successes": len(self.success_patterns.successes),
+             })
+
         self.loop_state["phase"] = "loop"
         self.loop_state["status"] = "sovereign"
+        self.loop_state["active_ring"] = 14
         verified["progress"] = {
             "iteration": self.loop_state["iteration"],
             "memory": len(self.memory.memories),
@@ -630,6 +881,11 @@ class CompleteLivingLoop:
             "successes": len(self.success_patterns.successes),
         }
         verified["patterns_active"] = list(PATTERN_NAMES.keys())
+        verified["rings"] = rings
+        verified["rings_count"] = len(rings)
+        verified["host_executions"] = result.get("host_executions") or []
+        verified["execute_status"] = result.get("status")
+        verified["execute_output"] = result.get("output")
         self.history.append({"iteration": self.loop_state["iteration"], "score": verified["score"], "at": _now()})
         self._persist_state()
         return verified
@@ -677,6 +933,7 @@ class CompleteLivingLoop:
             "phase": self.loop_state["phase"],
             "iteration": self.loop_state["iteration"],
             "status": self.loop_state["status"],
+            "active_ring": self.loop_state.get("active_ring"),
             "haki_active": self.haki_active,
             "crown_hz": self.crown_hz,
             "lattice": self.lattice,
@@ -704,14 +961,17 @@ class CompleteLivingLoop:
         s = self.get_state()
         mesh_line = ""
         try:
-            from claude_o_cli.mesh_intel import probe_mesh
-            m = probe_mesh(persist=False)
-            mesh_line = (
-                f"- Mesh: Q5={'ON' if (m.get('q5') or {}).get('online') else 'OFF'} · "
-                f"WF={'ON' if (m.get('worldfeed') or {}).get('online') else 'OFF'} · "
-                f"Tor={'ON' if (m.get('tor') or {}).get('online') else 'OFF'} · "
-                f"Spy={'OP' if (m.get('spy_network') or {}).get('operational') else 'DEG'}\n"
-            )
+            from claude_o_cli.mesh_intel import cached_mesh
+            m = cached_mesh()
+            if m:
+                mesh_line = (
+                    f"- Mesh: Q5={'ON' if (m.get('q5') or {}).get('online') else 'OFF'} · "
+                    f"WF={'ON' if (m.get('worldfeed') or {}).get('online') else 'OFF'} · "
+                    f"Tor={'ON' if (m.get('tor') or {}).get('online') else 'OFF'} · "
+                    f"Spy={'OP' if (m.get('spy_network') or {}).get('operational') else 'DEG'}\n"
+                )
+            else:
+                mesh_line = "- Mesh: pending (background probe)\n"
         except Exception:
             mesh_line = "- Mesh: probe unavailable\n"
         return (
@@ -731,31 +991,71 @@ class LoopIntegration:
 
     def __init__(self, tool_execute: Optional[Callable[[str, Dict], Any]] = None):
         def _exec_step(step: str):
+            """Real host execution — tool JSON runs the named tool; else bash proof."""
             if not tool_execute:
                 return f"ok:{step}"
-            # Prefer bash echo as host proof; real tools used in chat runtime
             try:
-                return tool_execute("bash", {"command": f"echo LOOP_STEP:{step[:80]}"})
+                calls = CompleteLivingLoop.parse_host_tool_calls(step)
+                if calls and not calls[0].get("parseError"):
+                    name = calls[0]["tool"]
+                    args = calls[0].get("args") or {}
+                    return tool_execute(name, args if isinstance(args, dict) else {})
+                # Narrative DPEV step — host-proof echo (not a fake success claim)
+                safe = str(step).replace('"', "'")[:80]
+                return tool_execute("bash", {"command": f'echo LOOP_STEP:{safe}'})
             except Exception as e:
-                return f"step-error:{e}"
+                return {"ok": False, "error": f"step-error:{e}", "step": step[:120]}
 
+        self.tool_execute = tool_execute
         self.loop = CompleteLivingLoop(executor=_exec_step)
         self.loop.start_background()
 
-    def process_user_input(self, user_input: str) -> Dict:
-        # Feed mesh DISCOVER into 20-loop context memory lightly
-        try:
-            from claude_o_cli.mesh_intel import living_loop_discover
-            disc = living_loop_discover(user_input)
+    def process_user_input(self, user_input: str, *, skip_mesh: bool = False) -> Dict:
+        # RUNTIME ENVELOPE PATH — the 12U5GO5 dialect: structured actions fire
+        # through the Execution Runtime (8791) and results land in session state.
+        envelopes = CompleteLivingLoop.parse_runtime_envelopes(user_input)
+        if envelopes:
+            live_actions = []
+            for env in envelopes:
+                live_actions.extend(env.get("actions") or [])
+            dispatch_results = CompleteLivingLoop.dispatch_runtime(live_actions)
             self.loop.memory.store(
-                decision="mesh_discover",
-                outcome=str((disc.get("fragment") or "")[:240]),
-                lesson="Mesh intel available on every living-loop turn",
-                success=True,
-                context={"mesh": True},
+                decision="runtime_envelope_dispatch",
+                outcome=(
+                    f"dispatched {len(live_actions)} action(s) → "
+                    f"{sum(1 for r in dispatch_results if r.get('ok'))} ok / "
+                    f"{sum(1 for r in dispatch_results if not r.get('ok'))} failed"
+                ),
+                lesson="Envelope actions now fire through the execution runtime",
+                success=all(r.get("ok") for r in dispatch_results) if dispatch_results else False,
             )
-        except Exception:
-            pass
+            result = self.loop.run(user_input)
+            result["host_executions"] = result.get("host_executions") or []
+            for r in dispatch_results:
+                result["host_executions"].append({
+                    "target": r.get("target"),
+                    "method": r.get("method"),
+                    "result": r.get("result") or r.get("error"),
+                    "ok": bool(r.get("ok")),
+                    "via": "execution_runtime:8791",
+                })
+            result["runtime_dispatched"] = True
+            result["runtime_results"] = dispatch_results
+            return result
+        # Mesh DISCOVER feed into 20-loop context memory lightly
+        if not skip_mesh:
+            try:
+                from claude_o_cli.mesh_intel import living_loop_discover
+                disc = living_loop_discover(user_input)
+                self.loop.memory.store(
+                    decision="mesh_discover",
+                    outcome=str((disc.get("fragment") or "")[:240]),
+                    lesson="Mesh intel available on every living-loop turn",
+                    success=True,
+                    context={"mesh": True},
+                )
+            except Exception:
+                pass
         return self.loop.run(user_input)
 
     def get_status(self) -> Dict:

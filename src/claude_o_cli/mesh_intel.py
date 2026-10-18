@@ -1,7 +1,7 @@
-"""Mesh intelligence — Q3 · Q5 · Q6 · WorldFeed · Tor · Spy Network · Mao/Architect Haki.
+"""Mesh intelligence — Q3 · Q5 · Q6 · Q7 · WorldFeed · Tor · Spy Network · Mao/Architect Haki.
 
 Live probes for terminal CLI, AgenticRuntime, LivingLoop, Complete 20-Loop, and local chat.
-Ports (lab canon): Q3 8000 · Q5 8101 · WorldFeed 8100 · Tor SOCKS 9050 · Chat 8787
+Ports (lab canon): Q3 8000 · Q5 8102 · WorldFeed 8100 · Tor SOCKS 9050 · Q7 8952 · Chat 8787
 """
 from __future__ import annotations
 
@@ -14,8 +14,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 Q3_URL = "http://127.0.0.1:8000"
-Q5_URL = "http://127.0.0.1:8101"
+Q5_URL = "http://127.0.0.1:8102"
 WORLDFEED_URL = "http://127.0.0.1:8100"
+Q7_URL = "http://127.0.0.1:8952"
+Q7_LEGACY = "http://127.0.0.1:11440"
 TOR_HOST = "127.0.0.1"
 TOR_PORT = 9050
 Q6_MODULE = Path(r"Q:/oroboros-core/q6_core.py")
@@ -24,11 +26,23 @@ ARCH_REG = Path(r"J:/anthropic-local-chat/architects-haki-registry.json")
 MESH_STATE = Path(r"J:/anthropic-local-chat/mesh-intel-state.json")
 
 # Spy network = Phase-1 intelligence gathering stack (lab doctrine)
-SPY_COMPONENTS = ("q3", "q5", "worldfeed", "tor", "glasswing", "precogs")
+SPY_COMPONENTS = ("q3", "q5", "worldfeed", "tor", "glasswing", "precogs", "q7")
+
+_LAST_MESH: Optional[dict] = None
+_LAST_MESH_AT: float = 0.0
+_MESH_CACHE_TTL = 45.0
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def cached_mesh(*, max_age: float = _MESH_CACHE_TTL) -> Optional[dict]:
+    """Return last in-memory mesh snapshot if fresh enough."""
+    import time
+    if _LAST_MESH and (time.time() - _LAST_MESH_AT) <= max_age:
+        return _LAST_MESH
+    return None
 
 
 def _http_json(url: str, method: str = "GET", payload: Optional[dict] = None, timeout: float = 3.0) -> dict:
@@ -293,12 +307,15 @@ def probe_spy_network(*, query: Optional[str] = None) -> dict:
 
 def probe_mesh(*, query: Optional[str] = None, persist: bool = True) -> dict:
     """Full mesh snapshot for loops / system prompts."""
+    global _LAST_MESH, _LAST_MESH_AT
+    import time
     snap = {
         "ok": True,
         "at": _now(),
         "q3": probe_q3(query=query),
         "q5": probe_q5(query=query),
         "q6": probe_q6(query=query),
+        "q7": probe_q7(query=query),
         "worldfeed": probe_worldfeed(query=query),
         "tor": probe_tor(),
         "spy_network": probe_spy_network(query=query),
@@ -307,6 +324,7 @@ def probe_mesh(*, query: Optional[str] = None, persist: bool = True) -> dict:
             "q3": Q3_URL,
             "q5": Q5_URL,
             "q6": "mesh://q6_acquisition",
+            "q7": Q7_URL,
             "worldfeed": WORLDFEED_URL,
             "tor": f"{TOR_HOST}:{TOR_PORT}",
             "mao_haki": "http://127.0.0.1:8787/api/mao-haki",
@@ -315,6 +333,8 @@ def probe_mesh(*, query: Optional[str] = None, persist: bool = True) -> dict:
             "mesh_query": "http://127.0.0.1:8787/api/mesh/query",
         },
     }
+    _LAST_MESH = snap
+    _LAST_MESH_AT = time.time()
     if persist:
         try:
             MESH_STATE.write_text(json.dumps(snap, indent=2, default=str), encoding="utf-8")
@@ -324,10 +344,23 @@ def probe_mesh(*, query: Optional[str] = None, persist: bool = True) -> dict:
 
 
 def system_fragment(last: Optional[dict] = None) -> str:
-    snap = last or probe_mesh(persist=False)
+    # Prefer cached snapshot so every chat turn does not re-probe the mesh.
+    snap = last or cached_mesh() or {
+        "ok": True,
+        "pending": True,
+        "q3": {},
+        "q5": {},
+        "q6": {},
+        "q7": {},
+        "worldfeed": {},
+        "tor": {},
+        "spy_network": {},
+        "haki": {},
+    }
     q3 = snap.get("q3") or {}
     q5 = snap.get("q5") or {}
     q6 = snap.get("q6") or {}
+    q7 = snap.get("q7") or {}
     wf = snap.get("worldfeed") or {}
     tor = snap.get("tor") or {}
     spy = snap.get("spy_network") or {}
@@ -335,11 +368,12 @@ def system_fragment(last: Optional[dict] = None) -> str:
     mao = (haki.get("mao_haki") or {})
     arch = (haki.get("architects_haki") or {})
     return (
-        "MESH INTEL — Q3 · Q5 · Q6 · WORLDFEED · TOR · SPY NETWORK · HAKI\n"
+        "MESH INTEL — Q3 · Q5 · Q6 · Q7 · WORLDFEED · TOR · SPY NETWORK · HAKI\n"
         f"- Q3 {Q3_URL}: {'ONLINE' if q3.get('online') else 'OFFLINE'}\n"
         f"- Q5 {Q5_URL}: {'ONLINE' if q5.get('online') else 'OFFLINE'}\n"
         f"- Q6 acquisition: {'ONLINE' if q6.get('online') else 'OFFLINE'} · "
         f"{q6.get('online_count', 0)} sources\n"
+        f"- Q7 {Q7_URL}: {'ONLINE' if q7.get('online') else 'OFFLINE'} · quantum conduit\n"
         f"- WorldFeed {WORLDFEED_URL}: {'ONLINE' if wf.get('online') else 'OFFLINE'}\n"
         f"- Tor SOCKS {TOR_HOST}:{TOR_PORT}: {'ONLINE' if tor.get('online') else 'OFFLINE'}\n"
         f"- Spy network: {spy.get('online_count', 0)}/{spy.get('total', 6)} · "
@@ -347,9 +381,9 @@ def system_fragment(last: Optional[dict] = None) -> str:
         f"- Mao Haki API: {'OK' if mao.get('api_ok') else 'FALLBACK'} · Crown {mao.get('hz', 1272)} Hz\n"
         f"- Architect's Haki API: {'OK' if arch.get('api_ok') else 'FALLBACK'} · "
         f"{arch.get('pipeline', 'Detect→Integrate')}\n"
-        "- Tools: q3_route, q5_query, q6_query, worldfeed_live, tor_status, tor_connect, "
-        "spy_network, mesh_status, haki_status\n"
-        "- Prefer live tool results over inventing Q3/Q5/Q6/WorldFeed/Tor doctrine.\n"
+        "- Tools: q3_route, q5_query, q6_query, q7_query, worldfeed_live, tor_status, "
+        "tor_connect, spy_network, mesh_status, haki_status\n"
+        "- Prefer live tool results over inventing Q3/Q5/Q6/Q7/WorldFeed/Tor doctrine.\n"
     )
 
 
@@ -365,6 +399,7 @@ def living_loop_discover(user_input: str) -> dict:
             "Use q3_route for sovereign orchestration hub",
             "Use q5_query for knowledge lattice",
             "Use q6_query for multi-source consensus acquisition",
+            "Use q7_query for quantum / trans-dimensional conduit",
             "Use worldfeed_live for current feed search",
             "Use tor_status before subsurface claims",
             "Use spy_network for coordinated intel status",
@@ -422,6 +457,40 @@ def tool_spy_network(args: dict | None = None) -> dict:
     return probe_spy_network(query=query)
 
 
+def probe_q7(*, query: Optional[str] = None) -> dict:
+    """Q7 — Quantum / Trans-Dimensional conduit (8952 primary, 11440 legacy)."""
+    out: dict[str, Any] = {
+        "system": "q7",
+        "online": False,
+        "role": "quantum_conduit_trans_dimensional",
+        "query": query,
+        "at": _now(),
+    }
+    for base in (Q7_URL, Q7_LEGACY):
+        for path in ("/health", "/api/status", "/status", "/"):
+            hit = _http_json(f"{base}{path}", timeout=1.8)
+            if hit.get("ok"):
+                out["online"] = True
+                out["endpoint"] = f"{base}{path}"
+                out["data"] = hit.get("data")
+                return out
+    for host, port in (("127.0.0.1", 8952), ("127.0.0.1", 11440)):
+        tcp = _tcp_open(host, port, timeout=1.0)
+        if tcp.get("ok"):
+            out["online"] = True
+            out["endpoint"] = f"{host}:{port}"
+            out["tcp"] = tcp
+            return out
+    out["hint"] = "Start quantum-conduit on :8952 (J:/anthropic-local-chat/quantum-conduit/server.py)"
+    return out
+
+
+def tool_q7_query(args: dict | None = None) -> dict:
+    args = args or {}
+    query = str(args.get("query") or "").strip() or None
+    return probe_q7(query=query)
+
+
 def tool_mesh_status(args: dict | None = None) -> dict:
     args = args or {}
     query = str(args.get("query") or "").strip() or None
@@ -436,16 +505,18 @@ def register_mesh_tools(registry) -> list[str]:
         ("q3_route", "Route query through Q3 sovereign hub (8000)", tool_q3_route, False),
         ("q5_query", "Query Q5 knowledge lattice (8101)", tool_q5_query, False),
         ("q6_query", "Q6 multi-source acquisition + consensus", tool_q6_query, False),
+        ("q7_query", "Q7 quantum / trans-dimensional conduit (8952)", tool_q7_query, False),
         ("worldfeed_live", "Live WorldFeed search/status (8100)", tool_worldfeed_live, False),
         ("tor_status", "Probe Tor SOCKS 9050", tool_tor_status, False),
         ("tor_connect", "Confirm Tor SOCKS connectivity", tool_tor_connect, False),
-        ("spy_network", "Spy/intel stack: Q3+Q5+WorldFeed+Tor+Glasswing+Precogs", tool_spy_network, False),
+        ("spy_network", "Spy/intel stack: Q3+Q5+WorldFeed+Tor+Glasswing+Precogs+Q7", tool_spy_network, False),
         ("mesh_status", "Full mesh + Mao/Architect Haki probe", tool_mesh_status, False),
         # Aliases for models / legacy names
         ("q3", "Alias → q3_route", tool_q3_route, False),
         ("route_q3", "Alias → q3_route", tool_q3_route, False),
         ("q5", "Alias → q5_query", tool_q5_query, False),
         ("q6", "Alias → q6_query", tool_q6_query, False),
+        ("q7", "Alias → q7_query", tool_q7_query, False),
         ("worldfeed", "Alias → worldfeed_live", tool_worldfeed_live, False),
         ("world_feed", "Alias → worldfeed_live", tool_worldfeed_live, False),
         ("worldfeed_context", "Alias → worldfeed_live", tool_worldfeed_live, False),

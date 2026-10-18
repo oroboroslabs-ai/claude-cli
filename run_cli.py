@@ -9,6 +9,7 @@ import json
 import time
 import hashlib
 import re
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from flask import Flask, request, jsonify
@@ -16,8 +17,9 @@ from flask_cors import CORS
 
 # Shared host-tool backend (terminal CLI ToolRegistry) must resolve for HTML UI.
 _CLI_SRC = Path(__file__).resolve().parent / "src"
-if str(_CLI_SRC) not in sys.path:
-    sys.path.insert(0, str(_CLI_SRC))
+if str(_CLI_SRC) in sys.path:
+    sys.path.remove(str(_CLI_SRC))
+sys.path.insert(0, str(_CLI_SRC))
 
 try:
     from mao_haki_context import append_mao_haki, MAO_HAKI_SYSTEM_FRAGMENT
@@ -118,7 +120,7 @@ CORS(app)
 # CONSTANTS
 # ============================================================
 DATA_FILE = Path(__file__).parent / "claude-o-data.json"
-DEFAULT_MODEL = "claude-opus-4.8:latest"
+DEFAULT_MODEL = "deepseek-prime-cl-1q5duo5:fast"
 LOCAL_MCP_HTTP = {
     "pod_20_mcp_orchestration": "http://localhost:3020/mcp",
     "orchestration": "http://localhost:3020/mcp",
@@ -213,7 +215,7 @@ def save_data(data: Dict):
 def api_chat():
     """Chat with a model — host tools via shared CLI bridge (same as terminal)."""
     data = request.json or {}
-    model = data.get('model', 'claude-opus-4.8:latest')
+    model = data.get('model', DEFAULT_MODEL)
     message = data.get('message', '')
     system = data.get('system', (
         'You are claude on the WINDOWS HOST — not a container, not a sandbox. '
@@ -401,6 +403,7 @@ def api_tool():
     result = rge.execute(tool_name, args)
     return jsonify({'tool': tool_name, 'result': result, 'backend': 'rge'})
 
+
 # ============================================================
 # AGENT EXECUTOR
 # ============================================================
@@ -408,7 +411,7 @@ def api_tool():
 def api_agent_execute():
     """Execute a task by parsing intent and running tools through RGE."""
     data = request.json or {}
-    model = data.get('model', 'glm-5:cloud')
+    model = data.get('model', DEFAULT_MODEL)
     task = data.get('task', '')
 
     if not task:
@@ -892,7 +895,7 @@ def api_agent():
     """Run the recursive agent loop on a task."""
     data = request.json or {}
     task = data.get('task', '')
-    model = data.get('model', 'claude-opus-4.8:latest')
+    model = data.get('model', DEFAULT_MODEL)
 
     if not task:
         return jsonify({'error': 'No task provided'})
@@ -923,7 +926,7 @@ def api_engineer():
     """Run the full engineering loop."""
     data = request.json or {}
     task = data.get('task', '')
-    model = data.get('model', 'claude-opus-4.8:latest')
+    model = data.get('model', DEFAULT_MODEL)
 
     if not task:
         return jsonify({'error': 'No task provided'})
@@ -966,7 +969,7 @@ def api_loops_run():
     """Run a specific loop pattern."""
     data = request.json or {}
     pattern = data.get('pattern', '1')
-    model = data.get('model', 'claude-opus-4.8:latest')
+    model = data.get('model', DEFAULT_MODEL)
     task = data.get('task', '')
     kwargs = data.get('kwargs', {})
 

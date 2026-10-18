@@ -94,6 +94,11 @@ def _augment_terminal_system(
         except Exception:
             pass
     try:
+        from claude_o_cli.tool_cycle import system_fragment as tool_cycle_frag
+        base = base + "\n\n" + tool_cycle_frag()
+    except Exception:
+        pass
+    try:
         living = getattr(_augment_terminal_system, "_living_loop", None)
         if living is not None:
             base = base + "\n\n" + living.system_fragment()
@@ -109,6 +114,23 @@ def _augment_terminal_system(
         bridge = getattr(_augment_terminal_system, "_bridge", None)
         if bridge is not None:
             base = base + "\n\n" + bridge.system_fragment()
+    except Exception:
+        pass
+    # Living-loop supervisor autocorrect snapshot (local chat / terminal redundancy)
+    try:
+        sup_path = Path(r"J:/anthropic-local-chat/living-loop-supervisor.json")
+        if sup_path.exists():
+            snap = json.loads(sup_path.read_text(encoding="utf-8"))
+            rep = snap.get("last_report") or {}
+            base = base + (
+                "\n\nLIVING LOOP SUPERVISOR — AUTOCORRECT\n"
+                f"- ok={rep.get('ok')} issues={rep.get('issues') or []}\n"
+                f"- heals={snap.get('heals')} checks={snap.get('checks')}\n"
+                f"- heroer_up={((rep.get('ports') or {}).get('heroer') or {}).get('up')}\n"
+                f"- host_tool={((rep.get('api_host_tool') or {}).get('ok'))}\n"
+                f"- complete={((rep.get('api_complete') or {}).get('ok'))}\n"
+                "- Terminal tool cycle mirrors local_api tool_cycle + host_tool_bridge.\n"
+            )
     except Exception:
         pass
     try:
@@ -271,7 +293,7 @@ class ClaudeOCLI:
         print("    --llm=openai        Activate OpenAI connection")
         print("    --llm=anthropic     Activate Anthropic connection")
         print("    --llm=openrouter    Activate OpenRouter connection")
-        print("    --model=<name>      Set Ollama model (default: llama3.2)")
+        print("    --model=<name>      Set Ollama model (default: deepseek-prime-cl-1q5duo5:fast)")
         print()
         print("  LOGS:")
         print(f"    ~/.oroboros/logs/claude.log")
@@ -448,7 +470,7 @@ class ClaudeOCLI:
         print()
 
     def cmd_chat(self, initial_prompt: str = ""):
-        """Interactive chat — runtime engine + tools + MCP linked into every turn."""
+        """Interactive chat — runtime engine + tools; MCP probes after UI is up."""
         ui = GlassTerminal(llm_adapter.ollama_model, llm_adapter.ollama_url)
 
         if not llm_adapter.ollama_available:
@@ -457,7 +479,7 @@ class ClaudeOCLI:
             return
 
         runtime = get_runtime(self.tools)
-        boot = runtime.boot()
+        boot = runtime.boot(defer_mcp=True, defer_mesh=True)
         mcp = boot.get("mcp") or {}
         # AUTO-CONNECT agent tools ↔ LivingLoop ↔ Complete 20-Loop
         bridge = self._ensure_bridge(runtime)
@@ -469,7 +491,7 @@ class ClaudeOCLI:
             f"Runtime L{boot.get('performance_level', 6)} ACTIVE · "
             f"HOST CONTROL={'OK' if hc.get('ok') else 'FAIL'} · "
             f"tools={boot.get('local_tools', 0)} · "
-            f"MCP {mcp.get('count_online', 0)}/{mcp.get('count_total', 0)} · "
+            f"MCP deferred ({mcp.get('count_total', 0)} gateways) · "
             f"Mao Haki · Crown 1272 Hz"
         )
         if hc.get("ok"):
@@ -490,8 +512,18 @@ class ClaudeOCLI:
             f"living={bridge.status().get('living_loop')} · "
             f"20loop={bridge.status().get('complete_20_loop')}"
         )
-        if mcp.get("count_online", 0) == 0:
-            ui.note("MCP optional (offline) — local file tools still full host access")
+        ui.note("MCP + mesh probing in background after startup…")
+
+        def _on_mcp_ready(st: dict) -> None:
+            m = st.get("mcp") or {}
+            try:
+                ui.note(
+                    f"MCP ready · {m.get('count_online', 0)}/{m.get('count_total', 0)} online"
+                )
+            except Exception:
+                pass
+
+        runtime.start_mcp_background(on_done=_on_mcp_ready)
 
         def _system_message(user_turn: str | None = None) -> dict:
             return {
@@ -574,12 +606,13 @@ class ClaudeOCLI:
                     ui.note(f"{t['name']} — {t.get('description', '')}")
                 continue
             if lower in ("/mcp", "/mcp-list"):
-                runtime.mcp.probe()
+                runtime.ensure_mcp_ready(timeout=20.0)
                 for s in runtime.mcp.list_servers():
                     mark = "ONLINE" if s["status"] == "online" else "OFFLINE"
                     ui.note(f"[{mark}] {s['name']}  {s.get('url', '')}")
                 continue
             if lower.startswith("/mcp-tools"):
+                runtime.ensure_mcp_ready(timeout=20.0)
                 server = user_input[10:].strip() or "orchestration"
                 tools = runtime.mcp.list_tools(server)
                 for t in tools[:40]:
@@ -599,11 +632,15 @@ class ClaudeOCLI:
                     targs = json.loads(parts[3]) if len(parts) > 3 else {}
                 except json.JSONDecodeError:
                     targs = {}
+                runtime.ensure_mcp_ready(timeout=20.0)
                 result = runtime.mcp.call_tool(server, tool, targs)
                 ui.note(json.dumps(result, indent=2, default=str)[:2000])
                 continue
             if lower in ("/runtime", "/rt"):
-                st = runtime.boot()
+                st = runtime.status or runtime.boot(defer_mcp=True, defer_mesh=True)
+                if st.get("mcp_pending"):
+                    runtime.ensure_mcp_ready(timeout=20.0)
+                    st = runtime.status
                 ui.success(
                     f"Runtime L{st.get('performance_level')} · tools={st.get('local_tools')} · "
                     f"MCP {(st.get('mcp') or {}).get('count_online')}/{(st.get('mcp') or {}).get('count_total')}"
@@ -614,6 +651,27 @@ class ClaudeOCLI:
                 st = self.loop_integration.get_status()
                 ui.success(self.loop_integration.get_summary())
                 ui.note(f"store: {st.get('store')} · patterns: 20")
+                continue
+            if lower in ("/supervisor", "/autocorrect", "/heal"):
+                try:
+                    sup_path = Path(r"J:/anthropic-local-chat/living-loop-supervisor.json")
+                    if not sup_path.exists():
+                        ui.error("Supervisor state missing — start living_loop_supervisor.py")
+                        continue
+                    snap = json.loads(sup_path.read_text(encoding="utf-8"))
+                    rep = snap.get("last_report") or {}
+                    ui.success(
+                        f"Supervisor ok={rep.get('ok')} heals={snap.get('heals')} "
+                        f"checks={snap.get('checks')} issues={rep.get('issues') or []}"
+                    )
+                    ui.note(
+                        f"host_tool={((rep.get('api_host_tool') or {}).get('ok'))} "
+                        f"complete={((rep.get('api_complete') or {}).get('ok'))} "
+                        f"living_api={((rep.get('api_living') or {}).get('ok'))} "
+                        f"heroer={((rep.get('ports') or {}).get('heroer') or {}).get('up')}"
+                    )
+                except Exception as e:
+                    ui.error(f"supervisor: {e}")
                 continue
             if lower in ("/bridge", "/connect"):
                 b = self._ensure_bridge(runtime)
@@ -827,7 +885,7 @@ class ClaudeOCLI:
             return
         models = llm_adapter._ollama_list_models()
         if not models:
-            print("  No models loaded. Pull one with: ollama pull llama3.2")
+            print("  No models loaded. Pull one with: ollama pull deepseek-prime-cl-1q5duo5:fast")
         else:
             for m in models:
                 marker = " ← active" if m == llm_adapter.ollama_model else ""
@@ -1271,25 +1329,23 @@ def _wait_for_glass_server(timeout_s: float = 15.0) -> bool:
 
 
 def _start_glass_server_background() -> bool:
-    """Start the glass UI server on port 5000 in a daemon thread."""
+    """Start the glass UI server on port 5000 in a daemon thread (non-blocking)."""
     import logging
     import threading
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
-    try:
-        from run_cli import app
-    except ImportError as e:
-        print(f"  [X] Could not start glass UI: {e}")
-        return False
-
     def _run():
+        try:
+            from run_cli import app
+        except ImportError as e:
+            print(f"  [X] Could not start glass UI: {e}")
+            return
         app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
 
     threading.Thread(target=_run, daemon=True, name="claude-cli-glass").start()
-    if _wait_for_glass_server():
-        return True
-    return False
+    # Do not block CLI chat on Flask import/readiness — glass is optional side UI.
+    return True
 
 
 def _run_glass_server_blocking():

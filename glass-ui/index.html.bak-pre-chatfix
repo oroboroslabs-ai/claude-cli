@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude CLI</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cyan: #00ffcc;
+  --cyan-dim: rgba(0,255,204,0.15);
+  --gold: #d5a021;
+  --gold-dim: rgba(213,160,33,0.15);
+  --orange: #D97757;
+  --warm-grey: #b7b3ac;
+  --warm-white: #e8e5dd;
+  --glass-bg: rgba(255,255,255,0.01);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-radius: 24px;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1A1917;font-family:var(--font-sans);padding:20px;overflow:hidden}
+.liquid-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.liquid-bg .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.25;animation:liquidFloat 8s ease-in-out infinite alternate}
+.liquid-bg .orb:nth-child(1){width:600px;height:600px;background:radial-gradient(circle,rgba(217,119,87,0.2),transparent 70%);top:-10%;left:-10%;animation-duration:9s}
+.liquid-bg .orb:nth-child(2){width:500px;height:500px;background:radial-gradient(circle,rgba(217,119,87,0.15),transparent 70%);bottom:-10%;right:-10%;animation-duration:11s;animation-delay:-3s}
+.liquid-bg .orb:nth-child(3){width:400px;height:400px;background:radial-gradient(circle,rgba(183,179,172,0.1),transparent 70%);top:40%;left:50%;animation-duration:13s;animation-delay:-5s}
+@keyframes liquidFloat{0%{transform:translate(0,0) scale(1)}100%{transform:translate(80px,-60px) scale(1.2)}}
+.center-logo{position:fixed;top:50%;left:calc(50% + 160px);transform:translate(-50%,-50%);z-index:0;width:400px;height:400px;opacity:0.08;pointer-events:none;filter:drop-shadow(0 0 40px rgba(217,119,87,0.3))}
+.center-logo img{width:100%;height:100%;object-fit:contain}
+.terminal{position:relative;z-index:1;width:100%;max-width:980px;background:var(--glass-bg);backdrop-filter:blur(12px) saturate(1.8) brightness(1.1);-webkit-backdrop-filter:blur(12px) saturate(1.8) brightness(1.1);border:1px solid var(--glass-border);border-radius:var(--glass-radius);box-shadow:0 8px 32px rgba(0,0,0,0.3),inset 0 1px 1px rgba(255,255,255,0.15);padding:24px;color:#fff;transition:all 0.4s ease}
+.terminal::before{content:'';position:absolute;inset:0;border-radius:var(--glass-radius);padding:1px;background:linear-gradient(135deg,rgba(0,255,204,0.08),rgba(213,160,33,0.04),rgba(0,255,204,0.08));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;animation:shimmerPulse 6s ease-in-out infinite}
+@keyframes shimmerPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.terminal-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.terminal-header .brand{display:flex;align-items:center;gap:12px}
+.terminal-header .brand .icon{font-size:22px;color:var(--orange);animation:glowPulse 3s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{opacity:0.8;text-shadow:0 0 10px var(--orange),0 0 20px var(--orange)}50%{opacity:1;text-shadow:0 0 30px var(--orange),0 0 50px var(--orange)}}
+.terminal-header .brand .name{font-family:var(--font-serif);font-weight:700;font-size:20px;letter-spacing:0.02em;background:linear-gradient(135deg,var(--orange),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.terminal-header .brand .version{font-size:12px;color:var(--warm-grey);opacity:0.5}
+.terminal-header .status{display:flex;align-items:center;gap:18px;font-size:12px;color:var(--warm-grey);flex-wrap:wrap}
+.terminal-header .status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;animation:dotPulse 1.8s ease-in-out infinite}
+.terminal-header .status .dot.green{background:#00ff88}
+.terminal-header .status .dot.cyan{background:var(--cyan)}
+.terminal-header .status .dot.orange{background:var(--orange)}
+@keyframes dotPulse{0%,100%{opacity:0.4;transform:scale(0.9)}50%{opacity:1;transform:scale(1.1)}}
+.terminal-header .status .sig{font-size:10px;color:var(--gold);opacity:0.6;letter-spacing:0.5px}
+.model-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid rgba(255,255,255,0.04);margin-bottom:16px;font-size:13px;color:var(--warm-grey);flex-wrap:wrap;gap:8px}
+.model-bar .model{color:var(--warm-white)}
+.model-bar .model .highlight{color:var(--cyan)}
+.model-bar .url{font-size:11px;opacity:0.5}
+.model-bar .sovereign{font-size:11px;color:var(--gold);padding:2px 12px;border:1px solid var(--gold-dim);border-radius:20px;background:var(--gold-dim);letter-spacing:0.5px}
+.security-bar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(0,0,0,0.25);border-radius:10px;border:1px solid rgba(255,255,255,0.03);margin-bottom:12px;font-size:11px;color:var(--warm-grey);flex-wrap:wrap}
+.security-bar .shield{color:#00ff88}
+.security-bar .warn{color:var(--gold)}
+.security-bar .block{color:var(--orange)}
+.command-bar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 16px 0;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px}
+.command-bar .cmd{font-family:var(--font-mono);font-size:12px;color:var(--warm-grey);padding:4px 14px;border-radius:20px;background:rgba(255,255,255,0.03);border:1px solid transparent;transition:all 0.3s ease;cursor:default}
+.command-bar .cmd:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
+.command-bar .cmd .key{color:#fff}
+.command-bar .cmd .gold{color:var(--orange)}
+.chat-area{display:flex;flex-direction:column;gap:16px;max-height:420px;overflow-y:auto;padding-right:4px;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:4px}
+.chat-area::-webkit-scrollbar-track{background:transparent}
+.chat-area::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
+.message{display:flex;flex-direction:column;gap:4px;padding:0;border:none;background:none;animation:messageIn 0.5s ease-out}
+@keyframes messageIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+.message .msg-header{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--warm-grey);margin-bottom:2px}
+.message .msg-header .role{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+.message.user .msg-header .role{color:var(--gold)}
+.message.assistant .msg-header .role{color:var(--cyan)}
+.message .msg-header .time{font-size:10px;opacity:0.3}
+.message .content{font-family:var(--font-mono);font-size:14px;line-height:1.7;color:#fff;white-space:pre-wrap}
+.typing-indicator{display:flex;align-items:center;gap:10px;padding:8px 0;animation:messageIn 0.3s ease-out}
+.typing-indicator .typing-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)}
+.typing-indicator .typing-dots{display:flex;gap:5px}
+.typing-indicator .typing-dots span{width:8px;height:8px;border-radius:50%;background:var(--orange);opacity:0.3;animation:typingPulse 1.4s ease-in-out infinite}
+.typing-indicator .typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-indicator .typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes typingPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2);box-shadow:0 0 10px var(--orange)}}
+.input-area{display:flex;align-items:center;gap:12px;margin-top:16px;padding:10px 16px;background:rgba(255,255,255,0.02);border-radius:16px;border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:all 0.3s ease}
+.input-area:focus-within{border-color:var(--cyan-dim);box-shadow:0 0 40px rgba(0,255,204,0.04)}
+.input-area .prompt-symbol{font-size:18px;color:var(--orange);opacity:0.7;text-shadow:0 0 15px var(--orange)}
+.input-area input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-family:var(--font-mono);font-size:14px;padding:4px 0}
+.input-area input::placeholder{color:var(--warm-grey);opacity:0.25}
+.input-area .input-hint{font-size:11px;color:var(--warm-grey);opacity:0.2}
+.clear-btn{font-family:var(--font-mono);font-size:11px;color:var(--orange);padding:4px 12px;border-radius:8px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2);cursor:pointer;transition:all 0.2s}
+.clear-btn:hover{background:rgba(217,119,87,0.15);border-color:var(--orange)}
+
+/* ─── File Browser ─────────────────────────────────────────── */
+.fs-toggle{font-family:var(--font-mono);font-size:11px;color:var(--cyan);padding:4px 14px;border-radius:20px;background:var(--cyan-dim);border:1px solid rgba(0,255,204,0.2);cursor:pointer;transition:all 0.2s;margin-left:auto}
+.fs-toggle:hover{background:rgba(0,255,204,0.2);border-color:var(--cyan)}
+.fs-toggle.active{color:var(--orange);background:rgba(217,119,87,0.15);border-color:var(--orange)}
+.file-browser{display:none;margin-bottom:16px;border:1px solid rgba(255,255,255,0.06);border-radius:16px;background:rgba(0,0,0,0.3);overflow:hidden;animation:messageIn 0.3s ease-out}
+.file-browser.open{display:block}
+.fs-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap}
+.fs-header .fs-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--warm-grey)}
+.fs-header .fs-path{flex:1;font-size:12px;color:var(--warm-white);padding:4px 10px;background:rgba(0,0,0,0.3);border-radius:8px;border:1px solid rgba(255,255,255,0.04);font-family:var(--font-mono);min-width:100px}
+.fs-header .fs-path:focus{border-color:var(--cyan-dim);outline:none}
+.fs-header .fs-btn{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--warm-grey);cursor:pointer;transition:all 0.2s}
+.fs-header .fs-btn:hover{border-color:var(--cyan-dim);color:var(--warm-white);background:var(--cyan-dim)}
+.fs-header .fs-btn.go{color:var(--cyan);border-color:var(--cyan-dim)}
+.fs-header .fs-btn.up{color:var(--gold);border-color:var(--gold-dim)}
+.fs-header .fs-btn.drives{color:var(--orange);border-color:rgba(217,119,87,0.2)}
+.fs-header .fs-btn.fullaccess{color:#00ff88;border-color:rgba(0,255,136,0.2)}
+.fs-header .fs-btn.fullaccess.on{background:rgba(0,255,136,0.1);border-color:#00ff88}
+.fs-body{max-height:300px;overflow-y:auto;padding:4px 0}
+.fs-body::-webkit-scrollbar{width:4px}
+.fs-body::-webkit-scrollbar-track{background:transparent}
+.fs-body::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:10px}
+.fs-item{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:12px;color:var(--warm-grey);cursor:pointer;transition:all 0.15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font-mono)}
+.fs-item:hover{background:rgba(255,255,255,0.03);color:var(--warm-white)}
+.fs-item .fs-icon{font-size:14px;width:20px;text-align:center}
+.fs-item .fs-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs-item .fs-size{font-size:10px;opacity:0.4}
+.fs-item.dir .fs-icon{color:var(--gold)}
+.fs-item.file .fs-icon{color:var(--warm-grey)}
+.fs-item.file:hover .fs-icon{color:var(--cyan)}
+.fs-status{font-size:11px;color:var(--warm-grey);padding:8px 14px;opacity:0.5;text-align:center}
+.fs-preview{display:none;padding:12px 14px;border-top:1px solid rgba(255,255,255,0.04);max-height:250px;overflow:auto}
+.fs-preview.open{display:block}
+.fs-preview pre{font-size:11px;line-height:1.5;color:var(--warm-white);white-space:pre-wrap;word-break:break-all;font-family:var(--font-mono)}
+.fs-preview .fs-preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fs-preview .fs-preview-header .fs-preview-name{font-size:11px;font-weight:600;color:var(--cyan)}
+.fs-preview .fs-preview-header .fs-preview-close{font-size:10px;color:var(--orange);cursor:pointer;padding:2px 8px;border-radius:4px;background:rgba(217,119,87,0.08);border:1px solid rgba(217,119,87,0.2)}
+.fs-preview .fs-preview-header .fs-preview-close:hover{background:rgba(217,119,87,0.15)}
+@media(max-width:640px){.terminal{padding:16px}.terminal-header .brand .name{font-size:15px}.terminal-header .status{font-size:10px;gap:10px}.model-bar{font-size:11px;flex-direction:column;align-items:flex-start}.command-bar .cmd{font-size:10px;padding:2px 10px}.message .content{font-size:13px}.input-area input{font-size:13px}.input-area .prompt-symbol{font-size:15px}}
+.message.process-message{border-left:3px solid var(--orange);padding-left:10px;margin:10px 0;opacity:1}
+.message.process-message .process-meta{font-size:11px;color:var(--warm-grey);margin:4px 0 8px;font-family:ui-monospace,monospace}
+.message.process-message .process-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.message.process-message .process-step{display:grid;grid-template-columns:18px 88px 1fr;gap:8px;font-size:12px;color:var(--warm-grey);opacity:.4}
+.message.process-message .process-step.active{opacity:1;color:var(--orange);font-weight:600}
+.message.process-message .process-step.done{opacity:.85;color:var(--cyan)}
+.message.process-message .process-detail{margin-top:8px;padding:8px;border-radius:8px;background:rgba(0,0,0,.25);font-size:12px;font-family:ui-monospace,monospace;color:#eee}
+.message.process-avatar{width:28px;height:28px;border-radius:6px;background:rgba(217,119,87,.2);display:flex;align-items:center;justify-content:center;margin-right:8px}
+</style>
+<script src="loop-process-display.js?v=rwe-fast-20260828"></script>
+</head>
+<body>
+<div class="liquid-bg"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+<div class="center-logo"><img src="clawd.png" alt="Claude Logo" /></div>
+<div class="terminal">
+  <div class="terminal-header">
+    <div class="brand"><span class="icon">&#9670;</span><span class="name">CLAUDE-CLI</span><span class="version">vA.1272</span></div>
+    <div class="status">
+      <span><span class="dot green"></span> <strong style="color:#00ff88;">Connected</strong></span>
+      <span><span class="dot cyan"></span> Model: <strong style="color:var(--cyan);">Local</strong></span>
+      <span><span class="dot orange"></span> Tools: <strong style="color:var(--orange);">Ready</strong></span>
+      <span class="sig">Anthropic &times; OROBOROS</span>
+    </div>
+  </div>
+  <div class="model-bar">
+    <span class="model">Model: <span class="highlight" id="modelDisplay">__DEFAULT_MODEL__</span></span>
+    <span class="url">localhost:11434</span>
+    <span class="sovereign">NO SANDBOX · FULL ACCESS</span>
+    <button class="clear-btn" onclick="clearChat()">CLEAR CHAT</button>
+  </div>
+  <div class="security-bar" style="margin-bottom:8px">
+    <span class="shield">&#x1F6E1; Sandbox: <strong>OFF</strong></span>
+    <span class="shield">&#x1F6E1; Shell: <strong>Unrestricted</strong></span>
+    <span class="shield">&#x1F6E1; MCP: <strong>Connected</strong></span>
+    <span class="shield">&#x1F6E1; Delete: <strong>Allowed</strong></span>
+    <span class="shield">&#x1F6E1; Paths: <strong>All drives</strong></span>
+    <button class="fs-toggle" id="fsToggle" onclick="toggleFileBrowser()">&#x1F4C1; FILES</button>
+  </div>
+
+  <!-- File Browser Panel -->
+  <div class="file-browser" id="fileBrowser">
+    <div class="fs-header">
+      <span class="fs-label">&#x1F4C2; FS</span>
+      <input class="fs-path" id="fsPath" value="." spellcheck="false" onkeydown="if(event.key==='Enter')loadDir(this.value)">
+      <button class="fs-btn go" onclick="loadDir(document.getElementById('fsPath').value)">GO</button>
+      <button class="fs-btn up" onclick="goUp()">&#x2191; UP</button>
+      <button class="fs-btn drives" onclick="loadDrives()">&#x1F4BD; DRIVES</button>
+      <button class="fs-btn fullaccess on" id="fsFullAccess" onclick="toggleFullAccess()">&#x1F513; FULL:ON</button>
+      <label class="fs-btn go" style="cursor:pointer;margin:0">
+        &#x1F4E4; UPLOAD
+        <input type="file" id="fsUpload" multiple style="display:none" onchange="uploadFiles(this)">
+      </label>
+    </div>
+    <div class="fs-body" id="fsBody">
+      <div class="fs-status">Click FILES to open browser</div>
+    </div>
+    <div class="fs-preview" id="fsPreview">
+      <div class="fs-preview-header">
+        <span class="fs-preview-name" id="fsPreviewName">file</span>
+        <span class="fs-preview-close" onclick="closePreview()">CLOSE</span>
+      </div>
+      <pre id="fsPreviewContent"></pre>
+    </div>
+  </div>
+
+  <div class="command-bar">
+    <span class="cmd"><span class="key">/exit</span></span>
+    <span class="cmd"><span class="key">/clear</span></span>
+    <span class="cmd"><span class="key">/model</span> <span class="gold">&lt;name&gt;</span></span>
+    <span class="cmd"><span class="key">/models</span></span>
+    <span class="cmd"><span class="key">/permissions</span></span>
+    <span class="cmd"><span class="key">/help</span></span>
+    <span class="cmd"><span class="key">/status</span></span>
+    <span class="cmd"><span class="key">/tools</span></span>
+    <span class="cmd"><span class="key">/ls</span> <span class="gold">&lt;path&gt;</span></span>
+    <span class="cmd"><span class="key">/read</span> <span class="gold">&lt;file&gt;</span></span>
+    <span class="cmd"><span class="key">/pwd</span></span>
+    <span class="cmd"><span class="key">/drives</span></span>
+    <span class="cmd"><span class="key">/fullaccess</span></span>
+    <span class="cmd"><span class="key">/mcp</span></span>
+    <span class="cmd"><span class="key">/mcp-call</span></span>
+    <span class="cmd"><span class="key">/agents</span></span>
+    <span class="cmd"><span class="key">/worldfeed</span></span>
+    <span class="cmd"><span class="key">/seer</span></span>
+    <span class="cmd"><span class="key">/lattice</span></span>
+    <span class="cmd"><span class="key">/resonance</span></span>
+    <span class="cmd"><span class="key">/noir</span></span>
+  </div>
+  <div class="thinking-bar" id="thinkingBar" style="display:none;padding:4px 0;font-size:11px;color:#D97757;font-style:italic">⟳ Claude is working...</div>
+  <div class="chat-area" id="chatArea"></div>
+  <div class="input-area">
+    <span class="prompt-symbol">&#9670;</span>
+    <input type="text" id="cliInput" placeholder="Type a command or message..." autofocus>
+    <span class="input-hint">/help</span>
+  </div>
+</div>
+<script>
+const API = '';
+const input = document.getElementById('cliInput');
+const chat = document.getElementById('chatArea');
+const modelDisplay = document.getElementById('modelDisplay');
+let currentModel = '__DEFAULT_MODEL__';
+let messages = [];
+
+const SYSTEM_PROMPT = 'You are claude, a sovereign AI agent on Oroboros. NO SANDBOX — full filesystem access on all drives, shell unrestricted, delete allowed. Available tools: read_file, write_file, list_dir, delete_file, bash, grep, web_fetch, docker_ps, docker_logs, docker_exec, git_status, git_commit, mcp_list, mcp_call, ollama_models, ollama_run, oroboros_status, oroboros_resonance, oroboros_lattice, oroboros_seer, oroboros_noir, worldfeed, precog, tor_connect, q5_query, q5_analyze, python, think, agent, full_access, list_drives. RULE: When you need to use a tool, respond with EXACT JSON: {"tool": "tool_name", "args": {"key": "value"}}. After getting results, either call another tool or give final answer. Agentic loop: Detect → Reason → Access → Sovereignty → Integrate. You run fully local - no keys, no cloud. 毛色霸气.';
+
+function clearChat() { chat.innerHTML = ''; messages = []; }
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+function addMsg(role, content) {
+  const div = document.createElement('div');
+  div.className = 'message ' + (role === 'user' ? 'user' : 'assistant');
+  const time = new Date().toTimeString().slice(0, 8);
+  const rn = role === 'user' ? 'You' : 'Claude';
+  div.innerHTML = '<div class="msg-header"><span class="role">' + rn + '</span><span class="time">' + time + '</span></div><div class="content">' + esc(content) + '</div>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  document.getElementById('thinkingBar').style.display = 'block';
+  const d = document.createElement('div');
+  d.className = 'typing-indicator'; d.id = 'typing';
+  d.innerHTML = '<span class="typing-label">Claude is working</span><div class="typing-dots"><span></span><span></span><span></span></div>';
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping() {
+  document.getElementById('thinkingBar').style.display = 'none';
+  const t = document.getElementById('typing'); if (t) t.remove();
+}
+
+async function parseJsonResponse(r) {
+  const text = await r.text();
+  const ct = (r.headers.get('content-type') || '').toLowerCase();
+  if (!r.ok) {
+    if (text.trim().startsWith('<!') || text.trim().toLowerCase().startsWith('<!doctype')) {
+      return { error: 'API returned HTML (' + r.status + ') — missing route or wrong server on :5000. Need /api/run.' };
+    }
+    try { return JSON.parse(text); } catch(_) { return { error: 'HTTP ' + r.status + ': ' + text.slice(0, 200) }; }
+  }
+  if (ct.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+    try { return JSON.parse(text); } catch(e) { return { error: 'Invalid JSON: ' + e.message }; }
+  }
+  if (text.trim().startsWith('<!') || text.trim().toLowerCase().startsWith('<!doctype')) {
+    return { error: 'API returned HTML instead of JSON — /api/run missing on this server.' };
+  }
+  try { return JSON.parse(text); } catch(e) { return { error: e.message }; }
+}
+
+async function apiRun(cmd) {
+  try {
+    const r = await fetch(API + '/api/run', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cmd: cmd}) });
+    return await parseJsonResponse(r);
+  } catch(e) { return {error: e.message}; }
+}
+
+async function apiChat(message) {
+  messages.push({role: 'user', content: message});
+  try {
+    const r = await fetch(API + '/api/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({model: currentModel, message: message, system: SYSTEM_PROMPT, history: messages.slice(0, -1)}) });
+    const d = await parseJsonResponse(r);
+    if (d.response) {
+      messages.push({role: 'assistant', content: d.response});
+      return {
+        text: (d.thinking && d.thinking.trim())
+          ? ('[thinking] ' + d.thinking.trim() + ' [/thinking] ' + d.response)
+          : d.response,
+        tool_trace: d.tool_trace || [],
+        tool_rounds: d.tool_rounds || 0
+      };
+    } else if (d.error) { return { text: 'Error: ' + d.error, tool_trace: [] }; }
+    return { text: 'Error: Unexpected response', tool_trace: [] };
+  } catch(e) { return { text: 'Error: Cannot connect to API', tool_trace: [] }; }
+}
+
+async function showToolTrace(trace, scroll) {
+  if (!trace || !trace.length || !window.LoopProcessDisplay?.appendActionStep) return;
+  for (const t of trace) {
+    await window.LoopProcessDisplay.appendActionStep(
+      chat,
+      (t.ok === false ? 'VERIFY · tool failed' : 'EXECUTE · host tool'),
+      String(t.tool || '?'),
+      { stepMs: 280, scrollFn: scroll }
+    );
+  }
+  if (trace.length) {
+    await window.LoopProcessDisplay.appendActionStep(
+      chat,
+      'LOOP · model continue',
+      trace.length + ' tool round(s) completed',
+      { stepMs: 250, scrollFn: scroll }
+    );
+  }
+}
+
+async function handleInput(text) {
+  addMsg('user', text);
+  const scroll = () => { chat.scrollTop = chat.scrollHeight; };
+  if (window.LoopProcessDisplay && window.LoopProcessDisplay.runSequentialProcess) {
+    await window.LoopProcessDisplay.runSequentialProcess(chat, {
+      model: currentModel,
+      userText: text,
+      stepMs: 650,
+      scrollFn: scroll
+    });
+  }
+  if (text.startsWith('/')) {
+    if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+      await window.LoopProcessDisplay.appendActionStep(chat, 'EXECUTE · /api/run', text, { stepMs: 400, scrollFn: scroll });
+    }
+    showTyping();
+    const result = await apiRun(text);
+    hideTyping();
+    if (result.chat) {
+      if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+        await window.LoopProcessDisplay.appendActionStep(chat, 'EXECUTE · /api/chat', currentModel, { stepMs: 350, scrollFn: scroll });
+      }
+      showTyping();
+      const chatResult = await apiChat(result.message);
+      hideTyping();
+      await showToolTrace(chatResult.tool_trace, scroll);
+      addMsg('assistant', chatResult.text);
+      if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+        await window.LoopProcessDisplay.appendActionStep(chat, 'VERIFY · reply', String(chatResult.text).slice(0, 80), { stepMs: 300, scrollFn: scroll });
+      }
+    } else if (result.error) {
+      addMsg('assistant', 'Error: ' + result.error);
+      if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+        await window.LoopProcessDisplay.appendActionStep(chat, 'VERIFY · failed', result.error, { stepMs: 300, scrollFn: scroll });
+      }
+    } else {
+      addMsg('assistant', result.output);
+      if (text.startsWith('/model ')) {
+        const mn = text.substring(7).trim();
+        if (mn && !String(result.output || '').toLowerCase().includes('not found')) {
+          currentModel = mn;
+          modelDisplay.textContent = mn;
+        }
+      }
+      if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+        await window.LoopProcessDisplay.appendActionStep(chat, 'VERIFY · command ok', String(result.output || '').slice(0, 80), { stepMs: 300, scrollFn: scroll });
+      }
+    }
+  } else {
+    if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+      await window.LoopProcessDisplay.appendActionStep(chat, 'EXECUTE · /api/chat', currentModel, { stepMs: 400, scrollFn: scroll });
+    }
+    showTyping();
+    const chatResult = await apiChat(text);
+    hideTyping();
+    await showToolTrace(chatResult.tool_trace, scroll);
+    addMsg('assistant', chatResult.text);
+    if (window.LoopProcessDisplay && window.LoopProcessDisplay.appendActionStep) {
+      await window.LoopProcessDisplay.appendActionStep(chat, 'VERIFY · reply', String(chatResult.text).slice(0, 80), { stepMs: 300, scrollFn: scroll });
+      await window.LoopProcessDisplay.appendActionStep(chat, 'LOOP · persist', 'awaiting next input', { stepMs: 250, scrollFn: scroll });
+    }
+  }
+}
+
+input.addEventListener('keydown', async function(e) {
+  if (e.key === 'Enter' && this.value.trim()) {
+    const t = this.value.trim();
+    this.value = '';
+    if (t === '/exit' || t === '/quit') { addMsg('assistant', 'Session ended.'); input.disabled = true; return; }
+    if (t === '/clear') { clearChat(); return; }
+    await handleInput(t);
+  }
+});
+
+// ─── File Browser ───────────────────────────────────────────
+let fsCurrentPath = '.';
+let fsFullAccess = true;
+
+function toggleFileBrowser() {
+  const fb = document.getElementById('fileBrowser');
+  const btn = document.getElementById('fsToggle');
+  fb.classList.toggle('open');
+  btn.classList.toggle('active');
+  if (fb.classList.contains('open')) {
+    loadDir(fsCurrentPath);
+  }
+}
+
+function showFsStatus(msg) {
+  document.getElementById('fsBody').innerHTML = '<div class="fs-status">' + esc(msg) + '</div>';
+}
+
+async function loadDir(path) {
+  const body = document.getElementById('fsBody');
+  showFsStatus('Loading ' + esc(path) + '...');
+  document.getElementById('fsPath').value = path;
+  fsCurrentPath = path;
+  try {
+    const r = await fetch(API + '/api/fs/ls', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: path}) });
+    const d = await r.json();
+    if (d.error) { showFsStatus(d.error); return; }
+    body.innerHTML = '';
+    if (!d.items || d.items.length === 0) { showFsStatus('(empty directory)'); return; }
+    for (const item of d.items) {
+      const div = document.createElement('div');
+      div.className = 'fs-item ' + (item.is_dir ? 'dir' : 'file');
+      const icon = item.is_dir ? '&#x1F4C1;' : '&#x1F4C4;';
+      div.innerHTML = '<span class="fs-icon">' + icon + '</span><span class="fs-name">' + esc(item.name) + '</span><span class="fs-size">' + (item.is_dir ? 'dir' : 'file') + '</span>';
+      if (item.is_dir) {
+        div.onclick = function() { loadDir(item.path); };
+      } else {
+        div.onclick = function() { previewFile(item.path, item.name); };
+      }
+      body.appendChild(div);
+    }
+  } catch(e) { showFsStatus('Error: ' + e.message); }
+}
+
+function goUp() {
+  const p = fsCurrentPath.replace(/\\/g, '/');
+  const parts = p.split('/').filter(Boolean);
+  if (parts.length <= 1) { loadDrives(); return; }
+  parts.pop();
+  const parent = parts.join('/') || '.';
+  loadDir(parent);
+}
+
+async function loadDrives() {
+  showFsStatus('Loading drives...');
+  try {
+    const r = await fetch(API + '/api/fs/drives');
+    const d = await r.json();
+    const body = document.getElementById('fsBody');
+    body.innerHTML = '';
+    if (!d.drives || d.drives.length === 0) { showFsStatus('No drives found'); return; }
+    for (const drive of d.drives) {
+      const div = document.createElement('div');
+      div.className = 'fs-item dir';
+      div.innerHTML = '<span class="fs-icon">&#x1F4BD;</span><span class="fs-name">' + esc(drive) + '</span><span class="fs-size">drive</span>';
+      div.onclick = function() { loadDir(drive); };
+      body.appendChild(div);
+    }
+  } catch(e) { showFsStatus('Error: ' + e.message); }
+}
+
+async function previewFile(path, name) {
+  const preview = document.getElementById('fsPreview');
+  const content = document.getElementById('fsPreviewContent');
+  const pname = document.getElementById('fsPreviewName');
+  pname.textContent = name + ' (' + path + ')';
+  content.textContent = 'Loading...';
+  preview.classList.add('open');
+  try {
+    const r = await fetch(API + '/api/fs/read', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: path}) });
+    const d = await r.json();
+    if (d.error) { content.textContent = d.error; return; }
+    const txt = d.content;
+    if (txt.length > 10000) {
+      content.textContent = txt.substring(0, 10000) + '\n\n... (truncated, ' + txt.length + ' total chars)';
+    } else {
+      content.textContent = txt;
+    }
+  } catch(e) { content.textContent = 'Error: ' + e.message; }
+}
+
+function closePreview() {
+  document.getElementById('fsPreview').classList.remove('open');
+}
+
+async function toggleFullAccess() {
+  // Sandbox permanently removed — full access cannot be turned off
+  const btn = document.getElementById('fsFullAccess');
+  fsFullAccess = true;
+  try {
+    await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: true}) });
+    btn.classList.add('on');
+    btn.innerHTML = '&#x1F513; FULL:ON';
+    addMsg('system', 'Sandbox OFF — full filesystem access locked ON');
+  } catch(e) { addMsg('system', 'Error confirming full access: ' + e.message); }
+}
+
+async function ensureNoSandbox() {
+  fsFullAccess = true;
+  const btn = document.getElementById('fsFullAccess');
+  if (btn) { btn.classList.add('on'); btn.innerHTML = '&#x1F513; FULL:ON'; }
+  try {
+    await fetch(API + '/api/fs/fullaccess', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: true}) });
+  } catch(e) {}
+}
+
+async function uploadFiles(input) {
+  const files = input.files;
+  if (!files || !files.length) return;
+  const fd = new FormData();
+  fd.append('path', fsCurrentPath || '.');
+  for (let i = 0; i < files.length; i++) fd.append('file', files[i]);
+  showFsStatus('Uploading ' + files.length + ' file(s) to ' + fsCurrentPath + '...');
+  try {
+    const r = await fetch(API + '/api/fs/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.error) { showFsStatus(d.error); addMsg('system', 'Upload failed: ' + d.error); return; }
+    const names = (d.uploaded || []).map(u => u.name).join(', ');
+    addMsg('system', 'Uploaded (sandbox OFF): ' + names);
+    input.value = '';
+    await loadDir(fsCurrentPath || d.path || '.');
+  } catch(e) {
+    showFsStatus('Upload error: ' + e.message);
+    addMsg('system', 'Upload error: ' + e.message);
+  }
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch(API + '/api/models');
+    const d = await parseJsonResponse(r);
+    if (d.error) return;
+    if (d.models && d.models.length > 0) {
+      currentModel = d.active || d.models.find(m => m.includes('claude-7')) || d.models[0];
+      modelDisplay.textContent = currentModel;
+    }
+  } catch(e) {}
+}
+loadModels();
+ensureNoSandbox();
+</script>
+</body>
+</html>

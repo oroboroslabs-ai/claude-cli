@@ -302,7 +302,7 @@ def ollama_list() -> List[str]:
         return []
 
 def ollama_chat(model: str, messages: List[Dict], system: str = "") -> Dict:
-    """Send a chat request to Ollama."""
+    """Send a chat request to Ollama — primary :11434, WSL backup :11435 on failure."""
     if system:
         msgs = [{"role": "system", "content": system}] + messages
     else:
@@ -311,18 +311,24 @@ def ollama_chat(model: str, messages: List[Dict], system: str = "") -> Dict:
         "model": model,
         "messages": msgs,
         "stream": False,
-        "options": {"num_ctx": 131072}
+        "options": {"num_ctx": 131072, "num_predict": 1024},
+        "keep_alive": 0
     }
-    try:
-        req = urllib.request.Request(
-            f"{OLLAMA_URL}/api/chat",
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=None) as resp:
-            return json.loads(resp.read().decode())
-    except Exception as e:
-        return {"error": str(e)}
+    # Primary + WSL backup endpoints
+    endpoints = [OLLAMA_URL, "http://localhost:11435"]
+    last_err = None
+    for base in endpoints:
+        try:
+            req = urllib.request.Request(
+                f"{base}/api/chat",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=None) as resp:
+                return json.loads(resp.read().decode())
+        except Exception as e:
+            last_err = e
+    return {"error": str(last_err)}
 
 def ollama_run(model: str, prompt: str) -> str:
     """Simple prompt → response via Ollama."""
@@ -581,12 +587,15 @@ class MCPClient:
 
         try:
             full_cmd = [command] + cmd_args
+            env = os.environ.copy()
+            env.update(server.get("env") or {})
             proc = subprocess.run(
                 full_cmd,
                 input=json.dumps(request).encode(),
                 capture_output=True,
                 text=False,
-                timeout=timeout
+                timeout=timeout,
+                env=env,
             )
             if proc.returncode == 0 and proc.stdout:
                 response = json.loads(proc.stdout.decode("utf-8", errors="replace"))
@@ -952,14 +961,18 @@ class ResourceGovernanceEngine:
             branch = args.get("branch", "main")
             if not repo:
                 return "Error: repo required (format: owner/repo)"
-            return run_shell_safe(f'gh api repos/{repo}/commits?sha={branch}&per_page=10 --jq ".[] | \"\(.sha[:7]) \(.commit.message | split(\"\\n\")[0])\""')
+            return run_shell_safe(
+                rf'gh api repos/{repo}/commits?sha={branch}&per_page=10 --jq ".[] | \"\(.sha[:7]) \(.commit.message | split(\"\n\")[0])\""'
+            )
 
         elif name == "github_get_contents":
             repo = args.get("repo", "")
             path = args.get("path", "")
             if not repo or not path:
                 return "Error: repo and path required"
-            return run_shell_safe(f'gh api repos/{repo}/contents/{path} --jq "\"\(.name) (\(.size) bytes, type: \(.type))\""')
+            return run_shell_safe(
+                rf'gh api repos/{repo}/contents/{path} --jq "\"\(.name) (\(.size) bytes, type: \(.type))\""'
+            )
 
         elif name == "github_create_repo":
             name = args.get("name", "")

@@ -21,6 +21,7 @@ _BRAILLE_BITS: Tuple[Tuple[int, int, int], ...] = (
 )
 
 MASCOT_PATH = Path(__file__).resolve().parents[2] / "glass-ui" / "claude-mascot.png"
+WELCOME_ART_PATH = Path(__file__).resolve().parents[2] / "glass-ui" / "welcome-art-dark.png"
 
 # Claude terracotta from logo / brand
 MASCOT_RGB = (217, 119, 87)
@@ -41,14 +42,21 @@ def image_to_braille_lines(
     cols: int = 22,
     threshold: int = 140,
     invert: bool = False,
+    max_rows: int = 0,
 ) -> List[Tuple[str, Tuple[int, int, int]]]:
-    """Return list of (braille_line, rgb) from image. One color per row."""
+    """Return list of (braille_line, rgb) from image. One color per row.
+
+    max_rows>0 caps the output row count (downsamples height) without
+    affecting column width — used to keep wide-aspect art short.
+    """
     if Image is None or not path.exists():
         return []
 
     img = Image.open(path).convert("RGBA")
     aspect = img.height / max(img.width, 1)
     rows = max(4, int(cols * aspect * 2))  # braille rows ≈ 2× aspect of cols
+    if max_rows and rows > max_rows:
+        rows = max_rows
     px_w, px_h = cols * 2, rows * 4
     img = img.resize((px_w, px_h), Image.Resampling.LANCZOS)
 
@@ -202,6 +210,47 @@ def braille_to_rich_segments(
 
 def load_mascot_braille(cols: int = 20) -> List[Tuple[str, Tuple[int, int, int]]]:
     return image_to_braille_lines(MASCOT_PATH, cols=cols)
+
+
+def load_welcome_art_braille(cols: int = 44, threshold: int = 100, max_rows: int = 16) -> List[Tuple[str, Tuple[int, int, int]]]:
+    """Render the official Claude welcome-art-dark.png as braille terminal art.
+
+    invert=True because the source is dark-on-light content (bright marks on
+    dark background); braille() marks dark pixels as lit by default.
+    cols=44 (twice the prior width) with max_rows=16 keeps it wide but short.
+    """
+    if not WELCOME_ART_PATH.exists():
+        return []
+    return image_to_braille_lines(WELCOME_ART_PATH, cols=cols, threshold=threshold, invert=True, max_rows=max_rows)
+
+
+def render_welcome_art_image(version: str = "vA.1272", cols: int = 44) -> List[str]:
+    """Full welcome: title + dot frame + braille welcome-art PNG + ground line.
+
+    Uses the official Anthropic welcome-art-dark scene converted to braille,
+    sized for a clear, visible terminal render (cols=44 → ~37 rows).
+    """
+    dot = f"[rgb({DOT_RGB[0]},{DOT_RGB[1]},{DOT_RGB[2]})]{'.' * 92}[/]"
+    art = load_welcome_art_braille(cols=cols)
+
+    lines: List[str] = [
+        f"[rgb({MASCOT_RGB[0]},{MASCOT_RGB[1]},{MASCOT_RGB[2]})]Welcome to Claude CLI {version}[/]",
+        "",
+        dot,
+    ]
+    for braille_line, row_rgb in art:
+        r, g, b = row_rgb
+        lines.append(f"[rgb({r},{g},{b})]{braille_line}[/]")
+    lines.append(dot)
+    lines.append("")
+    lines.append(
+        "[rgb(150,148,140)]  Sovereign local terminal · Ollama · ZTA Hardened · $0.00 API cost[/]"
+    )
+    lines.append(
+        "[rgb(150,148,140)]  Not Anthropic Claude Code — run [/][cyan]claude-cli[/]"
+        "[rgb(150,148,140)] (Oroboros · local)[/]"
+    )
+    return lines
 
 
 def render_welcome_html(version: str = "vA.1272", width: int = 72) -> str:

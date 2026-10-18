@@ -5,10 +5,10 @@ from typing import Iterable, List, Tuple
 
 from claude_o_cli.glass_kit import SCENE_ROWS, MASCOT_MINI, DOT_LINE, VERSION
 
-# Clear cool terminal palette — distinct from Glass HTML #D97757
+# Clear cool terminal palette — now orange chrome (Glass UI #D97757)
 ICE: Tuple[int, int, int] = (232, 244, 255)      # clear cool white
-CYAN: Tuple[int, int, int] = (0, 220, 255)       # ice cyan
-TEAL: Tuple[int, int, int] = (64, 220, 196)      # secondary accent
+CYAN: Tuple[int, int, int] = (217, 119, 87)      # primary accent (now orange #D97757)
+TEAL: Tuple[int, int, int] = (217, 119, 87)      # secondary accent (now orange #D97757)
 SILVER: Tuple[int, int, int] = (156, 176, 196)   # cool grey
 STEEL: Tuple[int, int, int] = (90, 110, 130)
 GREEN: Tuple[int, int, int] = (80, 240, 180)

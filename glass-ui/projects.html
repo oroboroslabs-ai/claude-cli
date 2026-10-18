@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OROBOROS PROJECTS — reverse-engineered design</title>
+<style>
+  :root{ --bg:#f2f1ec; --ink:#171716; --soft:#55554f; --hint:#8a8a84; --line:rgba(23,23,22,.16); --panel:rgba(255,255,255,.6); --gold:#a97c2f; }
+  *{box-sizing:border-box; margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; font-size:12px}
+  .top{padding:18px 24px 8px}
+  h1{font-size:15px; letter-spacing:.32em; font-weight:800}
+  .sub{font-size:9px; letter-spacing:.28em; color:var(--soft); margin-top:5px}
+  .layout{display:grid; grid-template-columns:210px 1fr 320px; gap:0; max-width:1400px; margin:14px auto; border:1px solid var(--line); border-radius:16px; overflow:hidden; min-height:640px; background:var(--panel)}
+  .side{border-right:1px solid var(--line); padding:18px 14px}
+  .side h3{font-size:9px; letter-spacing:.28em; color:var(--hint); margin:0 0 9px}
+  .pitem{padding:8px 10px; border-radius:9px; cursor:pointer; margin-bottom:4px; font-size:11.5px; letter-spacing:.02em}
+  .pitem.on{background:var(--ink); color:var(--bg)}
+  .pitem:hover:not(.on){background:rgba(23,23,22,.07)}
+  .create{margin-top:16px; border:1px dashed var(--line); border-radius:9px; padding:9px 10px; text-align:center; font-size:9px; letter-spacing:.2em; color:var(--soft); cursor:pointer; font-weight:800}
+  .main{padding:20px 22px}
+  .card{border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; background:rgba(255,255,255,.5)}
+  .bump{font-size:8.5px; letter-spacing:.24em; color:var(--gold); font-weight:800; margin-bottom:5px}
+  .card h2{font-size:12.5px; letter-spacing:.1em; margin-bottom:4px}
+  .card p{font-size:10.5px; line-height:1.65; color:var(--ink)}
+  .kv{display:flex; gap:10px; flex-wrap:wrap; margin-top:9px}
+  .kv div{font-size:9px; letter-spacing:.14em; border:1px solid var(--line); border-radius:20px; padding:3px 10px; color:var(--soft)}
+  .thread{display:flex; gap:8px; align-items:center; border:1px solid var(--line); border-radius:9px; padding:7px 11px; margin-bottom:6px; font-size:10.5px}
+  .dot{width:7px; height:7px; border-radius:50%; background:#48a06a}
+  .dot.run{background:#c9a23a} .dot.wait{background:#b3543e}
+  .thread .t{letter-spacing:.03em}
+  .aside{border-left:1px solid var(--line); padding:18px 14px; overflow:auto}
+  .shot{width:100%; border:1px solid var(--line); border-radius:9px; margin-bottom:10px; display:block; background:#fff}
+  .cap{font-size:8px; letter-spacing:.18em; color:var(--hint); margin-bottom:14px}
+  .lib{font-size:10.5px; line-height:1.8}
+  .lib span{border:1px solid var(--line); border-radius:7px; padding:2px 8px; margin:2px; display:inline-block; font-size:9.5px}
+  textarea{width:100%; min-height:86px; border:1px solid var(--line); border-radius:9px; padding:9px 11px; font:inherit; font-size:10.5px; background:rgba(255,255,255,.7)}
+  footer{max-width:1400px; margin:10px auto 30px; font-size:8.5px; letter-spacing:.22em; color:var(--hint); text-align:center}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>OROBOROS PROJECTS — THE REVERSE-ENGINEERED DESIGN</h1>
+  <div class="sub">FROM THE REAL DATA: 8 REFERENCE SHOTS + THE PROJECTS DOC — EVERY PANEL MAPPED TO OUR ENGINE · CROWN 1272 Hz</div>
+</div>
+
+<div class="layout">
+  <div class="side">
+    <h3>PROJECTS · DASHBOARD</h3>
+    <div class="pitem on">▸ Transcriptions Cleanup</div>
+    <div class="pitem">▸ Cloud-Projects Clone (this build)</div>
+    <div class="pitem">▸ Brand DAM renders</div>
+    <div class="pitem">▸ The 1984 Cut briefs</div>
+    <div class="pitem">▸ REA: claude.ai teardown</div>
+    <div class="create">+ CREATE PROJECT</div>
+  </div>
+
+  <div class="main">
+    <div class="card">
+      <div class="bump">PROJECT VIEW — THE CURRENT PATTERN</div>
+      <h2>Transcriptions Cleanup</h2>
+      <p>Self-contained workspace: its own instructions, its own knowledge, its own chats — all inside the systemscape. The instructions tell the project HOW to behave; the knowledge is what it must remember between sessions.</p>
+      <div class="kv"><div>custom instructions</div><div>project knowledge · files</div><div>tagged history</div><div>artifacts → knowledge</div></div>
+    </div>
+    <div class="card">
+      <div class="bump">CUSTOM INSTRUCTIONS (FROM THE REAL DOC, VERBATIM)</div>
+      <textarea>Given a raw transcription, generate a cleaned-up version:
+remove filler words; correct mistranscribed words (Cloud → Claude);
+reorganize into coherent flow; keep the speaker's voice; retain proper
+nouns; mark ambiguities in {curly brackets}; give corrections list.</textarea>
+      <div class="kv"><div>knowledge: tool names</div><div>knowledge: people often mistranscribed</div></div>
+    </div>
+    <div class="card">
+      <div class="bump">THE NEW PATTERN (BETA) — CLOUD THREADS</div>
+      <h2>One conversation → parallel threads that keep running</h2>
+      <div class="thread"><div class="dot run"></div><div class="t">THREAD 1 — assimilate the transcription corpus → <b>running</b></div></div>
+      <div class="thread"><div class="dot"></div><div class="t">THREAD 2 — build the cleanup validator → <b>done</b></div></div>
+      <div class="thread"><div class="dot wait"></div><div class="t">THREAD 3 — needs your OK on the corrections format → <b>waiting on you</b></div></div>
+      <p style="margin-top:9px">In OUR system this is real: threads run as background workers on the orchestrator (:8940) and the null-frame brain keeps them moving with the laptop closed — that is the feature the beta describes, ours is the local cloud version of it.</p>
+    </div>
+  </div>
+
+  <div class="aside">
+    <h3 style="font-size:9px; letter-spacing:.28em; color:var(--hint); margin-bottom:9px">THE EVIDENCE — REAL REFERENCE SHOTS</h3>
+    <img class="shot" src="/refimg?file=6-claude-projects-dashboard.avif">
+    <div class="cap">6 · PROJECTS DASHBOARD</div>
+    <img class="shot" src="/refimg?file=8a-creating-a-claude-project.avif">
+    <div class="cap">8a · CREATE — NAME + DESCRIPTION</div>
+    <img class="shot" src="/refimg?file=1-claude-projects-for-cleaning-up-transcriptions.avif">
+    <div class="cap">1 · THE TRANSCRIPTION PROJECT</div>
+    <div class="bump" style="margin-top:10px">LIBRARY — FILES THAT GATHER</div>
+    <div class="lib">
+      <span>cleaned_transcription.txt</span><span>corrections.log</span><span>voice_notes.md</span><span>claudetool teardown.json</span>
+    </div>
+  </div>
+</div>
+
+<footer>OROBOROS PROJECTS · REVERSE-ENGINEERED FROM REFERENCE DATA ONLY · THE EYE :5000</footer>
+</body>
+</html>

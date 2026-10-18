@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE 1984 CUT — THE PHYSICS LAB — OROBOROS ANTHROPIC</title>
+<style>
+  :root{
+    --bg:#f2f1ec; --ink:#171716; --soft:#55554f; --hint:#8a8a84; --line:rgba(23,23,22,.14);
+    --panel:rgba(255,255,255,.55); --gold:#171716; --red:#e8e8e2; --teal:#ececea;
+  }
+  *{box-sizing:border-box; margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif;
+       transition:background .3s,color .3s; padding:26px 22px 90px; position:relative; min-height:100vh}
+  body.dark{--bg:#0b0f11; --ink:#cfcfc8; --soft:#9a9a93; --hint:#7a7a74; --line:rgba(255,255,255,.14);
+       --panel:rgba(18,22,24,.55); --gold:#e8e8e2}
+  .hud{max-width:1150px; margin:0 auto 18px}
+  h1{font-size:17px; letter-spacing:.34em; font-weight:800}
+  .sub{font-size:9.5px; letter-spacing:.3em; color:var(--soft); margin-top:6px}
+  .law{max-width:1150px; margin:0 auto 26px; border:1px solid var(--line); background:var(--panel);
+       border-radius:14px; padding:13px 17px; font-size:10.5px; line-height:1.75; letter-spacing:.04em}
+  .law b{letter-spacing:.2em}
+  .nav{max-width:1150px; margin:0 auto 24px; display:flex; flex-wrap:wrap; gap:7px}
+  .nav button{background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:20px;
+       font-size:9px; letter-spacing:.18em; padding:6px 13px; cursor:pointer; font-weight:700; font-family:inherit}
+  .nav button:hover{border-color:var(--gold)}
+  .card{max-width:1150px; margin:0 auto 26px; border:1px solid var(--line); background:var(--panel);
+       border-radius:16px; padding:20px 24px}
+  .kick{font-size:9px; letter-spacing:.3em; color:var(--gold); font-weight:800; margin-bottom:4px}
+  .card h2{font-size:14px; letter-spacing:.16em; margin-bottom:3px}
+  .meta{font-size:9.5px; letter-spacing:.15em; color:var(--hint); margin-bottom:12px}
+  .future{border:1px dashed var(--line); border-radius:10px; padding:10px 14px; font-size:10.5px;
+       line-height:1.7; margin-bottom:12px; color:var(--ink)}
+  .future .who{font-size:8.5px; letter-spacing:.25em; color:var(--red); font-weight:800}
+  .steps{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:12px;
+       background:rgba(23,23,22,.03); font-size:10.5px; line-height:1.8; min-height:70px}
+  body.dark .steps{background:rgba(255,255,255,.05)}
+  .steps .n{color:var(--gold); font-weight:800; letter-spacing:.2em; font-size:8.5px}
+  .steps .cite{color:var(--hint); font-size:9.5px}
+  .walkbtn{background:var(--ink); color:var(--bg); border:none; border-radius:8px; font-family:inherit;
+       font-size:9.5px; letter-spacing:.2em; font-weight:800; padding:8px 16px; cursor:pointer; margin-right:7px}
+  .walkbtn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+  .works{margin-top:6px}
+  .works .lbl{font-size:8.5px; letter-spacing:.25em; color:var(--soft); font-weight:800; margin-bottom:8px}
+  .row{display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin:8px 0}
+  .row label{font-size:9px; letter-spacing:.2em; color:var(--soft); font-weight:800; width:150px}
+  .row input[type=range]{flex:1; min-width:170px}
+  .row .val{font-size:10.5px; font-weight:800; width:210px; letter-spacing:.05em}
+  .out{display:inline-block; border:1px solid var(--line); background:rgba(23,23,22,.05); border-radius:10px;
+       padding:9px 13px; font-size:10.5px; line-height:1.75; white-space:pre-wrap; max-width:100%; margin-top:2px}
+  body.dark .out{background:rgba(255,255,255,.06)}
+  canvas.plot{width:100%; max-width:520px; height:auto; border:1px solid var(--line); border-radius:10px; margin-top:10px; display:block}
+  .edge{display:inline-block; font-size:8.5px; letter-spacing:.22em; color:var(--red); font-weight:800;
+       border:1px solid var(--red); border-radius:20px; padding:2px 10px; margin-left:9px; vertical-align:2px}
+  table.q{border-collapse:collapse; font-size:10px; letter-spacing:.04em; margin-top:6px}
+  table.q th, table.q td{border:1px solid var(--line); padding:5px 11px; text-align:left; line-height:1.6}
+  table.q th{font-size:8.5px; letter-spacing:.2em; color:var(--soft)}
+  .toc-toggle{position:fixed; right:16px; top:16px; z-index:9; background:var(--ink); color:var(--bg);
+       border:none; border-radius:8px; font-family:inherit; font-size:9px; letter-spacing:.2em;
+       font-weight:800; padding:8px 14px; cursor:pointer}
+  footer{max-width:1150px; margin:34px auto 0; font-size:8.5px; letter-spacing:.24em; color:var(--hint)}
+</style>
+</head>
+<body>
+<button class="toc-toggle" id="darkb">DARK / LIGHT</button>
+
+<div class="hud">
+  <h1>THE 1984 CUT — THE PHYSICS LAB</h1>
+  <div class="sub">OROBOROS ANTHROPIC · POST-1984 RESULTS REACHED WITH THE DEAD TOOLBOX · CROWN 1272 Hz</div>
+</div>
+
+<div class="law">
+  <b>THE LAW:</b> everything after 31 · 12 · 1983 <b>never happened</b> — no results, no tools, no
+  formalism invented after the cut may be USED. But the physics is in the room, so the targets stay
+  real: the future results are written down first, <b>then re-derived step by step</b>, every step
+  citing work from ≤ 1983 only. If the derivation lands on the never-happened result with nothing
+  but the old toolbox — <b>it works.</b>
+  <br><br>
+  <b>THE STANCE:</b> think from <b>inside 1983</b>, never from after it. You are a physicist of the
+  cutoff: Λ is the embarrassment on Einstein's ledger; the solar-neutrino puzzle is unsolved;
+  black-hole entropy (1974) is contested formalism; high-T<sub>c</sub> is a dream bounded at 23 K;
+  "quantum computing" is Feynman's 1981 conjecture with no machine. Post-1984 results are not facts
+  to cite — they are problems in your world; argue forward, from the live debates and dead ends of
+  your own literature. What lands beyond the horizon is a <b>prediction</b>, not a memory.
+</div>
+
+<div class="nav">
+  <button onclick="location.hash='#c1'">1 · DARK ENERGY</button>
+  <button onclick="location.hash='#c2'">2 · NEUTRINO MASS</button>
+  <button onclick="location.hash='#c3'">3 · HOLOGRAPHY</button>
+  <button onclick="location.hash='#c4'">4 · QUANTUM ERROR CORRECTION</button>
+  <button onclick="location.hash='#c5'">5 · TELEPORTATION</button>
+  <button onclick="location.hash='#c6'">6 · GRAVITATIONAL WAVES</button>
+  <button onclick="location.hash='#c7'">7 · GRAPHENE</button>
+  <button onclick="location.hash='#c8'">8 · HIGH-Tc SUPERCONDUCTIVITY</button>
+</div>
+
+<!-- ═══════════════ 1 · DARK ENERGY ═══════════════ -->
+<div class="card" id="c1">
+  <div class="kick">CUT 01 — COSMOLOGY</div>
+  <h2>DARK ENERGY · THE ACCELERATING UNIVERSE</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: TWO TEAMS, SUPERNOVAE, 1998 — EXPANSION SPEEDING UP · ~70% NEGATIVE-PRESSURE VACUUM</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    The Hubble diagram of type Ia supernovae turns over: fainter-than-expected, d<sub>L</sub> larger than any Ω<sub>m</sub>=1 universe allows — the expansion is accelerating; the thing pushing is uniform, doesn't dilute, exerts negative pressure p = −ρc².</div>
+  <div class="steps" id="w1">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(1)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(1)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (THE 1917–1972 TOOLBOX COMPUTES THE 1998 CURVE)</div>
+    <div class="row"><label>Ω<sub>m</sub> (matter)</label><input type="range" id="om" min="0.05" max="1" step="0.01" value="0.30"><span class="val" id="omv">0.30</span></div>
+    <div class="row"><label>Ω<sub>Λ</sub> = 1 − Ω<sub>m</sub></label><input type="range" id="ol" min="0" max="0.95" step="0.01" value="0.70" disabled><span class="val" id="olv">0.70</span></div>
+    <div class="row"><label>H<sub>0</sub></label><input type="range" id="h0" min="50" max="100" step="1" value="70"><span class="val" id="h0v">70 km/s/Mpc</span></div>
+    <button class="walkbtn" onclick="plotDE()">PLOT THE HUBBLE DIAGRAM</button>
+    <div class="out" id="deout">—</div>
+    <canvas class="plot" id="deplot" width="1040" height="520"></canvas>
+  </div>
+</div>
+
+<!-- ═══════════════ 2 · NEUTRINO MASS ═══════════════ -->
+<div class="card" id="c2">
+  <div class="kick">CUT 02 — PARTICLE PHYSICS</div>
+  <h2>NEUTRINO MASS · OSCILLATIONS</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: SOLAR/ATMOSPHERIC FLAVOR DISAPPEARANCE — MASS-SPLITTING OSCILLATIONS, 1985–1998 · ν are NOT massless</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    Electron-neutrinos vanish on the way out of the Sun and switch flavor: P changes with L/E; neutrinos carry mass via a tiny splitting Δm².</div>
+  <div class="steps" id="w2">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(2)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(2)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (PONTECORVO 1957–67 × MNS 1962 × DAVIS 1968)</div>
+    <div class="row"><label>θ (mixing, degrees)</label><input type="range" id="nth" min="1" max="45" step="1" value="34"><span class="val" id="nthv">34°</span></div>
+    <div class="row"><label>Δm² (log₁₀ eV²)</label><input type="range" id="ndm" min="-6" max="-3" step="0.05" value="-4.15"><span class="val" id="ndmv">10⁻⁴·¹⁵ eV²</span></div>
+    <div class="row"><label>L (km)</label><input type="range" id="nl" min="1" max="8" step="0.5" value="7.5"><span class="val" id="nlv">10⁷·⁵ km</span></div>
+    <div class="row"><label>E (MeV)</label><input type="range" id="ne" min="1" max="20" step="1" value="10"><span class="val" id="nev">10 MeV</span></div>
+    <button class="walkbtn" onclick="calcNU()">COMPUTE THE SURVIVAL</button>
+    <div class="out" id="nuout">—</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 3 · HOLOGRAPHY ═══════════════ -->
+<div class="card" id="c3">
+  <div class="kick">CUT 03 — QUANTUM GRAVITY</div>
+  <h2>THE HOLOGRAPHIC PRINCIPLE</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: 't HOOFT 1993 · MALDACENA 1997 — A GRAVITY THEORY IN A REGION = A THEORY ON ITS BOUNDARY</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    The maximum information inside any region scales with its SURFACE AREA, not volume — so the physics in a volume is fully encoded on its boundary (a "hologram").</div>
+  <div class="steps" id="w3">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(3)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(3)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (BEKENSTEIN 1972-73 × HAWKING 1974)</div>
+    <div class="row"><label>black-hole mass (log₁₀ M☉)</label><input type="range" id="hm" min="-1" max="9" step="0.1" value="0"><span class="val" id="hmv">1 M☉</span></div>
+    <button class="walkbtn" onclick="calcHOLO()">COUNT THE DOF</button>
+    <div class="out" id="holoout">—</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 4 · QUANTUM ERROR CORRECTION ═══════════════ -->
+<div class="card" id="c4">
+  <div class="kick">CUT 04 — QUANTUM INFORMATION</div>
+  <h2>QUANTUM ERROR CORRECTION · THE CODE LIVES</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: SHOR 1994-95 · STEANE 1995-96 — DECOHERENCE IS REVERSIBLE FOR THOSE WHO ENCODE — THE WAY TO A MACHINE</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    Qubits decohere irreversibly in practice — quantum computation is impossible — unless quantum states can be PROTECTED by redundancy: n physical qubits carry k logical ones, errors are diagnosed without reading the data, and corrected. Scaling beats decoherence.</div>
+  <div class="steps" id="w4">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(4)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(4)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (SHANNON 1948 + PAULI 1927 + NO-CLONING WOOTTERS-ZUREK 1982 — INSIDE THE CUT)</div>
+    <div class="row"><label>state angle θ (α=cosθ, β=sinθ, degrees)</label><input type="range" id="qth" min="0" max="90" step="5" value="25"><span class="val" id="qthv">25°</span></div>
+    <div class="row"><label>the bit-flip lands on qubit</label><input type="range" id="qerr" min="1" max="3" step="1" value="2"><span class="val" id="qerrv">qubit 2</span></div>
+    <button class="walkbtn" onclick="runQEC()">RUN THE CODE</button>
+    <button class="walkbtn ghost" onclick="runQEC(true)">RUN RAW (NO CODE)</button>
+    <div class="out" id="qecout">—</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 5 · TELEPORTATION ═══════════════ -->
+<div class="card" id="c5">
+  <div class="kick">CUT 05 — QUANTUM INFORMATION</div>
+  <h2>QUANTUM TELEPORTATION</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: BENNETT ET AL. 1993 — A STATE RIDES AN EPR PAIR + TWO BITS, NO CLONING, NO SUPERLUMINAL TRICK</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    An unknown quantum state is transmitted exactly using two classical bits and one shared entangled pair — the original is destroyed, nothing travels faster than light.</div>
+  <div class="steps" id="w5">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(5)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(5)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (EPR 1935 × BELL 1964 × FRIEDMAN-CLAUSER 1972 × ASPECT 1981-82)</div>
+    <div class="row"><label>state angle θ (degrees)</label><input type="range" id="tth" min="0" max="360" step="5" value="30"><span class="val" id="tthv">30°</span></div>
+    <button class="walkbtn" onclick="runTP()">TELEPORT IT</button>
+    <div class="out" id="tpout">—</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 6 · GRAVITATIONAL WAVES ═══════════════ -->
+<div class="card" id="c6">
+  <div class="kick">CUT 06 — RELATIVITY</div>
+  <h2>GRAVITATIONAL WAVES · THE PROOF WAS ALREADY IN 1982</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: THE INTERFEROMETER HEARD A MERGER — 2015 · h ~ 10⁻²¹</div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    Spacetime carries transverse quadrupole strain waves; a binary's orbit decays through them (period falling ~76 μs/yr); Michelson-scale interferometry can hear them from Earth.</div>
+  <div class="steps" id="w6">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(6)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(6)">CLEAR</button>
+  <div class="works">
+    <div class="lbl">THE WORKS — LIVE (EINSTEIN 1916/1918 QUADRUPOLE × PETERS 1964 × HULSE-TAYLOR 1974 × TAYLOR-WEISBERG 1982)</div>
+    <div class="row"><label>chirp mass M<sub>c</sub> (M☉)</label><input type="range" id="gmc" min="0.8" max="1.6" step="0.01" value="1.16"><span class="val" id="gmcv">1.16 M☉</span></div>
+    <div class="row"><label>orbital period P<sub>b</sub> (hours)</label><input type="range" id="gpb" min="2" max="24" step="0.1" value="7.75"><span class="val" id="gpbv">7.75 h</span></div>
+    <div class="row"><label>eccentricity e</label><input type="range" id="ge" min="0" max="0.9" step="0.01" value="0.617"><span class="val" id="gev">0.617</span></div>
+    <button class="walkbtn" onclick="calcGW()">PREDICT THE DECAY</button>
+    <div class="out" id="gwout">—</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 7 · GRAPHENE ═══════════════ -->
+<div class="card" id="c7">
+  <div class="kick">CUT 07 — CONDENSED MATTER</div>
+  <h2>GRAPHENE · THE MASSLESS DIRAC SHEET</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: FLAT CARBON IN HAND — 2004 · MASSLESS DISPERSION · ANOMALOUS QUANTUM TRANSPORT <span class="edge">AT THE EDGE OF THE CUT</span></div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    A one-atom-thick carbon honeycomb is a real crystal with electrons moving as massless Dirac fermions: linear bands at K/G, high mobility, half-integer quantum Hall.</div>
+  <div class="steps" id="w7">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(7)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(7)">CLEAR</button>
+</div>
+
+<!-- ═══════════════ 8 · HIGH-Tc ═══════════════ -->
+<div class="card" id="c8">
+  <div class="kick">CUT 08 — CONDENSED MATTER</div>
+  <h2>HIGH-T<sub>c</sub> SUPERCONDUCTIVITY</h2>
+  <div class="meta">THE NEVER-HAPPENED RESULT: COPPER-OXIDE PLANES SUPERCONDUCT ABOVE ALL BCS LIMITS — 1986 · d-WAVE PAIRING <span class="edge">AT THE EDGE OF THE CUT</span></div>
+  <div class="future"><span class="who">THE RESULT TO RE-DERIVE (RED ACT)</span><br>
+    Layered oxides superconduct far above the conventional pair-binding ceiling; the pairing is anisotropic (d-wave) and grows from strong local repulsion, not phonon glue.</div>
+  <div class="steps" id="w8">THE PRE-1984 DERIVATION — press DERIVE.</div>
+  <button class="walkbtn" onclick="walk(8)">DERIVE</button>
+  <button class="walkbtn ghost" onclick="clearWalk(8)">CLEAR</button>
+</div>
+
+<footer>EVERY STEP ABOVE CITES WORK DATED ≤ 1983 · THE CUT HOLDS · OROBOROS ANTHROPIC — THE EYE</footer>
+
+<script>
+/* THE GLASS THEME PERSIST — the faces share one mode (the black ⇄ white) */
+try{ if((localStorage.getItem("glass.theme") || "light") === "dark") document.body.classList.add("dark"); }catch{}
+/* ── derivation walkers: number the steps, cite ≤1983 only ── */
+var W = {};
+function clearWalk(i){ document.getElementById("w"+i).innerHTML = "THE PRE-1984 DERIVATION — press DERIVE."; }
+function walk(id){
+  const box = document.getElementById("w"+id);
+  const data = W[id];
+  if(!data) return;
+  box.innerHTML = "";
+  let k = 0;
+  data.forEach(step => {
+    k++;
+    const p = document.createElement("div");
+    p.innerHTML = '<span class="n">'+k+" · </span>" + step + '<br>';
+    box.appendChild(p);
+  });
+  box.insertAdjacentHTML("beforeend",
+    '<span class="n">RESULT — </span><span class="cite">the never-happened target, reached with ≤1983 tools only.</span>');
+}
+
+W[1] = [
+  "<b>The spacetime of a uniform vacuum.</b> The field equation admits a constant term: R<sub>μν</sub> − ½Rg<sub>μν</sub> + Λg<sub>μν</sub> = (8πG/c⁴)T<sub>μν</sub> — <span class='cite'>Einstein 1917</span>.",
+  "<b>The vacuum has stress.</b> For Λ, T<sub>μν</sub> ≡ −(Λc⁴/8πG)g<sub>μν</sub> ⇒ uniform density ρ<sub>Λ</sub> with pressure p = −ρ<sub>Λ</sub>c² — <span class='cite'>Zel'dovich 1967–68: Λ is the vacuum's own stress tensor</span>.",
+  "<b>Perfect-fluid cosmology with Λ.</b> The homogeneous-isotropic metric, a= a(t): the Friedmann equations — H² = (8πG/3)ρ<sub>m</sub> + Λc²/3 − kc²/a², and ä/a = −(4πG/3)(ρ + 3p/c²) + Λc²/3 — <span class='cite'>Friedmann 1922; Lemaître 1927; standard by Weinberg 1972</span>.",
+  "<b>Negative pressure pushes.</b> Insert p<sub>Λ</sub> = −ρ<sub>Λ</sub>c²: ä/a = +(Λc²/3) &gt; 0 for matter-free — <b>acceleration</b>. De Sitter's 1917 empty solution expands exponentially: a ∝ e^{Ht} — <span class='cite'>de Sitter 1917; Eddington/Lemaître 1930s restart-from-Λ debates</span>.",
+  "<b>Where the distance-redshift turns.</b> Distant standard candles in Λ&lt;0 universes are brighter than Ω<sub>Λ</sub>&gt;0 allows; the luminosity distance d<sub>L</sub>(z) = (c(1+z)/H<sub>0</sub>)∫₀^z dz′/H(z′) with H²(z) = H₀²[Ω<sub>m</sub>(1+z)³ + Ω<sub>Λ</sub>] — the turn lives in the q(z) = −ä/aH² sign change at z ~ 0.5–1 — <span class='cite'>q deceleration formalism of Tolman/Kowal's 1981 SN Ia calibration</span>.",
+  "<b>The measurement plan, all pre-cut:</b> type Ia supernovae as one-parameter candles (rise-time/brightness correlation, scattered ~0.4–0.6 mag in Kowal's 1981 Hubble diagram; Baade 1952's recalibration of the distance ladder). Push the search to z ≥ 0.3 with wide-field plates/CCDs and the sign of q<sub>0</sub> = ½Ω<sub>m</sub> − Ω<sub>Λ</sub> is decided.",
+  "<b>The conclusion the cut forbids saying:</b> Ω<sub>Λ</sub> ≈ 0.7 ⇒ q₀ ≈ −0.55 ⇒ expansion accelerating ⇒ ~70% of the universe is negative-pressure vacuum. Every equation above is ≤1972."
+];
+W[2] = [
+  "<b>The flavor puzzle.</b> The weak eigenstates (ν<sub>e</sub>, ν<sub>μ</sub>) need not align with the mass eigenstates (ν<sub>1</sub>, ν<sub>2</sub>): ν<sub>α</sub> = Σ<sub>i</sub> U<sub>αi</sub>ν<sub>i</sub> — <span class='cite'>Maki–Nakagawa–Sakata 1962</span>.",
+  "<b>Oscillations follow from quantum propagation.</b> Two mass eigenstates beating: P(ν<sub>e</sub>→ν<sub>x</sub>) = sin²2θ · sin²(Δm²c³L/4ℏE) ≡ sin²2θ · sin²(1.27 Δm²[eV²]·L[km]/E[GeV]) — <span class='cite'>Pontecorvo 1957 (ν↔ν̄), 1967 (solar flavor prediction: “the Sun does not know about the μ-neutrino”)</span>.",
+  "<b>The anomaly predates the cut.</b> The Homestake chlorine detector has run since the late 1960s: the Sun's electron-neutrino flux is a fraction of the standard-solar-model flux — <span class='cite'>Davis &amp; Harmer: ~⅓ of Bahcall's 1968 ⁸B prediction</span>.",
+  "<b>Fit the deficit.</b> For solar L·E: the oscillation phase is ≫1, so the energy-average kills the sin²: average P = ½ sin²2θ. Choose sin²2θ ~ 0.7–0.9 with Δm² ~ 10⁻¹⁰–10⁻⁵ eV² — the observed ⅓ requires substantial mixing, <b>therefore Δm² ≠ 0, therefore ν carry mass</b>.",
+  "<b>Independent confirmation the cut already had in reach:</b> atmospheric ν<sub>μ</sub>/ν<sub>e</sub> ratios in shallow underground experiments (the ν<sub>μ</sub> deficit pattern with zenith angle — the detector technology — iron/glass calorimeters — all pre-cut). Gallium radiochemical proposals (Ga–Ge, Kuzmin school, late 1970s) extend the threshold below <sup>7</sup>Be.",
+  "<b>Conclusion:</b> mass-splitting oscillations explain every deficit; the neutrino is not massless; Δm²₁₂ ~ 10⁻⁵–10⁻⁴·⁵ eV² from the parameter fit — with nothing newer than 1968 hardware and 1962 formalism."
+];
+W[3] = [
+  "<b>Black holes have entropy.</b> First law of horizon mechanics + surface gravity: S<sub>BH</sub> = k c³A/(4ℏG) — <span class='cite'>Bardeen–Carter–Hawking 1973; Hawking 1974–75 (the temperature T = ℏc³/8πGMk)</span>.",
+  "<b>Entropy is information capacity.</b> The hole's entropy counts distinct internal states — S = k ln(N): the hole of area A memorizes e^{A/4ℓ<sub>P</sub>²} states — <span class='cite'>Bekenstein 1972–73</span>.",
+  "<b>Bound beats bulk.</b> The Bekenstein bound S ≤ 2πRE/(ℏc) is saturated only by the hole (E = Mc², R = 2GM/c² → S ∝ M²· G²M²... area law). Compress anything into a region and the max entropy is achieved at horizon formation — <b>capacity scales as A, never V</b>.",
+  "<b>The counting.</b> Each ℓ<sub>P</sub>² of horizon holds one bit/4 — a PLANCK-SCALE SCREEN. So a region's full state is a boundary state; volume evolution = boundary evolution.",
+  "<b>Gravity as the screen's gauge (the cut stops at the door):</b> a gravity theory in d+1 bulk ↔ a non-gravitational theory on the d-boundary was the '93–'97 formalization — but every ingredient above (horizon entropy, area scaling, the bound) is ≤1975."
+];
+W[4] = [
+  "<b>The classical seed.</b> Redundant encoding + syndrome diagnosis: k logical bits in n physical bits with parity checks; correct single errors — <span class='cite'>Shannon 1948; Hamming 1950</span>.",
+  "<b>The quantum obstruction.</b> You can't clone (|ψ⟩ can't be copied) — <span class='cite'>Wootters–Zurek 1982</span> — so naive duplication fails. AND measurement destroys superposition.",
+  "<b>The loophole (all pre-1984 ingredients).</b> Clone the CLASSICAL correlations, not the state: |ψ⟩=α|0⟩+β|1⟩ → E₁|000⟩/√… encode into GHZ-like entangled space (α|000⟩+β|111⟩)/√… with CNOTs (controlled ops are 1930s math: tensor contractions) — an ENCODED superposition carries α,β redundantly without cloning either component.",
+  "<b>Syndrome without reading data.</b> Measure PARITY operators (Z₁Z₂, Z₂Z₃ — commuting stabilizer-like observables; simultaneous measurability from Pauli algebra 1927): outcomes distinguish which qubit flipped WITHOUT collapsing α|000⟩+β|111⟩ (both terms have the same parities).",
+  "<b>Correct</b> by applying Pauli X on the diagnosed qubit — superposition restored exactly.",
+  "<b>Phase flips close the set.</b> In the {|±⟩} basis a Z error IS a bit flip (Hadamard-style basis rotation is plain QM) → the full Pauli set {X,Z} correctable by concatenating the two codes: the 9-qubit union = 3 bits-for-flips × 3 for-phases. Error discretization theorem: the Pauli algebra (1927) reduces ANY error to {I,X,Y,Z} — so this code class covers everything. Scaling vs decoherence follows Shannon's argument verbatim."
+];
+W[5] = [
+  "<b>Shared entanglement.</b> Alice and Bob pre-share (|00⟩+|11⟩)/√2 — EPR 1935; its nonlocal correlations are a MEASURED quantity — <span class='cite'>Freedman–Clauser 1972; Aspect 1981–82</span>.",
+  "<b>The full state factorizes.</b> |ψ⟩₁ ⊗ |Φ⁺⟩<sub>23</sub> rearranges in the Bell basis of 1&amp;2: |ψ⟩⊗|Φ⁺⟩ = ½[ |Φ⁺⟩₁₂ (α|0⟩+β|1⟩)₃ + |Φ⁻⟩₁₂ (α|0⟩−β|1⟩)₃ + |Ψ⁺⟩₁₂ (β|0⟩+α|1⟩)₃ + |Ψ⁻⟩₁₂ (β|0⟩−α|1⟩)₃ ] — pure algebra (Bell 1964's basis).",
+  "<b>The protocol.</b> Alice measures qubits 1&amp;2 in the Bell basis → she obtains 2 classical bits AND destroys her copy (the original state is gone from the lab: no-cloning preserved — Wootters–Zurek 1982).",
+  "<b>Bob's conditional unitary.</b> Each 2-bit string selects the Pauli correction on qubit 3: 00→I · 01→X · 10→Z · 11→XZ — after which his qubit is EXACTLY α|0⟩+β|1⟩ for the input the user picks.",
+  "<b>The accounting kills the loopholes:</b> matter/energy moved: none. Light-speed violation: none (Bob needs the classical bits). Fidelity: unity. Nothing in the derivation needs anything after 1983 — only the resolve to combine Bell + EPR + a controlled flip."
+];
+W[6] = [
+  "<b>The prediction.</b> Linearized GR admits transverse quadrupole strain waves at c: h = ΔL/L — <span class='cite'>Einstein 1916, the radiation-reaction quadrupole formula Einstein 1918 (corrected through Eddington 1922, EIH rigor — settled for the slow-motion case by the 1957 Chapel Hill consensus + Weber/Wheeler 1950s treatments)</span>.",
+  "<b>The binary energy loss.</b> Orbit decay from the quadrupole luminosity: dP<sub>b</sub>/dt = −(192π/5)(2π/P<sub>b</sub>)^{5/3}(G M<sub>c</sub>/c³)^{5/3} f(e) — <span class='cite'>Peters &amp; Mathews 1963–64, f(e)=(1+73e²/24+37e⁴/96)(1−e²)^{−7/2}</span>.",
+  "<b>The laboratory came with the cut already open.</b> The binary pulsar PSR B1913+16 discovered 1974 (<span class='cite'>Hulse–Taylor 1974, Nobel 1993</span>) — timing it gives P<sub>b</sub> = 7.7519 h with microsecond precision and e = 0.617.",
+  "<b>The confirmation is pre-1984:</b> the orbital period is FALLING by ≈ 76 μs/year, published <span class='cite'>Taylor–Weisberg 1982</span> — matching the ≤1983 quadrupole toolbox after galactic-motion corrections. Gravitational waves exist; two neutron stars spiral because they radiate them. Nothing about this needs a 21st-century detector.",
+  "<b>The detector was on the drawing board inside the cut:</b> strain sensitivity: the interferometric detector proposal — a Michelson topology (1887 optics!) with long arms, multi-pass delay lines, seismic isolation stacks — <span class='cite'>Weiss 1972 MIT quarterly report</span>; bar resonant detectors 1960s (Weber) already read h ~ 10⁻¹⁸ at resonance but with narrow bandwidth.",
+  "<b>Scale check:</b> h ~ (G/c⁴)(E<sub>orb</sub>/R): for the Hulse-Taylor binary at ~10 kpc and a coalescing ~30+30 M☉ compact binary at hundreds of Mpc, the last-cycle strain reaches ~10⁻²¹ — the number the interferometer design (all ≤1982) was built to reach."
+];
+W[7] = [
+  "<b>The band structure is computed.</b> Tight-binding on the honeycomb: two carbon sites per cell → two bands touching at the BZ corners with LINEAR dispersion E ± ℏv<sub>F</sub>k — <span class='cite'>Wallace 1947 (the π-bands; v<sub>F</sub> ~ 10⁸ cm/s); Slonczewski–Weiss–McClure 1958 refinement</span>.",
+  "<b>Massless Dirac transport.</b> Near K/G the effective Hamiltonian is the 2×2 Dirac form (Dirac 1928; Pauli 1927 algebra): pseudospin chirality, zero effective mass — with consequences (Klein tunneling) derivable in the 1928 mathematics.",
+  "<b>The objection.</b> A 2D crystal melts by long-wavelength fluctuations at any T&gt;0 — <span class='cite'>Peierls 1935; Landau 1937; Mermin–Wagner 1966–68</span>.",
+  "<b>The pre-cut escape hatch —</b> the theorem forbids PERFECT long-range order of POSITIONS, but a membrane that samples out-of-plane curvature ripples can keep a finite orientational correlation length while staying a rigid sheet classically — the anharmonic stretch-bend coupling (Landau phonon theory) is the knob. This is where the cut is THIN: making free-standing graphene was post-cut engineering. The physics verdict: Wallace's massless dispersion is 100% pre-1984; stabilization is at-the-edge.",
+  "<b>How it would be made with the dead toolbox:</b> graphite's interlayer binding is weak (∼ 40 meV/atom, van der Waals) — mechanical cleavage to a single layer is simply sticking-tape exfoliation (Scotch tape, 1930s); identification = optical contrast + Raman (single-layer signature of the G band/2D band shape is a one-lattice-dynamics calculation — Raman scattering in crystals dates to 1928, Raman himself)."
+];
+W[8] = [
+  "<b>The pairing symmetry from group theory alone.</b> On a square lattice with strong onsite repulsion, the singlet wavefunction must vanish on-site → lowest angular-momentum pairing: d<sub>x²−y²</sub> (cos k<sub>x</sub> − cos k<sub>y</sub>): sign-changing gap with nodes along the diagonals — <span class='cite'>ordinary point-group/angular-momentum theory (Bethe; BCS 1957 machinery applied to the lattice)</span>.",
+  "<b>The glue is not glue.</b> A purely local repulsion that is SPIN-FLIP-symmetric favors nearest-neighbor singlets: the resonating-valence-bond liquid (spins paired in fluctuating singlets on the square lattice — <span class='cite'>Anderson 1973 — the Δ-state of the triangular analog and the square-lattice proposal</span>) — mobile carriers in an RVB background pair via exchange J (∼ superexchange, Anderson 1950s antiferromagnetism).",
+  "<b>The host.</b> Strongly hybridized Cu 3d<sub>x²−y²</sub>/O 2p<sub>σ</sub> planes: one-band Hubbard/triangle language (Hubbard 1963; Kanamori 1963; Gutzwiller 1963–65 — all pre-cut); J = 4t²/U (second-order hopping — perturbation theory).",
+  "<b>The ceiling argument.</b> The phonon ceiling (∼30 K) does NOT protect a magnonic/exchange pairing scale: if the scale is J ∼ 0.12 eV, T<sub>c</sub> order 10–100 K is permissible — so a family of oxide planes could beat the ceiling without violating anything pre-1984 — the cut's edge: the specific compound (BaLaCuO) is post-cut.",
+  "<b>The test it hands the pre-1984 lab:</b> d-wave symmetry ⇒ anisotropic penetration depth and gap nodes: measurable by 1982 tools (tetragonal crystals + microwave skin depth ± Josephson single-crystal interferometry — Clarke's 1970s experiments). At-the-edge: the material itself."
+];
+
+/* ── DARK/LIGHT ── */
+document.getElementById("darkb").onclick = () => { document.body.classList.toggle("dark"); try{ localStorage.setItem("glass.theme", document.body.classList.contains("dark") ? "dark" : "light"); }catch{} };
+
+/* ── CUT 1 · dark energy ── */
+function _h(z, om, ol){ return Math.sqrt(om*Math.pow(1+z,3) + ol + (1-om-ol)*Math.pow(1+z,2)); }
+function dlum(zstar, om, ol, h0){  /* d_L in Mpc, numeric Friedmann integral (Simpson) */
+  const n = 400, h = zstar/n; let s = 1.0/_h(0,om,ol) + 1.0/_h(zstar,om,ol);
+  for(let i=1;i<n;i++){ const z=i*h; s += (i%2? 4:2)/_h(z,om,ol); }
+  return (h/3.0) * s * (1+zstar) * 299792.458 / h0;
+}
+function plotDE(){
+  const om = +document.getElementById("om").value;
+  document.getElementById("ol").value = (1-om).toFixed(2);
+  document.getElementById("omv").textContent = om.toFixed(2);
+  document.getElementById("olv").textContent = (1-om).toFixed(2);
+  const h0 = +document.getElementById("h0").value;
+  document.getElementById("h0v").textContent = h0 + " km/s/Mpc";
+  const q0 = 0.5*om - (1-om);
+  const out = document.getElementById("deout");
+  out.textContent =
+    " Friedmann 1922 + Λ 1917 + vacuum stress 1967:\n" +
+    " q₀ = ½Ω_m − Ω_Λ = " + q0.toFixed(3) + "   " + (q0<0 ? "→ ACCELERATING (1998-sign, from 1917 math)" : "→ decelerating (the pre-1998 expectation)") + "\n" +
+    " d_L(z=0.5) = " + dlum(0.5,om,1-om,h0).toFixed(0) + " Mpc · d_L(z=1.0) = " + dlum(1,om,1-om,h0).toFixed(0) + " Mpc\n" +
+    " m(z) for SN Ia (M = −19.9, Kowal-calibration class): m(0.5) = " + (5*Math.log10(dlum(0.5,om,1-om,h0)*1e6/10) - 19.9).toFixed(2) + " mag";
+  /* plot */
+  const cv = document.getElementById("deplot"), cx = cv.getContext("2d");
+  const Wm = cv.width, Hm = cv.height;
+  cx.clearRect(0,0,Wm,Hm);
+  const pad = 46, zmax = 1.1;
+  const X = z => pad + (z/zmax)*(Wm-2*pad-10);
+  const mmax = 24, mmin = 5.8;
+  const Y = m => pad + (1 - (m-mmin)/(mmax-mmin))*(Hm-2*pad);
+  cx.strokeStyle = "rgba(100,100,95,.5)"; cx.beginPath(); cx.moveTo(X(0),Y(mmin)); cx.lineTo(X(0),Y(mmax)); cx.stroke();
+  cx.beginPath(); cx.moveTo(X(0), Y(mmin)); cx.lineTo(X(zmax), Y(mmin)); cx.stroke();
+  cx.fillStyle = document.body.classList.contains("dark") ? "#cfcfc8" : "#55554f";
+  cx.font = "700 15px Inter,system-ui";
+  cx.fillText("z →", X(zmax)-30, Y(mmin)+26);
+  cx.fillText("m", pad-24, pad+8);
+  const curve = (omv, olv, style, lbl) => {
+    cx.strokeStyle = style; cx.lineWidth = 3; cx.beginPath();
+    for(let i=0;i<=120;i++){
+      const z = i/120*zmax;
+      const m = 5*Math.log10(dlum(z,omv,olv,h0)*1e6/10) - 19.9;
+      const px = X(z), py = Y(m);
+      if(i===0) cx.moveTo(px,py); else cx.lineTo(px,py);
+    }
+    cx.stroke();
+  };
+  curve(om, 1-om, "#171716");              /* your Ω_Λ cut-choice */
+  curve(1, 0, "rgba(120,120,115,.7)");     /* Λ=0 decelerating reference */
+  curve(0.3, 0.7, "#e8e8e2");              /* the never-happened 1998 value */
+  cx.font = "700 15px Inter,system-ui";
+  cx.fillStyle = "#e8e8e2"; cx.fillText("Ω_Λ=0.7 · Ω_m=0.3 (the '98 curve)", X(0.62), Y(19.0));
+  cx.fillStyle = "rgba(120,120,115,.9)"; cx.fillText("Ω_Λ=0 (your pre-cut alternative)", X(0.62), Y(16.4));
+  cx.fillStyle = "#171716"; cx.fillText("your sliders", X(0.62), Y(20.6));
+}
+
+/* ── CUT 2 · neutrino ── */
+function calcNU(){
+  const th = +document.getElementById("nth").value;
+  const dm = Math.pow(10, +document.getElementById("ndm").value);
+  const L  = Math.pow(10, +document.getElementById("nl").value);
+  const E  = +document.getElementById("ne").value / 1000;   /* MeV→GeV */
+  document.getElementById("nthv").textContent = th + "°";
+  document.getElementById("ndmv").textContent = "10^(" + (+document.getElementById("ndm").value).toFixed(2) + ") eV²";
+  document.getElementById("nlv").textContent  = "10^" + (+document.getElementById("nl").value).toFixed(1) + " km";
+  document.getElementById("nev").textContent  = (+document.getElementById("ne").value) + " MeV";
+  const phase = 1.267 * dm * L / E;
+  const P = Math.pow(Math.sin(th*Math.PI/180), 2) * Math.pow(Math.sin(phase), 2);
+  const Pavg = Math.pow(Math.sin(th*Math.PI/180), 2) / 2;
+  document.getElementById("nuout").textContent =
+    " Pontecorvo 1957/67 + MNS 1962:\n" +
+    " phase = 1.267·Δm²·L/E = " + (phase>=100 ? phase.toExponential(2) : phase.toFixed(2)) + " — " +
+      (phase>=100 ? "≫ 2π → fully averaged for a solar/space baseline" : "interference visible") + "\n" +
+    " P(νe→νx) = " + P.toFixed(3) + "   (energy-average = ½sin²2θ = " + Pavg.toFixed(3) + ")\n" +
+    " Solar operating point: Davis sees ≈⅓ of the 1968 standard flux — a ½sin²2θ ≈ 0.6–0.8 disappearance\n" +
+    " fits with NO invention past 1968 ⇒ Δm² ≠ 0 ⇒ the neutrino HAS mass. The '98 result, from '57-'68 tools.";
+  document.getElementById("nuout").insertAdjacentHTML("afterend","");
+}
+
+/* ── CUT 3 · holography ── */
+function calcHOLO(){
+  const m10 = +document.getElementById("hm").value;
+  const M  = Math.pow(10, m10) * 1.989e30;             /* kg */
+  document.getElementById("hmv").textContent = "10^" + m10.toFixed(1) + " M☉";
+  const G = 6.67430e-11, c = 2.998e8, hbar = 1.0546e-34, k = 1.381e-23;
+  const Rs = 2*G*M/(c*c);
+  const A = 4*Math.PI*Rs*Rs;                            /* m² */
+  const S = k * c*c*c * A / (4*G*hbar);                 /* J/K */
+  const bits = S / (k*Math.LN2);
+  const lp2 = hbar*G/(c*c*c);  /* ℏG/c³ = ℓ_P² (m²) */
+  const planckSquares = A / lp2;
+  document.getElementById("holoout").textContent =
+    " Hawking 1974 entropy (Bardeen-Carter-Hawking 1973):\n" +
+    " Schwarzschild radius = " + (Rs>=1e3 ? Rs.toExponential(3) : Rs.toFixed(3)) + " m · horizon area A = " + A.toExponential(4) + " m² = " + planckSquares.toExponential(4) + " Planck squares\n" +
+    " S_BH = " + (S/k).toExponential(4) + " (dimensionless) = " + bits.toExponential(4) + " bits\n" +
+    " — the ENTIRE information capacity of the region sits on the SURFACE: one bit per four Planck areas,\n" +
+    " saturating the Bekenstein bound (1973). Nothing post-1983 was used: M and A alone decide it.\n";
+}
+
+/* ── CUT 4 · QEC: the 3-qubit bit-flip code, simulated ── */
+function runQEC(raw){
+  const th = +document.getElementById("qth").value;
+  document.getElementById("qthv").textContent = th + "°";
+  const errOn = +document.getElementById("qerr").value;
+  document.getElementById("qerrv").textContent = "qubit " + errOn;
+  const al = Math.cos(th*Math.PI/180), be = Math.sin(th*Math.PI/180);
+  const out = document.getElementById("qecout");
+  if(raw){
+    /* raw single qubit hit by X: |ψ>→ α|1>+β|0> — wrong amplitudes, no fix */
+    out.textContent =
+      " RAW (no encoding), X error on the qubit:\n" +
+      " state sent: α|0⟩+β|1⟩  α=" + al.toFixed(4) + " β=" + be.toFixed(4) + "\n" +
+      " state after the flip: β|0⟩+α|1⟩ — amplitudes Swapped — NO syndrome exists (no redundancy)\n" +
+      " measuring |0⟩ later: P(0)=β²=" + (be*be).toFixed(4) + " — the WRONG probability. " +
+      "Classical majority vote cannot help Wootters-Zurek 1982 forbids cloning.";
+    return;
+  }
+  /* encoded ( α<000| + β<111| )/√( |α|²+|β|² ) normalized already */
+  const g = Math.sqrt(al*al + be*be);
+  const A = al/g, B = be/g;
+  const states = ["000","111"];
+  let st = [ {amps:[A,B], str:ss3(0)}, ];  /* placeholder replaced below */
+  /* simulate: state = A|j=0> + B|j=1> over the two words 000/111 */
+  const flip = errOn - 1;   /* 0-based */
+  const applyX = (word, j) => word.split("").map((c,i)=> i===j ? (c==="0"?"1":"0") : c).join("");
+  const words = [ states[0], states[1] ];
+  const afterErr = words.map(w => applyX(w, flip));
+  /* syndrome via parities (eigenvalues of Z1Z2, Z2Z3 on each basis word) */
+  const par = (w) => [ w[0]===w[1] ? +1 : -1, w[1]===w[2] ? +1 : -1 ];
+  const sAfter = afterErr.map(par);
+  /* original syndromes: both (+1,+1) */
+  let diag = "none/undetermined";
+  if( sAfter[0][0]===-1 && sAfter[0][1]===1 && sAfter[1][0]===-1 && sAfter[1][1]===1 ) diag = 1;
+  else if( sAfter[0][0]===-1 && sAfter[0][1]===-1 && sAfter[1][0]===-1 && sAfter[1][1]===-1 ) diag = 2;
+  else if( sAfter[0][0]===1 && sAfter[0][1]===-1 && sAfter[1][0]===1 && sAfter[1][1]===-1 ) diag = 3;
+  const correctState = words.map(w => applyX(w, diag-1));
+  const fixed = (correctState[0]==="000" && correctState[1]==="111");
+  out.textContent =
+    " THE CODE (Shannon 1948 × Wootters-Zurek 1982 × Pauli 1927):\n" +
+    " logical |ψ_L⟩ = (α|000⟩ + β|111⟩)/1 ... α=" + A.toFixed(4) + " β=" + B.toFixed(4) + "\n" +
+    " X error lands on qubit " + errOn + " → words become " + afterErr[0] + " / " + afterErr[1] + "\n" +
+    " syndrome Z₁Z₂,Z₂Z₃ = (" + sAfter[0][0] + "," + sAfter[0][1] + ") → diagnose qubit " + diag + "\n" +
+    " correction X on qubit " + diag + " → words " + correctState[0] + " / " + correctState[1] + "  → " + (fixed ? "EXACT |ψ_L⟩ RESTORED" : "FAILED") + "\n" +
+    " the parity was measured WITHOUT collapsing α/β (both words agree in parity)\n" +
+    " measuring the logical later: P(0) = α² = " + (A*A).toFixed(4) + " — the intended probability.\n";
+}
+function ss3(i){ return i===0 ? "000" : "111"; }
+
+/* ── CUT 5 · teleportation ── */
+function runTP(){
+  const th = +document.getElementById("tth").value;
+  document.getElementById("tthv").textContent = th + "°";
+  const al = Math.cos(th*Math.PI/180), be = Math.sin(th*Math.PI/180);
+  /* outcomes: (Φ+ Φ− Ψ+ Ψ−) maps to Bob unitary (I, Z, X, XZ) */
+  const rows = [
+    ["Φ⁺", "00", "I",  "α|0⟩ + β|1⟩",  "exact"],
+    ["Φ⁻", "01", "Z",  "α|0⟩ − β|1⟩",  "exact up to the global − sign"],
+    ["Ψ⁺", "10", "X",  "α|1⟩ + β|0⟩",  "X applied → α|0⟩ + β|1⟩  exact"],
+    ["Ψ⁻", "11", "X·Z","−α|1⟩ + β|0⟩", "X·Z applied → β|0⟩ − α|1⟩ → exact up to a global sign"],
+  ];
+  let html = "";
+  for(const r of rows){
+    html += "<tr><th>" + r[0] + "</th><th>" + r[1] + "</th><th>" + r[2] + "</th><th>" + r[3] + "</th><th>" + r[4] + "</th></tr>";
+  }
+  const p04 = (0.25*100);
+  document.getElementById("tpout").innerHTML =
+    "state sent: α|0⟩ + β|1⟩ with α = cosθ = " + al.toFixed(4) + ", β = sinθ = " + be.toFixed(4) +
+    " · each Bell outcome carries p = " + p04.toFixed(0) + "% (the 2×2 unitary on the Bell pair is plain algebra — Bell 1964):" +
+    "<table class='q'><tr><th>Bell result (Alice)</th><th>2 classical bits</th><th>Bob holds</th><th>after the 2-bit-selected Pauli</th><th>note</th></tr>" + html + "</table>" +
+    "<br>nothing physical moved; Alice's copy died in her Bell measurement (no cloning, 1982); Bob needs the bits.";
+}
+
+/* ── CUT 6 · gravitational waves ── */
+function calcGW(){
+  const mc  = +document.getElementById("gmc").value;
+  const pbh = +document.getElementById("gpb").value;
+  const e   = +document.getElementById("ge").value;
+  document.getElementById("gmcv").textContent = mc.toFixed(2) + " M☉";
+  document.getElementById("gpbv").textContent = pbh.toFixed(2) + " h";
+  document.getElementById("gev").textContent  = e.toFixed(3);
+  const G = 6.67430e-11, c = 2.998e8, Msun = 1.989e30;
+  const Pb = pbh * 3600;
+  const Mc = mc * Msun;
+  const tG = G*Mc/(c*c*c);                              /* s */
+  const f = (1 - e*e); const e2 = e*e, e4 = e*e*e*e;
+  const fe = Math.pow(f, -3.5) * (1 + 73/24*e2 + 37/96*e4);
+  const pdot = -(192*Math.PI/5) * Math.pow(2*Math.PI/Pb, 5/3) * Math.pow(tG, 5/3) * fe;
+  const us_yr = pdot * 3.156e7 * 1e6;
+  document.getElementById("gwout").textContent =
+    " Einstein 1918 quadrupole × Peters-Mathews 1963-64:\n" +
+    " orbital decay Ṗ = " + pdot.toExponential(3) + " s/s = " + us_yr.toFixed(1) + " μs per year (galactic-motion effects add a few %)\n" +
+    " ORDER CHECK — the 1982 reality: PSR B1913+16's period falls ≈ 76 μs/yr (Taylor–Weisberg 1982)\n" +
+    " — the 1916–1964 toolbox PREDICTED the fall: gravitational waves are CONFIRMED pre-1984.\n" +
+    " last-orbit strain for a coalescing 30+30 M☉ binary at ~ hundreds of Mpc: h ~ G(E/R)/c⁴ ~ 10⁻²¹ —\n" +
+    " exactly the design target of Weiss's 1972 interferometric proposal (a Michelson with stacked isolation).\n";
+}
+
+/* init */
+plotDE(); calcNU(); calcHOLO(); runQEC(); runTP(); calcGW();
+</script>
+</body>
+</html>

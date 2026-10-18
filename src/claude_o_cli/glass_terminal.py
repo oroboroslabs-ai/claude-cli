@@ -11,8 +11,10 @@ from typing import Optional
 from rich import box
 from rich.align import Align
 from rich.console import Console, Group
+from rich.live import Live
 from rich.panel import Panel
 from rich.rule import Rule
+from rich.spinner import Spinner
 from rich.table import Table
 from rich.text import Text
 from rich.theme import Theme
@@ -34,12 +36,13 @@ from claude_o_cli.digital_art import (
     watermark_block,
     welcome_banner_lines,
 )
+from claude_o_cli.braille_art import render_welcome_art_image as render_mascot_art
 from claude_o_cli.terminal_agentic_loop import LAYERS, DPEV, layer_status
 
 CLEAR_THEME = Theme({
-    "cyan": "#00DCFF",
+    "cyan": "#D97757",
     "ice": "#E8F4FF",
-    "teal": "#40DCC4",
+    "teal": "#D97757",
     "silver": "#9CB0C4",
     "green": "#50F0B4",
     "white": "#ffffff",
@@ -59,6 +62,7 @@ class GlassTerminal:
         host = ollama_url.replace("https://", "").replace("http://", "")
         self.ollama_host = host
         self._streaming = False
+        self._live = None
         self.active_tab = "Chat"
 
     @staticmethod
@@ -185,9 +189,19 @@ class GlassTerminal:
         )
 
         self.console.print()
-        self.console.print(Rule(f"[dim {_rgb(SILVER)}]chat[/]", style=_rgb(STEEL)))
-        for line in watermark_block():
-            self.console.print(f"  {line}")
+        chat_body = Text()
+        for line in render_mascot_art():
+            chat_body.append_text(Text.from_markup(f"{line}\n"))
+        self.console.print(
+            Panel(
+                Align.left(chat_body),
+                title="chat",
+                subtitle="◆ CLAUDE-CLI · local Ollama",
+                border_style=_rgb(CYAN),
+                box=box.ROUNDED,
+                padding=(0, 1),
+            )
+        )
         self.console.print()
 
     def render_layers(self):
@@ -302,17 +316,36 @@ class GlassTerminal:
         header.append(" CLAUDE ", style=f"bold {_rgb(BG)} on {_rgb(CYAN)}")
         header.append(f"  {self._time()}", style=_rgb(SILVER))
         self.console.print(header)
-        self.console.print(f"  [italic {_rgb(TEAL)}]⟳ thinking...[/]")
+        spinner = Spinner("dots", text=Text.assemble(
+            ("working", f"italic {_rgb(TEAL)}"),
+            (" · Claude is generating · Crown 1272 Hz", f"dim {_rgb(SILVER)}"),
+        ), style=_rgb(TEAL))
+        self._live = Live(spinner, console=self.console, refresh_per_second=8, transient=True)
+        self._live.start()
         self.console.print("  ", end="")
 
     def assistant_token(self, token: str):
         if self._streaming:
+            if getattr(self, "_live", None):
+                self._live.stop()
+                self._live = None
             self.console.print(token, end="", style=_rgb(ICE), highlight=False)
 
     def assistant_end(self):
         if self._streaming:
+            if getattr(self, "_live", None):
+                self._live.stop()
+                self._live = None
             self.console.print()
-            self.console.print()
+            self.console.print(
+                Panel(
+                    Text.assemble(("response complete · ", f"dim {_rgb(SILVER)}"),
+                                  (self._time(), _rgb(SILVER))),
+                    border_style=_rgb(TEAL),
+                    box=box.ROUNDED,
+                    padding=(0, 1),
+                )
+            )
             self._streaming = False
 
     def read_prompt(self) -> str:

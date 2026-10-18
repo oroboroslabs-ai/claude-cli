@@ -98,7 +98,9 @@ do you have agent abilities
 
 ### Default model
 
-Out of the box the UI defaults to `claude-opus-4.8:latest` if installed. Switch with `/model` to any Ollama tag you have pulled.
+The terminal and glass UI default to `deepseek-prime-cl-1q5duo5:fast` through the local
+Ollama service at `http://127.0.0.1:11434`. Switch with `/model` to any Ollama tag you
+have pulled.
 
 ## Architecture
 
@@ -113,6 +115,18 @@ claude-cli  →  run_cli.py (Flask, port 5000)
 - **Ollama:** http://127.0.0.1:11434
 - **Repo:** https://github.com/oroboroslabs-ai/claude-cli
 - **Pages:** https://oroboroslabs-ai.github.io/anthropic/cli.html
+
+## Local Orca MCP bridge
+
+`mcp_stdio_bridge.py` is an on-demand stdio MCP server; each MCP client launches its
+own process, so it does not use the glass UI's port or leave a background service
+running. It exposes the shared Claude CLI host tools and `orca_cli`, which invokes
+the local Orca CLI with an argument array and no shell.
+
+Configure clients with the Python interpreter and bridge script as the stdio server
+command. Set `ORCA_CLI_COMMAND` to the Orca executable if it is not on the client's
+`PATH`. Claude CLI's terminal runtime also registers `orca_cli` directly, so its
+Ollama-backed chat can call Orca without relying on an HTTP MCP gateway.
 
 ## Think levels
 
